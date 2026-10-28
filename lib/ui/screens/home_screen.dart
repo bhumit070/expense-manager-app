@@ -10,6 +10,7 @@ import '../widgets/common.dart';
 import 'budgets_screen.dart';
 import 'categories_screen.dart';
 import 'reminders_screen.dart';
+import 'data_flows.dart';
 import 'settings_screen.dart';
 import 'sources_screen.dart';
 import 'transactions_screen.dart';
@@ -181,6 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
+        const BackupBanner(padding: EdgeInsets.only(top: 16)),
         SectionHeader('Where it went', action: 'Insights', onAction: widget.onOpenInsights),
         AppCard(
           child: cats.isEmpty

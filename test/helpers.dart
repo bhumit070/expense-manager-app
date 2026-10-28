@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:expense_manager/core/dates.dart';
 import 'package:expense_manager/data/database.dart';
@@ -15,11 +17,19 @@ import 'package:flutter_test/flutter_test.dart';
 final kNow = DateTime(2026, 10, 28, 21, 41);
 
 class FakeFiles implements FileGateway {
+  /// Shortcut: when set, [pickFile] returns it as `import.csv`.
   String? csv;
+
+  /// Returned by [pickFile] when [csv] is null.
+  PickedFile? picked;
+  List<String>? lastExtensions;
   final saved = <(String, List<int>, String)>[];
 
   @override
-  Future<String?> pickCsvText() async => csv;
+  Future<PickedFile?> pickFile({List<String>? extensions}) async {
+    lastExtensions = extensions;
+    return csv != null ? PickedFile('import.csv', Uint8List.fromList(utf8.encode(csv!))) : picked;
+  }
 
   @override
   Future<String> saveAndShare(String name, List<int> bytes, String mimeType) async {

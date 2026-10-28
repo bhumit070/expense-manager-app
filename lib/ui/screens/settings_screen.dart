@@ -1,19 +1,16 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 
 import '../../core/dates.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
 import '../../data/transactions_repo.dart';
-import '../../services/csv.dart';
 import '../../services/pdf_report.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
 import 'categories_screen.dart';
+import 'data_flows.dart';
 import 'diagnostics_screen.dart';
-import 'import_screen.dart';
 import 'security_screen.dart';
 import 'sources_screen.dart';
 
@@ -75,12 +72,6 @@ class SettingsScreen extends StatelessWidget {
     ),
   );
 
-  Future<void> _exportCsv(BuildContext context, AppState app) async {
-    final rows = app.txns.list(const TxnFilter(), limit: 1 << 30);
-    final path = await app.files.saveAndShare('transactions-${isoDateTime(app.now()).substring(0, 10)}.csv', utf8.encode(encodeCsv(rows)), 'text/csv');
-    if (context.mounted) showSnack(context, 'Exported ${rows.length} transactions to $path');
-  }
-
   Future<void> _exportPdf(BuildContext context, AppState app) async {
     final p = Period.of(PeriodKind.month, app.now());
     final bytes = await buildPdfReport(
@@ -90,12 +81,6 @@ class SettingsScreen extends StatelessWidget {
       transactions: app.txns.list(TxnFilter(from: p.start, to: p.end), limit: 5000),
     );
     await app.files.saveAndShare('report-${p.start.year}-${p.start.month}.pdf', bytes, 'application/pdf');
-  }
-
-  Future<void> _import(BuildContext context, AppState app) async {
-    final text = await app.files.pickCsvText();
-    if (text == null || !context.mounted) return;
-    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ImportScreen(csvText: text)));
   }
 
   Future<void> _toggleLocation(BuildContext context, AppState app, bool on) async {
@@ -148,6 +133,7 @@ class SettingsScreen extends StatelessWidget {
               ],
             ),
           ),
+          const BackupBanner(padding: EdgeInsets.only(top: 12)),
           group('Profile', [
             ListTile(
               key: const Key('edit-name'),
@@ -206,15 +192,30 @@ class SettingsScreen extends StatelessWidget {
             const ListTile(leading: Icon(Icons.calendar_today_outlined), title: Text('Week starts on'), subtitle: Text('Weekly budgets run Monday → Sunday'), trailing: Text('Monday')),
           ]),
           group('Data', [
-            ListTile(key: const Key('export-csv'), leading: const Icon(Icons.table_chart_outlined), title: const Text('Export CSV'), onTap: () => _exportCsv(context, app)),
+            ListTile(
+              key: const Key('export-csv'),
+              leading: const Icon(Icons.table_chart_outlined),
+              title: const Text('Export CSV'),
+              subtitle: const Text('Transactions, investments, debts, budgets'),
+              onTap: () => exportCsvFlow(context, app),
+            ),
             ListTile(key: const Key('export-pdf-month'), leading: const Icon(Icons.picture_as_pdf_outlined), title: const Text('Export this month as PDF'), onTap: () => _exportPdf(context, app)),
             ListTile(
               key: const Key('import-csv'),
               leading: const Icon(Icons.file_upload_outlined),
-              title: const Text('Import CSV'),
-              subtitle: const Text('Bank statement or a previous export'),
-              onTap: () => _import(context, app),
+              title: const Text('Import CSV or PDF statement'),
+              subtitle: const Text('HDFC, SBI, ICICI and most bank PDFs, or a CSV export'),
+              onTap: () => importFlow(context, app),
             ),
+            ListTile(
+              key: const Key('backup-now'),
+              leading: const Icon(Icons.backup_outlined),
+              title: const Text('Back up now'),
+              subtitle: const Text('One .ledger file, optional password'),
+              onTap: () => backUpFlow(context, app),
+            ),
+            ListTile(key: const Key('restore-backup'), leading: const Icon(Icons.settings_backup_restore), title: const Text('Restore from backup'), onTap: () => restoreFlow(context, app)),
+            const BackupIntervalTile(),
           ]),
           group('Privacy & permissions', [
             SwitchListTile(

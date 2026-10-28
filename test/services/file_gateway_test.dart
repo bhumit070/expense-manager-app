@@ -40,6 +40,7 @@ base class FakeFile extends PlatformFile {
 class FakePicker extends FilePickerPlatform with MockPlatformInterfaceMixin {
   List<PlatformFile> result = [];
   List<String>? extensions;
+  FileType? type;
 
   @override
   Future<List<PlatformFile>> pickFiles({
@@ -56,6 +57,7 @@ class FakePicker extends FilePickerPlatform with MockPlatformInterfaceMixin {
     WebOptions webOptions = const WebOptions(),
   }) async {
     extensions = allowedExtensions;
+    this.type = type;
     return result;
   }
 }
@@ -87,14 +89,22 @@ void main() {
   });
   tearDown(() => tmp.deleteSync(recursive: true));
 
-  test('pickCsvText returns decoded text or null when cancelled', () async {
+  test('pickFile returns name and bytes, or null when cancelled', () async {
     final picker = FakePicker();
     FilePickerPlatform.instance = picker;
     final gw = PlatformFileGateway(share: SharePlus.custom(FakeShare()));
-    expect(await gw.pickCsvText(), isNull);
+    expect(await gw.pickFile(extensions: const ['csv', 'pdf']), isNull);
+    expect(
+      [picker.type, picker.extensions],
+      [
+        FileType.custom,
+        ['csv', 'pdf'],
+      ],
+    );
     picker.result = [FakeFile(Uint8List.fromList(utf8.encode('a,b\n₹,2')))];
-    expect(await gw.pickCsvText(), 'a,b\n₹,2');
-    expect(picker.extensions, ['csv']);
+    final f = (await gw.pickFile())!;
+    expect([f.name, f.extension, f.text], ['x.csv', 'csv', 'a,b\n₹,2']);
+    expect([picker.type, picker.extensions], [FileType.any, null]);
   });
 
   test('shareText opens the share sheet with text only', () async {
