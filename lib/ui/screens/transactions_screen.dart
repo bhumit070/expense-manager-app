@@ -6,6 +6,7 @@ import '../../data/models.dart';
 import '../../data/transactions_repo.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
+import '../widgets/category_picker.dart';
 import '../widgets/common.dart';
 import 'txn_detail_screen.dart';
 
@@ -136,7 +137,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   selected: _filter.categoryIds.isEmpty,
                   onTap: () => setState(() => _filter = _filter.copyWith(categoryIds: {})),
                 ),
-                for (final cat in cats) ...[
+                for (final cat in cats.where((x) => !x.isChild)) ...[
                   const SizedBox(width: 8),
                   Pill(
                     cat.name,
@@ -265,7 +266,8 @@ class _FilterSheetState extends State<FilterSheet> {
   Widget build(BuildContext context) {
     final c = context.colors;
     final q = _catQuery.toLowerCase();
-    final cats = widget.app.catalog.categories().where((x) => x.name.toLowerCase().contains(q)).toList();
+    final all = widget.app.catalog.categories();
+    final cats = all.where((x) => categoryLabel(x, all).toLowerCase().contains(q)).toList();
     Widget label(String t) => Padding(
       padding: const EdgeInsets.only(top: 18, bottom: 10),
       child: Text(
@@ -315,7 +317,7 @@ class _FilterSheetState extends State<FilterSheet> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: [for (final cat in cats) Pill(cat.name, dot: Color(cat.color), selected: _cats.contains(cat.id), onTap: () => _toggle(_cats, cat.id))],
+            children: [for (final cat in cats) Pill(categoryLabel(cat, all), dot: Color(cat.color), selected: _cats.contains(cat.id), onTap: () => _toggle(_cats, cat.id))],
           ),
           label('Amount (₹)'),
           Row(
