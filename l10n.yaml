@@ -1,0 +1,9 @@
+# flutter gen-l10n reads this; `flutter pub get` regenerates lib/l10n/app_localizations*.dart
+# from the ARB files. The output is committed and formatted at the repo's width.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-dir: lib/l10n
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false
+format: true

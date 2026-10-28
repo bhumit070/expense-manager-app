@@ -109,8 +109,8 @@ jobs:
             echo "::warning::ANDROID_KEYSTORE_BASE64 not set — APK will be signed with the debug key"
           fi
       - run: flutter pub get
-      - run: flutter build apk --release --build-name=${{ needs.version.outputs.name }} --build-number=${{ needs.version.outputs.build }}
-      - run: mv build/app/outputs/flutter-apk/app-release.apk expense-manager-${{ needs.version.outputs.tag }}.apk
+      - run: flutter build apk --release --flavor prod --build-name=${{ needs.version.outputs.name }} --build-number=${{ needs.version.outputs.build }}
+      - run: mv build/app/outputs/flutter-apk/app-prod-release.apk expense-manager-${{ needs.version.outputs.tag }}.apk
       - uses: actions/upload-artifact@v4
         with:
           name: apk
@@ -159,14 +159,14 @@ jobs:
       - name: Build signed IPA
         if: steps.signing.outputs.signed == 'true'
         run: |
-          flutter build ipa --release \
+          flutter build ipa --release --dart-define=FLAVOR=prod \
             --build-name=${{ needs.version.outputs.name }} --build-number=${{ needs.version.outputs.build }} \
             --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
           mv build/ios/ipa/*.ipa expense-manager-${{ needs.version.outputs.tag }}.ipa
       - name: Build unsigned IPA
         if: steps.signing.outputs.signed != 'true'
         run: |
-          flutter build ios --release --no-codesign \
+          flutter build ios --release --no-codesign --dart-define=FLAVOR=prod \
             --build-name=${{ needs.version.outputs.name }} --build-number=${{ needs.version.outputs.build }}
           mkdir -p Payload
           cp -R build/ios/iphoneos/Runner.app Payload/

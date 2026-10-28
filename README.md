@@ -37,12 +37,27 @@ Performance choices:
 ## Commands
 
 ```bash
-flutter run                 # run on a device or emulator
+flutter run --flavor dev    # Android: dev flavor (installs as "Expense Manager Dev")
+flutter run --flavor prod   # Android: production build
+flutter run --dart-define=FLAVOR=dev   # iOS: no Xcode schemes, the flavor is a dart-define
 tool/verify.sh              # format + analyze + tests + 100% coverage gate
 flutter test --coverage && dart run tool/check_coverage.dart
 ```
 
 `tool/check_coverage.dart` fails unless **every line in `lib/` is covered**. It also fails if any file under `lib/` was never loaded by a test, so untested files can't hide.
+
+## Flavors
+
+| | Android | iOS | Database | Notes |
+|---|---|---|---|---|
+| **dev** | `--flavor dev` → `com.bhumit070.expense_manager.dev`, "Expense Manager Dev" | `--dart-define=FLAVOR=dev` | `expense_manager_dev.db` | DEV corner banner |
+| **prod** | `--flavor prod` | default | `expense_manager.db` | what CI releases |
+
+Android has product flavors, so `flutter run` / `flutter build apk` on Android needs `--flavor`. The Dart side reads Flutter's `appFlavor` first and falls back to the `FLAVOR` dart-define (default `prod`), so dev and prod data never mix on one device.
+
+## Crash and error log
+
+Framework errors and uncaught async errors are appended to `<app documents>/logs/errors.log` (rotated at 256 KB, one previous file kept). Nothing is sent anywhere. **Settings → Support → Diagnostics** shows the log and lets the user share or clear it.
 
 ## Tests
 
@@ -52,6 +67,10 @@ flutter test --coverage && dart run tool/check_coverage.dart
 - **data:** repository tests on a real in-memory SQLite database, covering migrations, FTS search, aggregates, rollover budgets, holdings, debts and duplicate detection.
 - **services:** CSV round-trip and bank-statement import, PDF generation, and platform gateways tested with fake plugin implementations.
 - **ui:** widget tests for every screen, including the user flows: add, edit, duplicate and delete with undo, filters, search, budgets, investments, debts, categories, sources, settings, import/export, theme and `main()`.
+
+## Release
+
+See [`docs/release.md`](docs/release.md) (signing secrets, Play internal testing, TestFlight), [`docs/store-listing.md`](docs/store-listing.md) and [`docs/privacy-policy.md`](docs/privacy-policy.md). Strings live in `lib/l10n/app_en.arb`; `flutter pub get` regenerates `app_localizations*.dart`.
 
 ## License
 

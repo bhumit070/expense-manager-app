@@ -1,0 +1,15 @@
+{
+  "@@locale": "en",
+  "appTitle": "Expense Manager",
+  "@appTitle": {"description": "App name shown in the task switcher and title bar"},
+  "navHome": "Home",
+  "@navHome": {"description": "Bottom navigation: home tab"},
+  "navInsights": "Insights",
+  "@navInsights": {"description": "Bottom navigation: insights tab"},
+  "navInvest": "Invest",
+  "@navInvest": {"description": "Bottom navigation: investments tab"},
+  "navDebts": "Debts",
+  "@navDebts": {"description": "Bottom navigation: debts tab"},
+  "addTransaction": "Add transaction",
+  "@addTransaction": {"description": "Tooltip of the centre add button"}
+}

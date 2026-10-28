@@ -12,6 +12,7 @@ import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
 import 'categories_screen.dart';
+import 'diagnostics_screen.dart';
 import 'import_screen.dart';
 import 'security_screen.dart';
 import 'sources_screen.dart';
@@ -250,6 +251,15 @@ class SettingsScreen extends StatelessWidget {
               leading: const Icon(Icons.description_outlined),
               title: const Text('Open-source licenses'),
               onTap: () => showLicensePage(context: context, applicationName: 'Expense Manager'),
+            ),
+          ]),
+          group('Support', [
+            ListTile(
+              key: const Key('open-diagnostics'),
+              leading: const Icon(Icons.bug_report_outlined),
+              title: const Text('Diagnostics'),
+              subtitle: const Text('Local error log · view, share or clear'),
+              onTap: () => open(const DiagnosticsScreen()),
             ),
           ]),
         ],

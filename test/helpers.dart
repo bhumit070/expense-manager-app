@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:expense_manager/core/dates.dart';
 import 'package:expense_manager/data/database.dart';
 import 'package:expense_manager/data/models.dart';
+import 'package:expense_manager/services/error_log.dart';
 import 'package:expense_manager/services/file_gateway.dart';
 import 'package:expense_manager/services/location.dart';
 import 'package:expense_manager/state/app_state.dart';
@@ -55,8 +56,8 @@ class FakeLocation implements LocationService {
 }
 
 /// A fresh in-memory app. Onboarding is marked done unless [onboarded] is false.
-AppState makeState({DateTime? now, FakeFiles? files, FakeLocation? location, bool onboarded = true}) {
-  final s = AppState(db: openAppDatabase(null), files: files ?? FakeFiles(), location: location ?? FakeLocation(), clock: () => now ?? kNow);
+AppState makeState({DateTime? now, FakeFiles? files, FakeLocation? location, ErrorLog? errorLog, bool onboarded = true}) {
+  final s = AppState(db: openAppDatabase(null), files: files ?? FakeFiles(), location: location ?? FakeLocation(), errorLog: errorLog, clock: () => now ?? kNow);
   if (onboarded) s.settings.set('onboarded', '1');
   return s;
 }
