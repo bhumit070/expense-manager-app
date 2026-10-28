@@ -1,5 +1,9 @@
 include: package:flutter_lints/flutter.yaml
 
+# Same width as tool/verify.sh, so generated code (gen-l10n) matches the format gate.
+formatter:
+  page_width: 200
+
 analyzer:
   language:
     strict-casts: true

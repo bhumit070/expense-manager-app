@@ -68,6 +68,10 @@ Framework errors and uncaught async errors are appended to `<app documents>/logs
 - **services:** CSV round-trip and bank-statement import, PDF generation, and platform gateways tested with fake plugin implementations.
 - **ui:** widget tests for every screen, including the user flows: add, edit, duplicate and delete with undo, filters, search, budgets, investments, debts, categories, sources, settings, import/export, theme and `main()`.
 
+## Release
+
+See [`docs/release.md`](docs/release.md) (signing secrets, Play internal testing, TestFlight), [`docs/store-listing.md`](docs/store-listing.md) and [`docs/privacy-policy.md`](docs/privacy-policy.md). Strings live in `lib/l10n/app_en.arb`; `flutter pub get` regenerates `app_localizations*.dart`.
+
 ## License
 
 [MIT](LICENSE) © 2026 bhumit070.

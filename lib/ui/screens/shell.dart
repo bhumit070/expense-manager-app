@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
 import 'debts_screen.dart';
@@ -54,11 +55,13 @@ class _HomeShellState extends State<HomeShell> {
       );
     }
 
+    final l10n = context.l10n;
     return Scaffold(
       body: SafeArea(bottom: false, child: body),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
         key: const Key('add-txn'),
+        tooltip: l10n.addTransaction,
         backgroundColor: c.brand,
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -70,11 +73,11 @@ class _HomeShellState extends State<HomeShell> {
         padding: EdgeInsets.zero,
         child: Row(
           children: [
-            tab(0, Icons.home_outlined, 'Home'),
-            tab(1, Icons.pie_chart_outline, 'Insights'),
+            tab(0, Icons.home_outlined, l10n.navHome),
+            tab(1, Icons.pie_chart_outline, l10n.navInsights),
             const SizedBox(width: 72),
-            tab(2, Icons.trending_up, 'Invest'),
-            tab(3, Icons.people_outline, 'Debts'),
+            tab(2, Icons.trending_up, l10n.navInvest),
+            tab(3, Icons.people_outline, l10n.navDebts),
           ],
         ),
       ),

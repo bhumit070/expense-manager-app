@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'core/flavor.dart';
+import 'l10n/l10n.dart';
 import 'state/app_state.dart';
 import 'ui/screens/shell.dart';
 import 'ui/theme/tokens.dart';
@@ -19,7 +20,9 @@ class ExpenseApp extends StatelessWidget {
       state: state,
       child: Builder(
         builder: (context) => MaterialApp(
-          title: 'Expense Manager',
+          onGenerateTitle: (context) => context.l10n.appTitle,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           debugShowCheckedModeBanner: false,
           theme: buildTheme(Brightness.light),
           darkTheme: buildTheme(Brightness.dark),
