@@ -1,9 +1,9 @@
 import 'package:sqlite3/sqlite3.dart';
 
 /// Current schema version. Bump and add a step to [_migrations] for changes.
-const schemaVersion = 3;
+const schemaVersion = 4;
 
-final List<void Function(Database)> _migrations = [_v1, _v2, _v3];
+final List<void Function(Database)> _migrations = [_v1, _v2, _v3, _v4];
 
 /// Opens (or creates) the app database and runs pending migrations.
 Database openAppDatabase(String? path) {
@@ -168,4 +168,10 @@ void _v2(Database db) {
 void _v3(Database db) {
   db.execute('ALTER TABLE categories ADD COLUMN parent_id INTEGER REFERENCES categories(id)');
   db.execute('CREATE INDEX idx_cat_parent ON categories(parent_id)');
+}
+
+/// v4: credit-card statement amount and due date on debts.
+void _v4(Database db) {
+  db.execute('ALTER TABLE debts ADD COLUMN statement_amount INTEGER');
+  db.execute('ALTER TABLE debts ADD COLUMN statement_due_at INTEGER');
 }

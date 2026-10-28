@@ -1,4 +1,5 @@
 import 'package:expense_manager/data/models.dart';
+import 'package:expense_manager/data/transactions_repo.dart';
 import 'package:expense_manager/ui/screens/debts_screen.dart';
 import 'package:expense_manager/ui/screens/investments_screen.dart';
 import 'package:expense_manager/ui/screens/txn_detail_screen.dart';
@@ -196,6 +197,161 @@ void main() {
       await tester.tap(find.byKey(const Key('save-debt')));
       await tester.pumpAndSettle();
       expect(s.planning.debts(direction: DebtDirection.iOwe).single.debt.dueDay, 7);
+    });
+
+    test('statement labels and reminder message', () {
+      // Runtime (non-const) construction keeps constructor lines covered.
+      expect(InvestmentsScreen(key: UniqueKey()).key, isNotNull);
+      expect(
+        [
+          for (final d in [3, 1, 0, -1, -4]) statementDueLabel(d),
+        ],
+        ['Due in 3 days', 'Due tomorrow', 'Due today', 'Overdue by 1 day', 'Overdue by 4 days'],
+      );
+      const plain = DebtStatus(
+        debt: Debt(direction: DebtDirection.owedToMe, kind: DebtKind.personal, name: 'Rahul', principal: 850000),
+        paid: 250000,
+        payments: 1,
+      );
+      expect(remindMessage(plain), 'Hi Rahul, just a friendly reminder about the ₹6,000. Whenever it suits you is fine. Thanks!');
+      const trip = DebtStatus(
+        debt: Debt(direction: DebtDirection.owedToMe, kind: DebtKind.personal, name: 'Goa trip', counterparty: 'Priya', principal: 300000),
+        paid: 0,
+        payments: 0,
+      );
+      expect(remindMessage(trip), 'Hi Priya, just a friendly reminder about the ₹3,000 for Goa trip. Whenever it suits you is fine. Thanks!');
+    });
+
+    testWidgets('urgent card statement: Pay now records a debt payment', (tester) async {
+      final s = makeState();
+      seed(s);
+      final card = s.planning.addDebt(
+        Debt(direction: DebtDirection.iOwe, kind: DebtKind.card, name: 'ICICI card', principal: 2230000, statementAmount: 1850000, statementDueAt: DateTime(2026, 10, 30)),
+      );
+      final later = s.planning.addDebt(Debt(direction: DebtDirection.iOwe, kind: DebtKind.card, name: 'Amex', principal: 100000, statementAmount: 50000, statementDueAt: DateTime(2026, 11, 20)));
+      final undated = s.planning.addDebt(const Debt(direction: DebtDirection.iOwe, kind: DebtKind.card, name: 'SBI card', principal: 100000, statementAmount: 25000));
+      final overdue = s.planning.addDebt(Debt(direction: DebtDirection.iOwe, kind: DebtKind.card, name: 'Axis', principal: 100000, statementAmount: 10000, statementDueAt: DateTime(2026, 10, 26)));
+      await pumpRoute(tester, s, inScaffold(const DebtsScreen()));
+      expect(find.text('Statement ₹18,500 · due 30 Oct'), findsOneWidget);
+      expect(find.text('Due in 2 days'), findsOneWidget);
+      expect(find.text('Due in 23 days'), findsOneWidget);
+      expect(find.text('Unpaid ₹250'), findsOneWidget);
+      expect(find.text('Overdue by 2 days'), findsOneWidget);
+      expect(
+        tester.widget<FilledButton>(find.byKey(Key('pay-now-$card'))).style!.backgroundColor!.resolve({}),
+        isNot(tester.widget<FilledButton>(find.byKey(Key('pay-now-$later'))).style!.backgroundColor!.resolve({})),
+      );
+      expect(find.byKey(Key('pay-now-$undated')), findsOneWidget);
+      expect(find.byKey(Key('pay-now-$overdue')), findsOneWidget);
+
+      await tester.ensureVisible(find.byKey(Key('pay-now-$card')));
+      await tester.tap(find.byKey(Key('pay-now-$card')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('₹18,500 card payment from HDFC Savings ••42'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(s.planning.debts().firstWhere((d) => d.debt.id == card).statementLeft, 1850000);
+
+      await tester.tap(find.byKey(Key('pay-now-$card')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('confirm-pay-now')));
+      await tester.pumpAndSettle();
+      expect(find.text('Card payment of ₹18,500 recorded'), findsOneWidget);
+      final st = s.planning.debts().firstWhere((d) => d.debt.id == card);
+      expect([st.statementLeft, st.paid], [0, 1850000]);
+      final t = s.txns.list(TxnFilter(debtId: card)).single.txn;
+      expect([t.type, t.amount, t.merchant, t.sourceId], [TxnType.debt, 1850000, 'ICICI card bill', s.catalog.defaultSource()!.id]);
+      expect(find.byKey(Key('pay-now-$card')), findsNothing);
+      expect(find.text('Paid'), findsOneWidget);
+    });
+
+    testWidgets('Pay now without a default source', (tester) async {
+      final s = makeState();
+      s.catalog.archiveSource(s.catalog.defaultSource()!.id);
+      final card = s.planning.addDebt(const Debt(direction: DebtDirection.iOwe, kind: DebtKind.card, name: 'ICICI', principal: 100000, statementAmount: 25000));
+      await pumpRoute(tester, s, inScaffold(const DebtsScreen()));
+      await tester.tap(find.byKey(Key('pay-now-$card')));
+      await tester.pumpAndSettle();
+      expect(find.text('Records a ₹250 card payment. It counts as Debt, not Spend.'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('confirm-pay-now')));
+      await tester.pumpAndSettle();
+      expect(s.txns.list(TxnFilter(debtId: card)).single.txn.sourceId, isNull);
+    });
+
+    testWidgets('Remind shares a message for money owed to me', (tester) async {
+      final files = FakeFiles();
+      final s = makeState(files: files);
+      final ids = seed(s);
+      await pumpRoute(tester, s, inScaffold(DebtsScreen(key: UniqueKey())));
+      expect(find.byKey(Key('remind-${ids.lent}')), findsNothing);
+      await tester.tap(find.text('Owed to me'));
+      await tester.pump();
+      await tester.tap(find.byKey(Key('remind-${ids.lent}')));
+      await tester.pump();
+      expect(files.shared.single, ('Hi Rahul, just a friendly reminder about the ₹6,000. Whenever it suits you is fine. Thanks!', 'Friendly reminder'));
+    });
+
+    testWidgets('edit a debt and set a card statement with a due date', (tester) async {
+      final s = makeState();
+      final ids = seed(s);
+      await pumpRoute(tester, s, inScaffold(const DebtsScreen()));
+      await tester.tap(find.byKey(Key('edit-debt-${ids.loan}')));
+      await tester.pumpAndSettle();
+      expect(find.text('Edit debt'), findsOneWidget);
+      expect(tester.widget<TextField>(find.byKey(const Key('debt-principal'))).controller!.text, '420000');
+      expect(tester.widget<TextField>(find.byKey(const Key('debt-emi'))).controller!.text, '12400');
+      expect(tester.widget<TextField>(find.byKey(const Key('debt-rate'))).controller!.text, '9.2');
+      expect(find.byKey(const Key('debt-statement')), findsNothing);
+
+      await tester.tap(find.text('Credit card'));
+      await tester.pump();
+      await tester.enterText(find.byKey(const Key('debt-name')), 'HDFC Millennia');
+      await tester.enterText(find.byKey(const Key('debt-statement')), '12345.50');
+      expect(find.text('Statement due date'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('debt-statement-due')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      expect(find.text('Due Wed, 28 Oct 2026'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('clear-statement-due')));
+      await tester.pump();
+      expect(find.text('Statement due date'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('debt-statement-due')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.text('Statement due date'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('debt-statement-due')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('save-debt')));
+      await tester.pumpAndSettle();
+
+      final d = s.planning.debt(ids.loan);
+      expect([d.name, d.kind, d.statementAmount, d.statementDueAt, d.emi, d.settled], ['HDFC Millennia', DebtKind.card, 1234550, DateTime(2026, 10, 28), 1240000, false]);
+      // The ₹12,400 paid on 5 Oct falls inside this statement's cycle and covers it.
+      expect(find.text('Paid'), findsOneWidget);
+
+      // Editing a card statement prefills the decimal amount and date; switching away from card drops it.
+      await tester.tap(find.byKey(Key('edit-debt-${ids.loan}')));
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(find.byKey(const Key('debt-statement'))).controller!.text, '12345.50');
+      expect(find.text('Due Wed, 28 Oct 2026'), findsOneWidget);
+      await tester.tap(find.text('Loan'));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('save-debt')));
+      await tester.pumpAndSettle();
+      expect([s.planning.debt(ids.loan).statementAmount, s.planning.debt(ids.loan).statementDueAt], [null, null]);
+
+      // A debt without optional fields edits cleanly.
+      await tester.tap(find.text('Owed to me'));
+      await tester.pump();
+      await tester.tap(find.byKey(Key('edit-debt-${ids.lent}')));
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(find.byKey(const Key('debt-emi'))).controller!.text, '');
+      await tester.pageBack();
+      await tester.pumpAndSettle();
     });
   });
 }

@@ -1,5 +1,6 @@
 import 'package:expense_manager/core/dates.dart';
 import 'package:expense_manager/data/models.dart';
+import 'package:expense_manager/data/planning_repo.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
@@ -115,6 +116,47 @@ void main() {
       expect(s.planning.debts().length, 2);
     });
 
+    test('card statements: update, cycle payments, upcoming', () {
+      final s = makeState();
+      final id = s.planning.addDebt(
+        Debt(direction: DebtDirection.iOwe, kind: DebtKind.card, name: 'ICICI', principal: 5000000, dueDay: 2, statementAmount: 1200000, statementDueAt: DateTime(2026, 11, 2)),
+      );
+      var st = s.planning.debts().single;
+      expect([st.debt.statementAmount, st.debt.statementDueAt, st.statementLeft, st.statementDueIn(kNow), st.isUrgent(kNow)], [1200000, DateTime(2026, 11, 2), 1200000, 5, false]);
+      expect(s.planning.upcoming(kNow).single.amount, 1200000);
+      expect(s.planning.upcoming(kNow).single.date, DateTime(2026, 11, 2));
+      // A payment from before the cycle doesn't count; one inside it does.
+      void pay(int amount, DateTime at) => s.txns.insert(Txn(type: TxnType.debt, amount: amount, categoryId: s.catalog.defaultCategory().id, sourceId: null, occurredAt: at, debtId: id));
+      pay(100000, DateTime(2026, 9, 1));
+      pay(200000, DateTime(2026, 10, 20));
+      st = s.planning.debts().single;
+      expect(st.statementPaid, 200000);
+      expect(st.statementLeft, 1000000);
+      expect(st.isUrgent(DateTime(2026, 10, 30)), isTrue);
+      expect(st.statementDueIn(DateTime(2026, 11, 4)), -2);
+      pay(1000000, DateTime(2026, 10, 28));
+      st = s.planning.debts().single;
+      expect([st.statementLeft, st.statementDueIn(kNow), st.isUrgent(kNow)], [0, null, false]);
+      expect(s.planning.upcoming(kNow), isEmpty);
+
+      s.planning.updateDebt(
+        Debt(id: id, direction: DebtDirection.iOwe, kind: DebtKind.card, name: 'ICICI Amazon', principal: 5000000, statementAmount: 300000, statementDueAt: DateTime(2026, 12, 2), settled: true),
+      );
+      final d = s.planning.debt(id);
+      expect([d.name, d.statementAmount, d.statementDueAt, d.dueDay, d.settled], ['ICICI Amazon', 300000, DateTime(2026, 12, 2), null, true]);
+      // Paying before this statement's cycle (> 30 days earlier) doesn't count.
+      expect(s.planning.debts(settled: true).single.statementLeft, 300000);
+      // No statement: nothing left, no due.
+      expect(
+        const DebtStatus(
+          debt: Debt(direction: DebtDirection.iOwe, kind: DebtKind.card, name: 'x', principal: 1),
+          paid: 0,
+          payments: 0,
+        ).statementDueIn(kNow),
+        isNull,
+      );
+    });
+
     test('debt without EMI adds nothing to monthly EMI', () {
       final s = makeState();
       s.planning.addDebt(const Debt(direction: DebtDirection.iOwe, kind: DebtKind.personal, name: 'Dad', principal: 100));
@@ -124,5 +166,53 @@ void main() {
 
   test('period kinds used by cycles', () {
     expect(Period.of(PeriodKind.month, kNow).kind, PeriodKind.month);
+  });
+
+  group('upcoming', () {
+    test('nextDueDate clamps short months and rolls into next month/year', () {
+      expect(nextDueDate(5, DateTime(2026, 10, 28)), DateTime(2026, 11, 5));
+      expect(nextDueDate(28, DateTime(2026, 10, 28, 21)), DateTime(2026, 10, 28));
+      expect(nextDueDate(31, DateTime(2026, 11, 2)), DateTime(2026, 11, 30));
+      expect(nextDueDate(31, DateTime(2027, 2, 1)), DateTime(2027, 2, 28));
+      expect(nextDueDate(30, DateTime(2028, 2, 1)), DateTime(2028, 2, 29));
+      expect(nextDueDate(3, DateTime(2026, 12, 20)), DateTime(2027, 1, 3));
+    });
+
+    test('EMIs, card dues and maturities, soonest first, skipping paid cycles', () {
+      final s = makeState();
+      final ids = seed(s);
+      // Paid Oct 5 already, so the car loan shows Nov 5; FD matures Nov 12.
+      var items = s.planning.upcoming(kNow);
+      expect(items.map((u) => (u.kind, u.date, u.title, u.amount)).toList(), [
+        (UpcomingKind.emi, DateTime(2026, 11, 5), 'Car loan', 1240000),
+        (UpcomingKind.maturity, DateTime(2026, 11, 12), 'HDFC FD', 5000000),
+      ]);
+      expect(items.first.debtId, ids.loan);
+      expect(items.last.investmentId, ids.fd);
+
+      final card = s.planning.addDebt(const Debt(direction: DebtDirection.iOwe, kind: DebtKind.card, name: 'ICICI bill', principal: 500000, dueDay: 30));
+      // No EMI amount falls back to what's left; personal debts and debts without a due day are ignored.
+      s.planning.addDebt(const Debt(direction: DebtDirection.iOwe, kind: DebtKind.loan, name: 'Gold loan', principal: 90000, dueDay: 1));
+      s.planning.addDebt(const Debt(direction: DebtDirection.iOwe, kind: DebtKind.personal, name: 'Amit', principal: 100, dueDay: 2));
+      s.planning.addDebt(const Debt(direction: DebtDirection.iOwe, kind: DebtKind.loan, name: 'No date', principal: 100));
+      items = s.planning.upcoming(kNow);
+      expect(items.map((u) => u.title).toList(), ['ICICI bill', 'Gold loan', 'Car loan', 'HDFC FD']);
+      expect(items.first.kind, UpcomingKind.cardDue);
+      expect(items.first.amount, isNull);
+      expect(items.first.debtId, card);
+      expect(items[1].amount, 90000);
+
+      // The window is inclusive of the last day and excludes later items.
+      expect(s.planning.upcoming(kNow, days: 8).map((u) => u.title), ['ICICI bill', 'Gold loan', 'Car loan']);
+
+      // Fully paid or settled debts and matured investments drop out.
+      s.planning.setDebtSettled(ids.loan, true);
+      s.planning.setInvestmentStatus(ids.fd, InvestmentStatus.matured);
+      s.txns.insert(Txn(type: TxnType.debt, amount: 90000, categoryId: s.catalog.defaultCategory().id, sourceId: null, occurredAt: kNow, debtId: items[1].debtId));
+      expect(s.planning.upcoming(kNow).map((u) => u.title), ['ICICI bill']);
+      // Past maturities are not "coming up".
+      s.planning.addInvestment(Investment(kind: InvestmentKind.fd, name: 'Old FD', maturityAt: DateTime(2026, 1, 1)));
+      expect(s.planning.upcoming(kNow).map((u) => u.title), ['ICICI bill']);
+    });
   });
 }
