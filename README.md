@@ -52,3 +52,9 @@ flutter test --coverage && dart run tool/check_coverage.dart
 - **data:** repository tests on a real in-memory SQLite database, covering migrations, FTS search, aggregates, rollover budgets, holdings, debts and duplicate detection.
 - **services:** CSV round-trip and bank-statement import, PDF generation, and platform gateways tested with fake plugin implementations.
 - **ui:** widget tests for every screen, including the user flows: add, edit, duplicate and delete with undo, filters, search, budgets, investments, debts, categories, sources, settings, import/export, theme and `main()`.
+
+## License
+
+[MIT](LICENSE) © 2026 bhumit070.
+
+The bundled font [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans) is licensed under the [SIL Open Font License 1.1](assets/fonts/OFL.txt).
