@@ -73,7 +73,7 @@ jobs:
           build=${{ github.run_number }}
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "build=$build" >> "$GITHUB_OUTPUT"
-          echo "tag=v$name+$build" >> "$GITHUB_OUTPUT"
+          echo "tag=v$name-build.$build" >> "$GITHUB_OUTPUT"
 
   android:
     needs: [verify, version]
@@ -212,4 +212,6 @@ jobs:
           name: Expense Manager ${{ needs.version.outputs.name }} (build ${{ needs.version.outputs.build }})
           body: ${{ steps.notes.outputs.body }}
           generate_release_notes: true
+          prerelease: false
+          make_latest: true
           files: dist/*
