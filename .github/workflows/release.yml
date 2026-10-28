@@ -1,0 +1,186 @@
+name: Release
+
+# Every push to main: verify (format, analyze, tests, 100% coverage), then
+# build an Android APK and an iOS IPA and publish both to a GitHub Release.
+#
+# Optional secrets (builds still work without them):
+#   Android signing (otherwise the APK is signed with the debug key):
+#     ANDROID_KEYSTORE_BASE64   base64 of your upload .jks
+#     ANDROID_KEYSTORE_PASSWORD
+#     ANDROID_KEY_ALIAS
+#     ANDROID_KEY_PASSWORD
+#   iOS signing (otherwise an UNSIGNED .ipa is published — it must be re-signed
+#   before it can be installed on a device):
+#     IOS_CERTIFICATE_P12_BASE64     base64 of your distribution certificate .p12
+#     IOS_CERTIFICATE_PASSWORD
+#     IOS_PROVISIONING_PROFILE_BASE64 base64 of the .mobileprovision
+#     IOS_EXPORT_OPTIONS_PLIST_BASE64 base64 of an ExportOptions.plist (method: ad-hoc / app-store)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: 3.44.0
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed --line-length 200 lib test tool
+      - run: flutter analyze
+      - run: flutter test --coverage
+      - run: dart run tool/check_coverage.dart 100
+
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.v.outputs.name }}
+      build: ${{ steps.v.outputs.build }}
+      tag: ${{ steps.v.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: |
+          name=$(grep -E '^version:' pubspec.yaml | sed -E 's/version:[[:space:]]*([^+]+).*/\1/')
+          build=${{ github.run_number }}
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "tag=v$name+$build" >> "$GITHUB_OUTPUT"
+
+  android:
+    needs: [verify, version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Configure release signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+            {
+              echo "storeFile=upload-keystore.jks"
+              echo "storePassword=$KEYSTORE_PASSWORD"
+              echo "keyAlias=$KEY_ALIAS"
+              echo "keyPassword=$KEY_PASSWORD"
+            } > android/key.properties
+            echo "Using release keystore"
+          else
+            echo "::warning::ANDROID_KEYSTORE_BASE64 not set — APK will be signed with the debug key"
+          fi
+      - run: flutter pub get
+      - run: flutter build apk --release --build-name=${{ needs.version.outputs.name }} --build-number=${{ needs.version.outputs.build }}
+      - run: mv build/app/outputs/flutter-apk/app-release.apk expense-manager-${{ needs.version.outputs.tag }}.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: expense-manager-*.apk
+          if-no-files-found: error
+
+  ios:
+    needs: [verify, version]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Install signing certificate and profile
+        id: signing
+        env:
+          P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          EXPORT_PLIST_BASE64: ${{ secrets.IOS_EXPORT_OPTIONS_PLIST_BASE64 }}
+        run: |
+          if [ -z "$P12_BASE64" ] || [ -z "$PROFILE_BASE64" ] || [ -z "$EXPORT_PLIST_BASE64" ]; then
+            echo "::warning::iOS signing secrets not set — publishing an UNSIGNED .ipa"
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          KEYCHAIN="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 16)
+          echo "$P12_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          echo "$PROFILE_BASE64" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
+          echo "$EXPORT_PLIST_BASE64" | base64 --decode > "$RUNNER_TEMP/ExportOptions.plist"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN"
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          UUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' /dev/stdin <<< "$(security cms -D -i "$RUNNER_TEMP/profile.mobileprovision")")
+          cp "$RUNNER_TEMP/profile.mobileprovision" ~/Library/MobileDevice/Provisioning\ Profiles/"$UUID".mobileprovision
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+      - name: Build signed IPA
+        if: steps.signing.outputs.signed == 'true'
+        run: |
+          flutter build ipa --release \
+            --build-name=${{ needs.version.outputs.name }} --build-number=${{ needs.version.outputs.build }} \
+            --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
+          mv build/ios/ipa/*.ipa expense-manager-${{ needs.version.outputs.tag }}.ipa
+      - name: Build unsigned IPA
+        if: steps.signing.outputs.signed != 'true'
+        run: |
+          flutter build ios --release --no-codesign \
+            --build-name=${{ needs.version.outputs.name }} --build-number=${{ needs.version.outputs.build }}
+          mkdir -p Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -qr expense-manager-${{ needs.version.outputs.tag }}-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ipa
+          path: expense-manager-*.ipa
+          if-no-files-found: error
+      - name: Remove temporary keychain
+        if: always() && steps.signing.outputs.signed == 'true'
+        run: security delete-keychain "$RUNNER_TEMP/build.keychain-db"
+
+  release:
+    needs: [version, android, ios]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - run: ls -la dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Expense Manager ${{ needs.version.outputs.name }} (build ${{ needs.version.outputs.build }})
+          generate_release_notes: true
+          files: dist/*

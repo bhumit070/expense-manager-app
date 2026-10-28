@@ -1,0 +1,102 @@
+# ---------------------------------------------------------------------------
+# Expense Manager (Flutter) — root .gitignore
+# Platform-specific rules also live in android/.gitignore and ios/.gitignore.
+# pubspec.lock is intentionally committed (this is an app, not a package).
+# ---------------------------------------------------------------------------
+
+# Flutter / Dart / Pub
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+migrate_working_dir/
+
+# Test coverage output (regenerate with `flutter test --coverage`)
+/coverage/
+*.lcov
+
+# Symbolication / obfuscation artifacts
+app.*.symbols
+app.*.map.json
+
+# Android
+/android/app/debug
+/android/app/profile
+/android/app/release
+**/android/.gradle/
+**/android/captures/
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/app/.cxx/
+
+# iOS / macOS
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/xcuserdata/
+**/DerivedData/
+*.xcworkspace/xcuserdata/
+
+# Signing keys and secrets — never commit these
+key.properties
+*.keystore
+*.jks
+*.p12
+*.p8
+*.mobileprovision
+*.cer
+.env
+.env.*
+!.env.example
+google-services.json
+GoogleService-Info.plist
+
+# Local app data created while running/testing on desktop
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# IDEs and editors
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+.atom/
+.history
+
+# Claude Code local settings (machine-specific permissions)
+.claude/settings.local.json
+
+# OS files
+.DS_Store
+Thumbs.db
+Icon?
+
+# Logs and misc
+*.log
+*.class
+*.pyc
+.build/
+.buildlog/
+.svn/
+.swiftpm/
+
+# CI-decoded release keystore
+android/app/upload-keystore.jks
