@@ -25,6 +25,11 @@ class FakeFiles implements FileGateway {
     saved.add((name, bytes, mimeType));
     return '/tmp/$name';
   }
+
+  final shared = <(String, String?)>[];
+
+  @override
+  Future<void> shareText(String text, {String? subject}) async => shared.add((text, subject));
 }
 
 class FakeLocation implements LocationService {

@@ -13,6 +13,9 @@ abstract class FileGateway {
 
   /// Writes [bytes] to a temp file named [name] and opens the share sheet.
   Future<String> saveAndShare(String name, List<int> bytes, String mimeType);
+
+  /// Opens the share sheet with plain [text] (e.g. a reminder message).
+  Future<void> shareText(String text, {String? subject});
 }
 
 class PlatformFileGateway implements FileGateway {
@@ -39,5 +42,10 @@ class PlatformFileGateway implements FileGateway {
       ),
     );
     return file.path;
+  }
+
+  @override
+  Future<void> shareText(String text, {String? subject}) async {
+    await _share.share(ShareParams(text: text, subject: subject));
   }
 }

@@ -287,6 +287,8 @@ class Debt {
     this.totalEmis,
     this.dueDay,
     this.settled = false,
+    this.statementAmount,
+    this.statementDueAt,
   });
 
   factory Debt.fromRow(Row r) => Debt(
@@ -301,6 +303,8 @@ class Debt {
     totalEmis: r['total_emis'] as int?,
     dueDay: r['due_day'] as int?,
     settled: r['settled'] == 1,
+    statementAmount: r['statement_amount'] as int?,
+    statementDueAt: _msOrNull(r['statement_due_at']),
   );
 
   final int? id;
@@ -314,14 +318,35 @@ class Debt {
   final int? totalEmis;
   final int? dueDay;
   final bool settled;
+
+  /// Latest credit-card statement total and its due date (cards only).
+  final int? statementAmount;
+  final DateTime? statementDueAt;
 }
 
 class DebtStatus {
-  const DebtStatus({required this.debt, required this.paid, required this.payments});
+  const DebtStatus({required this.debt, required this.paid, required this.payments, this.statementPaid = 0});
 
   final Debt debt;
   final int paid;
   final int payments;
+
+  /// Payments made in the statement's cycle (the 30 days before its due date onward).
+  final int statementPaid;
+
+  /// What is still unpaid on the current statement; 0 when there is none.
+  int get statementLeft => debt.statementAmount == null ? 0 : (debt.statementAmount! - statementPaid).clamp(0, debt.statementAmount!);
+
+  /// Days until the unpaid statement is due (negative when overdue), or null
+  /// when nothing is due.
+  int? statementDueIn(DateTime now) {
+    final due = debt.statementDueAt;
+    if (due == null || statementLeft == 0) return null;
+    return DateTime.utc(due.year, due.month, due.day).difference(DateTime.utc(now.year, now.month, now.day)).inDays;
+  }
+
+  /// Due within 3 days or overdue.
+  bool isUrgent(DateTime now) => (statementDueIn(now) ?? 99) <= 3;
 
   int get remaining => (debt.principal - paid).clamp(0, debt.principal);
   double get fraction => debt.principal == 0 ? 1 : (paid / debt.principal).clamp(0, 1).toDouble();

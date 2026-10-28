@@ -116,6 +116,47 @@ void main() {
       expect(s.planning.debts().length, 2);
     });
 
+    test('card statements: update, cycle payments, upcoming', () {
+      final s = makeState();
+      final id = s.planning.addDebt(
+        Debt(direction: DebtDirection.iOwe, kind: DebtKind.card, name: 'ICICI', principal: 5000000, dueDay: 2, statementAmount: 1200000, statementDueAt: DateTime(2026, 11, 2)),
+      );
+      var st = s.planning.debts().single;
+      expect([st.debt.statementAmount, st.debt.statementDueAt, st.statementLeft, st.statementDueIn(kNow), st.isUrgent(kNow)], [1200000, DateTime(2026, 11, 2), 1200000, 5, false]);
+      expect(s.planning.upcoming(kNow).single.amount, 1200000);
+      expect(s.planning.upcoming(kNow).single.date, DateTime(2026, 11, 2));
+      // A payment from before the cycle doesn't count; one inside it does.
+      void pay(int amount, DateTime at) => s.txns.insert(Txn(type: TxnType.debt, amount: amount, categoryId: s.catalog.defaultCategory().id, sourceId: null, occurredAt: at, debtId: id));
+      pay(100000, DateTime(2026, 9, 1));
+      pay(200000, DateTime(2026, 10, 20));
+      st = s.planning.debts().single;
+      expect(st.statementPaid, 200000);
+      expect(st.statementLeft, 1000000);
+      expect(st.isUrgent(DateTime(2026, 10, 30)), isTrue);
+      expect(st.statementDueIn(DateTime(2026, 11, 4)), -2);
+      pay(1000000, DateTime(2026, 10, 28));
+      st = s.planning.debts().single;
+      expect([st.statementLeft, st.statementDueIn(kNow), st.isUrgent(kNow)], [0, null, false]);
+      expect(s.planning.upcoming(kNow), isEmpty);
+
+      s.planning.updateDebt(
+        Debt(id: id, direction: DebtDirection.iOwe, kind: DebtKind.card, name: 'ICICI Amazon', principal: 5000000, statementAmount: 300000, statementDueAt: DateTime(2026, 12, 2), settled: true),
+      );
+      final d = s.planning.debt(id);
+      expect([d.name, d.statementAmount, d.statementDueAt, d.dueDay, d.settled], ['ICICI Amazon', 300000, DateTime(2026, 12, 2), null, true]);
+      // Paying before this statement's cycle (> 30 days earlier) doesn't count.
+      expect(s.planning.debts(settled: true).single.statementLeft, 300000);
+      // No statement: nothing left, no due.
+      expect(
+        const DebtStatus(
+          debt: Debt(direction: DebtDirection.iOwe, kind: DebtKind.card, name: 'x', principal: 1),
+          paid: 0,
+          payments: 0,
+        ).statementDueIn(kNow),
+        isNull,
+      );
+    });
+
     test('debt without EMI adds nothing to monthly EMI', () {
       final s = makeState();
       s.planning.addDebt(const Debt(direction: DebtDirection.iOwe, kind: DebtKind.personal, name: 'Dad', principal: 100));

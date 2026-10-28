@@ -33,11 +33,16 @@ void main() {
       'CREATE TABLE sources (id INTEGER PRIMARY KEY, name TEXT NOT NULL, kind TEXT NOT NULL, last4 TEXT, credit_limit INTEGER, is_default INTEGER NOT NULL DEFAULT 0, archived INTEGER NOT NULL DEFAULT 0)',
     );
     old.execute("INSERT INTO sources(name, kind) VALUES ('Old', 'bank')");
+    old.execute(
+      "CREATE TABLE debts (id INTEGER PRIMARY KEY, direction TEXT NOT NULL, kind TEXT NOT NULL, name TEXT NOT NULL, counterparty TEXT NOT NULL DEFAULT '', principal INTEGER NOT NULL, rate REAL, emi INTEGER, total_emis INTEGER, due_day INTEGER, settled INTEGER NOT NULL DEFAULT 0)",
+    );
+    old.execute("INSERT INTO debts(direction, kind, name, principal) VALUES ('iOwe', 'card', 'ICICI', 100)");
     old.userVersion = 1;
     old.close();
     final db = openAppDatabase(path);
     expect(db.userVersion, schemaVersion);
     expect(db.select('SELECT opening_balance FROM sources').single['opening_balance'], 0);
+    expect(db.select('SELECT statement_amount, statement_due_at FROM debts').single.values, [null, null]);
     db.close();
     dir.deleteSync(recursive: true);
   });

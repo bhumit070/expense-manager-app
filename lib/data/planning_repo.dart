@@ -107,12 +107,36 @@ GROUP BY i.id ORDER BY i.kind, invested DESC''');
 
   // ---- Debts ---------------------------------------------------------------
 
-  List<Object?> _debtValues(Debt d) => [d.direction.name, d.kind.name, d.name.trim(), d.counterparty.trim(), d.principal, d.rate, d.emi, d.totalEmis, d.dueDay, d.settled ? 1 : 0];
+  /// Payments up to 30 days before a statement's due date count towards it.
+  static const _statementCycleMs = 30 * Duration.millisecondsPerDay;
+
+  List<Object?> _debtValues(Debt d) => [
+    d.direction.name,
+    d.kind.name,
+    d.name.trim(),
+    d.counterparty.trim(),
+    d.principal,
+    d.rate,
+    d.emi,
+    d.totalEmis,
+    d.dueDay,
+    d.settled ? 1 : 0,
+    d.statementAmount,
+    d.statementDueAt?.millisecondsSinceEpoch,
+  ];
 
   int addDebt(Debt d) {
-    db.execute('INSERT INTO debts(direction, kind, name, counterparty, principal, rate, emi, total_emis, due_day, settled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', _debtValues(d));
+    db.execute(
+      'INSERT INTO debts(direction, kind, name, counterparty, principal, rate, emi, total_emis, due_day, settled, statement_amount, statement_due_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      _debtValues(d),
+    );
     return db.lastInsertRowId;
   }
+
+  void updateDebt(Debt d) => db.execute(
+    'UPDATE debts SET direction = ?, kind = ?, name = ?, counterparty = ?, principal = ?, rate = ?, emi = ?, total_emis = ?, due_day = ?, settled = ?, statement_amount = ?, statement_due_at = ? WHERE id = ?',
+    [..._debtValues(d), d.id],
+  );
 
   void setDebtSettled(int id, bool settled) => db.execute('UPDATE debts SET settled = ? WHERE id = ?', [settled ? 1 : 0, id]);
 
@@ -121,13 +145,14 @@ GROUP BY i.id ORDER BY i.kind, invested DESC''');
   List<DebtStatus> debts({DebtDirection? direction, bool settled = false}) {
     final r = db.select(
       '''
-SELECT d.*, coalesce(sum(t.amount), 0) AS paid, count(t.id) AS payments
+SELECT d.*, coalesce(sum(t.amount), 0) AS paid, count(t.id) AS payments,
+  coalesce(sum(CASE WHEN d.statement_due_at IS NOT NULL AND t.occurred_at > d.statement_due_at - $_statementCycleMs THEN t.amount END), 0) AS statement_paid
 FROM debts d LEFT JOIN transactions t ON t.debt_id = d.id AND t.deleted = 0
 WHERE d.settled = ?${direction == null ? '' : ' AND d.direction = ?'}
 GROUP BY d.id ORDER BY d.id''',
       [settled ? 1 : 0, if (direction != null) direction.name],
     );
-    return r.map((row) => DebtStatus(debt: Debt.fromRow(row), paid: row['paid'] as int, payments: row['payments'] as int)).toList();
+    return r.map((row) => DebtStatus(debt: Debt.fromRow(row), paid: row['paid'] as int, payments: row['payments'] as int, statementPaid: row['statement_paid'] as int)).toList();
   }
 
   /// Outstanding amount in each direction for unsettled debts.
@@ -159,9 +184,14 @@ GROUP BY d.id ORDER BY d.id''',
 
   /// Next due date of every unsettled loan/card I owe that has a due day.
   /// A cycle already paid (a payment dated in that calendar month) is skipped.
+  /// Cards with a statement use its due date and unpaid amount instead.
   Iterable<Upcoming> _debtDues(DateTime today) sync* {
     for (final s in debts(direction: DebtDirection.iOwe)) {
       final d = s.debt;
+      if (d.kind == DebtKind.card && d.statementDueAt != null) {
+        if (s.statementLeft > 0) yield Upcoming(kind: UpcomingKind.cardDue, date: dayStart(d.statementDueAt!), title: d.name, amount: s.statementLeft, debtId: d.id);
+        continue;
+      }
       if (d.dueDay == null || d.kind == DebtKind.personal || s.remaining <= 0) continue;
       var due = nextDueDate(d.dueDay!, today);
       if (_paidInMonth(d.id!, due)) due = nextDueDate(d.dueDay!, DateTime(due.year, due.month + 1));

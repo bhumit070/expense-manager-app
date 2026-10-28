@@ -97,6 +97,14 @@ void main() {
     expect(picker.extensions, ['csv']);
   });
 
+  test('shareText opens the share sheet with text only', () async {
+    final share = FakeShare();
+    await PlatformFileGateway(share: SharePlus.custom(share)).shareText('Hi Rahul', subject: 'Reminder');
+    expect(share.last!.text, 'Hi Rahul');
+    expect(share.last!.subject, 'Reminder');
+    expect(share.last!.files, isNull);
+  });
+
   test('saveAndShare writes a temp file and opens the share sheet', () async {
     final share = FakeShare();
     final gw = PlatformFileGateway(share: SharePlus.custom(share));
