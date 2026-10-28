@@ -6,6 +6,7 @@ import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
 import 'sources_screen.dart';
+import 'security_screen.dart';
 
 /// One page of the first-launch flow. [next] moves on (or finishes).
 typedef OnboardingStep = Widget Function(BuildContext context, VoidCallback next);
@@ -18,6 +19,7 @@ List<OnboardingStep> defaultOnboardingSteps() => [
   (_, next) => CurrencyStep(onNext: next),
   (_, next) => SourceStep(onNext: next),
   (_, next) => LocationStep(onNext: next),
+  (_, next) => AppLockStep(onNext: next),
 ];
 
 class OnboardingScreen extends StatefulWidget {
@@ -351,6 +353,31 @@ class _LocationStepState extends State<LocationStep> {
             style: ts(13, color: c.spend),
           ),
       ],
+    );
+  }
+}
+
+/// Offers to protect the app with a PIN (and biometrics later in Settings).
+class AppLockStep extends StatelessWidget {
+  const AppLockStep({super.key, required this.onNext, this.setUp = setUpAppLock});
+
+  final VoidCallback onNext;
+  final Future<bool> Function(BuildContext) setUp;
+
+  Future<void> _enable(BuildContext context) async {
+    await setUp(context);
+    onNext();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StepLayout(
+      icon: Icons.lock_outline,
+      title: 'Lock the app?',
+      body: 'Ask for a PIN (or your fingerprint / face) when the app opens, and hide amounts in the app switcher. You can change this anytime in Settings.',
+      action: 'Set a PIN',
+      onAction: () => _enable(context),
+      secondary: TextButton(key: const Key('onboarding-lock-skip'), onPressed: onNext, child: const Text('Not now')),
     );
   }
 }

@@ -7,13 +7,16 @@ environment:
   sdk: ^3.12.0
 
 dependencies:
+  crypto: ^3.0.8
   file_picker: ^13.3.0
   flutter:
     sdk: flutter
   flutter_map: ^8.3.2
+  flutter_secure_storage: ^11.2.0
   geocoding: ^5.0.0
   geolocator: ^14.0.1
   latlong2: ^0.10.1
+  local_auth: ^3.0.2
   package_info_plus: ^10.2.2
   path: ^1.9.1
   path_provider: ^2.1.6
@@ -33,6 +36,8 @@ dev_dependencies:
   geolocator_platform_interface: ^4.4.1
   geocoding_platform_interface: ^5.0.0
   flutter_launcher_icons: ^0.14.4
+  flutter_secure_storage_platform_interface: ^2.1.1
+  local_auth_platform_interface: ^1.1.0
   url_launcher_platform_interface: ^2.3.2
 
 flutter:
@@ -64,3 +69,10 @@ flutter_launcher_icons:
   adaptive_icon_background: assets/icon/icon_bg.png
   adaptive_icon_foreground: assets/icon/icon_fg.png
   adaptive_icon_monochrome: assets/icon/icon_fg.png
+
+# SQLite3MultipleCiphers: drop-in SQLite build that can also encrypt the
+# database (opt-in, Settings → Security). Unencrypted databases open as before.
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlite3mc

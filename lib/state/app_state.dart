@@ -9,11 +9,13 @@ import '../data/transactions_repo.dart';
 import '../services/app_info.dart';
 import '../services/file_gateway.dart';
 import '../services/location.dart';
+import '../services/security_platform.dart';
+import 'security_state.dart';
 
 /// App-wide state. Repositories are synchronous (SQLite via FFI) and fast;
 /// screens re-query when [notifyListeners] fires after a write.
 class AppState extends ChangeNotifier {
-  AppState({required this.db, required this.files, required this.location, AppInfo? info, DateTime Function()? clock})
+  AppState({required this.db, required this.files, required this.location, AppInfo? info, DateTime Function()? clock, SecurityPlatform? security})
     : clock = clock ?? DateTime.now,
       info = info ?? PlatformAppInfo(),
       txns = TransactionsRepo(db),
@@ -23,6 +25,7 @@ class AppState extends ChangeNotifier {
     currentCurrency = currencyByCode(settings.get('currency'));
     // Installs from before onboarding existed already have data: skip it.
     if (settings.get('onboarded') == null && db.select('SELECT 1 FROM transactions LIMIT 1').isNotEmpty) settings.set('onboarded', '1');
+    this.security = SecurityState(db: db, settings: settings, platform: security ?? SecurityPlatform(), clock: this.clock);
   }
 
   final Database db;
@@ -34,6 +37,9 @@ class AppState extends ChangeNotifier {
   final CatalogRepo catalog;
   final PlanningRepo planning;
   final SettingsRepo settings;
+
+  /// App lock, app-switcher privacy and database encryption.
+  late final SecurityState security;
 
   DateTime now() => clock();
 
@@ -81,6 +87,7 @@ class AppState extends ChangeNotifier {
 
   @override
   void dispose() {
+    security.dispose();
     db.close();
     super.dispose();
   }

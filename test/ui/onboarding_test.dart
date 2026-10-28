@@ -79,10 +79,15 @@ void main() {
     final hdfc = s.catalog.defaultSource()!;
     expect([hdfc.name, hdfc.kind, hdfc.openingBalance], ['HDFC Savings', SourceKind.bank, 2500000]);
 
-    expect(find.text('Finish'), findsOneWidget);
     await next(tester);
     expect(loc.requests, 1);
     expect(s.locationEnabled, isTrue);
+
+    expect(find.text('Finish'), findsOneWidget);
+    expect(find.text('Lock the app?'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('onboarding-lock-skip')));
+    await tester.pumpAndSettle();
+    expect(s.security.lockEnabled, isFalse);
     expect(s.onboarded, isTrue);
     expect(find.byType(HomeShell), findsOneWidget);
   });
@@ -90,7 +95,7 @@ void main() {
   testWidgets('every step can be skipped', (tester) async {
     final s = makeState(onboarded: false);
     await pumpApp(tester, s);
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < 6; i++) {
       await tester.tap(find.byKey(const Key('onboarding-skip')));
       await tester.pumpAndSettle();
     }
@@ -166,6 +171,30 @@ void main() {
     loc.answer(false);
     await tester.pump();
     expect(s.locationEnabled, isFalse);
+  });
+
+  testWidgets('app lock step runs set-up then moves on', (tester) async {
+    final s = makeState(onboarded: false);
+    var calls = 0;
+    await pumpScreen(
+      tester,
+      s,
+      OnboardingScreen(
+        steps: [
+          (_, n) => AppLockStep(
+            onNext: n,
+            setUp: (_) async {
+              calls++;
+              return true;
+            },
+          ),
+        ],
+      ),
+    );
+    await tester.tap(find.byKey(const Key('onboarding-next')));
+    await tester.pumpAndSettle();
+    expect(calls, 1);
+    expect(s.onboarded, isTrue);
   });
 
   testWidgets('renders in dark mode', (tester) async {

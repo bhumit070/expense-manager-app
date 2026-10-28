@@ -61,3 +61,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // AppCompat launch theme for the biometric prompt (see res/values/styles.xml).
+    implementation("androidx.appcompat:appcompat:1.7.1")
+}
