@@ -5,13 +5,14 @@ import '../data/catalog_repo.dart';
 import '../data/planning_repo.dart';
 import '../data/settings_repo.dart';
 import '../data/transactions_repo.dart';
+import '../services/error_log.dart';
 import '../services/file_gateway.dart';
 import '../services/location.dart';
 
 /// App-wide state. Repositories are synchronous (SQLite via FFI) and fast;
 /// screens re-query when [notifyListeners] fires after a write.
 class AppState extends ChangeNotifier {
-  AppState({required this.db, required this.files, required this.location, DateTime Function()? clock})
+  AppState({required this.db, required this.files, required this.location, this.errorLog, DateTime Function()? clock})
     : clock = clock ?? DateTime.now,
       txns = TransactionsRepo(db),
       catalog = CatalogRepo(db),
@@ -21,6 +22,9 @@ class AppState extends ChangeNotifier {
   final Database db;
   final FileGateway files;
   final LocationService location;
+
+  /// Local crash/error log; null in tests that don't need it.
+  final ErrorLog? errorLog;
   final DateTime Function() clock;
   final TransactionsRepo txns;
   final CatalogRepo catalog;

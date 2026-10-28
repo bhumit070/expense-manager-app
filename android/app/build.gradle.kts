@@ -34,6 +34,26 @@ android {
         versionName = flutter.versionName
     }
 
+    // dev and prod install side by side; the app also keeps a separate database
+    // per flavor (see lib/core/flavor.dart). Build with `--flavor dev|prod`.
+    buildFeatures {
+        resValues = true
+    }
+
+    flavorDimensions += "env"
+    productFlavors {
+        create("dev") {
+            dimension = "env"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            resValue("string", "app_name", "Expense Manager Dev")
+        }
+        create("prod") {
+            dimension = "env"
+            resValue("string", "app_name", "Expense Manager")
+        }
+    }
+
     signingConfigs {
         if (hasReleaseKey) {
             create("release") {

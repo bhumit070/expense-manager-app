@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:expense_manager/app.dart';
+import 'package:expense_manager/core/flavor.dart';
 import 'package:expense_manager/data/models.dart';
 import 'package:expense_manager/data/transactions_repo.dart';
 import 'package:expense_manager/main.dart' as app_main;
@@ -340,13 +342,33 @@ void main() {
     expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode, ThemeMode.light);
   });
 
+  testWidgets('dev flavor shows a DEV banner; prod does not', (tester) async {
+    final s = makeState();
+    await tester.pumpWidget(ExpenseApp(state: s, flavor: Flavor.dev));
+    await tester.pump();
+    expect(find.byType(Banner), findsOneWidget);
+    await tester.pumpWidget(ExpenseApp(state: s));
+    await tester.pump();
+    expect(find.byType(Banner), findsNothing);
+  });
+
   testWidgets('main() boots the app on an on-device database', (tester) async {
     final dir = Directory.systemTemp.createTempSync('main');
     PathProviderPlatform.instance = FakePaths(dir.path);
+    final flutterHandler = FlutterError.onError;
+    final platformHandler = PlatformDispatcher.instance.onError;
     await tester.runAsync(app_main.main);
+    // main() routes errors to the local log; put the test handlers back.
+    expect(FlutterError.onError, isNot(same(flutterHandler)));
+    FlutterError.onError = flutterHandler;
+    PlatformDispatcher.instance.onError = platformHandler;
     await tester.pump();
     expect(find.byType(HomeShell), findsOneWidget);
     expect(File('${dir.path}/expense_manager.db').existsSync(), isTrue);
+    final dev = await tester.runAsync(() => app_main.bootstrap(flavor: Flavor.dev));
+    expect(File('${dir.path}/expense_manager_dev.db').existsSync(), isTrue);
+    expect(dev!.errorLog!.file.path, '${dir.path}/logs/errors.log');
+    dev.db.close();
     await tester.pumpWidget(const SizedBox());
     dir.deleteSync(recursive: true);
   });
