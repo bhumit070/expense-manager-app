@@ -50,4 +50,46 @@ void main() {
       expect(parseInr('1..2'), isNull);
     });
   });
+
+  group('currencies', () {
+    tearDown(() => currentCurrency = inr);
+
+    test('lookup falls back to INR', () {
+      expect(currencyByCode('USD').symbol, r'$');
+      expect(currencyByCode('XYZ'), same(inr));
+      expect(currencyByCode(null), same(inr));
+      expect(currencies.map((c) => c.code).toSet().length, currencies.length);
+    });
+
+    test('western grouping', () {
+      expect(groupWestern(0), '0');
+      expect(groupWestern(999), '999');
+      expect(groupWestern(1000), '1,000');
+      expect(groupWestern(1234567), '1,234,567');
+      expect(groupWestern(-123456), '123,456');
+    });
+
+    test('formatting follows the current currency', () {
+      currentCurrency = currencyByCode('USD');
+      expect(currencySymbol, r'$');
+      expect(formatInr(123456789), r'$1,234,567.89');
+      expect(formatInr(-48600), r'−$486');
+      expect(formatInrCompact(95000), r'$950');
+      expect(formatInrCompact(1850000), r'$18.5K');
+      expect(formatInrCompact(123400000), r'$1.23M');
+      expect(formatInrCompact(250000000000), r'$2.5B');
+      expect(formatInrCompact(-1850000), r'−$18.5K');
+      currentCurrency = currencyByCode('AED');
+      expect(currencySymbol, 'AED');
+      expect(formatInr(100000), 'AED 1,000');
+    });
+
+    test('parse ignores any supported symbol', () {
+      expect(parseInr(r'S$ 1,234.50'), 123450);
+      expect(parseInr(r'$20'), 2000);
+      expect(parseInr('€5'), 500);
+      expect(parseInr('AED 7'), 700);
+      expect(parseInr(r'S$'), isNull);
+    });
+  });
 }

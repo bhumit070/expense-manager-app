@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../../core/dates.dart';
+import '../../core/money.dart';
 import '../../data/models.dart';
 import '../../data/transactions_repo.dart';
 import '../../services/csv.dart';
@@ -24,6 +25,53 @@ class SettingsScreen extends StatelessWidget {
     );
     if (name != null) app.userName = name;
   }
+
+  Future<void> _pickDefaultSource(BuildContext context, AppState app) async {
+    final sources = app.catalog.sources();
+    final picked = await showDialog<int>(
+      context: context,
+      builder: (_) => ChoiceDialog<int>(
+        title: 'Default payment mode',
+        values: [for (final s in sources) s.id],
+        selected: app.catalog.defaultSource()?.id,
+        label: (id) => sources.firstWhere((s) => s.id == id).display,
+        keyPrefix: 'pick-source',
+      ),
+    );
+    if (picked == null) return;
+    app.catalog.setDefaultSource(picked);
+    app.changed();
+  }
+
+  Future<void> _pickCurrency(BuildContext context, AppState app) async {
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (_) => ChoiceDialog<String>(
+        title: 'Currency',
+        subtitle: 'Changes how amounts are shown. Nothing is converted.',
+        values: [for (final c in currencies) c.code],
+        selected: app.currency.code,
+        label: (code) {
+          final c = currencyByCode(code);
+          return '${c.symbol.trim()}  ${c.name} (${c.code})';
+        },
+        keyPrefix: 'pick-currency',
+      ),
+    );
+    if (picked != null) app.currency = currencyByCode(picked);
+  }
+
+  void _showPrivacy(BuildContext context) => showDialog<void>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: const Text('Privacy'),
+      content: const Text(
+        'Expense Manager has no account, server or analytics. Everything you enter is stored in a database on this phone and only leaves it when you export or share a file yourself.\n\n'
+        'Location is read only when you allow it, and only to label your own transactions.',
+      ),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+    ),
+  );
 
   Future<void> _exportCsv(BuildContext context, AppState app) async {
     final rows = app.txns.list(const TxnFilter(), limit: 1 << 30);
@@ -124,20 +172,36 @@ class SettingsScreen extends StatelessWidget {
           ]),
           group('Defaults', [
             ListTile(
+              key: const Key('default-source'),
+              leading: const Icon(Icons.check_circle_outline),
+              title: const Text('Default payment mode'),
+              subtitle: const Text('Pre-selected on new transactions'),
+              trailing: Text(app.catalog.defaultSource()?.name ?? 'None'),
+              onTap: () => _pickDefaultSource(context, app),
+            ),
+            ListTile(
               key: const Key('open-sources'),
               leading: const Icon(Icons.account_balance_wallet_outlined),
-              title: const Text('Payment mode'),
-              trailing: Text(app.catalog.defaultSource()?.name ?? 'None'),
+              title: const Text('Payment sources'),
+              trailing: Text('${app.catalog.sources().length} active'),
               onTap: () => open(const SourcesScreen()),
             ),
             ListTile(
               key: const Key('open-categories'),
               leading: const Icon(Icons.grid_view),
               title: const Text('Categories'),
+              subtitle: const Text('Uncategorised entries go to the default'),
               trailing: Text('Default: ${app.catalog.defaultCategory().name}'),
               onTap: () => open(const CategoriesScreen()),
             ),
-            const ListTile(leading: Icon(Icons.calendar_today_outlined), title: Text('Week starts on'), trailing: Text('Monday')),
+            ListTile(
+              key: const Key('currency'),
+              leading: const Icon(Icons.currency_exchange),
+              title: const Text('Currency'),
+              trailing: Text('${app.currency.code} · $currencySymbol'),
+              onTap: () => _pickCurrency(context, app),
+            ),
+            const ListTile(leading: Icon(Icons.calendar_today_outlined), title: Text('Week starts on'), subtitle: Text('Weekly budgets run Monday → Sunday'), trailing: Text('Monday')),
           ]),
           group('Data', [
             ListTile(key: const Key('export-csv'), leading: const Icon(Icons.table_chart_outlined), title: const Text('Export CSV'), onTap: () => _exportCsv(context, app)),
@@ -157,6 +221,27 @@ class SettingsScreen extends StatelessWidget {
               title: const Text('Location on transactions'),
               value: app.locationEnabled,
               onChanged: (v) => _toggleLocation(context, app, v),
+            ),
+          ]),
+          group('About', [
+            ListTile(
+              key: const Key('app-version'),
+              leading: const Icon(Icons.info_outline),
+              title: const Text('Version'),
+              trailing: FutureBuilder<String>(future: app.info.version(), builder: (_, snap) => Text(snap.data ?? (snap.hasError ? 'Unknown' : '…'))),
+            ),
+            ListTile(
+              key: const Key('privacy'),
+              leading: const Icon(Icons.privacy_tip_outlined),
+              title: const Text('Privacy'),
+              subtitle: const Text('No data collected · works offline'),
+              onTap: () => _showPrivacy(context),
+            ),
+            ListTile(
+              key: const Key('licenses'),
+              leading: const Icon(Icons.description_outlined),
+              title: const Text('Open-source licenses'),
+              onTap: () => showLicensePage(context: context, applicationName: 'Expense Manager'),
             ),
           ]),
         ],
@@ -195,5 +280,42 @@ class _NameDialogState extends State<NameDialog> {
         child: const Text('Save'),
       ),
     ],
+  );
+}
+
+/// Single-choice list dialog; pops the chosen value.
+class ChoiceDialog<T> extends StatelessWidget {
+  const ChoiceDialog({super.key, required this.title, required this.values, required this.selected, required this.label, required this.keyPrefix, this.subtitle});
+
+  final String title;
+  final String? subtitle;
+  final List<T> values;
+  final T? selected;
+  final String Function(T) label;
+  final String keyPrefix;
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(title),
+    contentPadding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
+    content: SingleChildScrollView(
+      child: RadioGroup<T>(
+        groupValue: selected,
+        onChanged: (v) => Navigator.pop(context, v),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (subtitle != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(subtitle!, style: ts(12, color: context.colors.textMuted)),
+              ),
+            for (final v in values) RadioListTile<T>(key: Key('$keyPrefix-$v'), value: v, title: Text(label(v))),
+          ],
+        ),
+      ),
+    ),
+    actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel'))],
   );
 }

@@ -3,6 +3,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'app.dart';
+import 'core/licenses.dart';
 import 'data/database.dart';
 import 'services/file_gateway.dart';
 import 'services/location.dart';
@@ -17,5 +18,6 @@ Future<AppState> bootstrap() async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  registerAssetLicenses();
   runApp(ExpenseApp(state: await bootstrap()));
 }

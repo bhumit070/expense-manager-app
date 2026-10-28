@@ -1,26 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import '../core/money.dart';
 import '../data/catalog_repo.dart';
 import '../data/planning_repo.dart';
 import '../data/settings_repo.dart';
 import '../data/transactions_repo.dart';
+import '../services/app_info.dart';
 import '../services/file_gateway.dart';
 import '../services/location.dart';
 
 /// App-wide state. Repositories are synchronous (SQLite via FFI) and fast;
 /// screens re-query when [notifyListeners] fires after a write.
 class AppState extends ChangeNotifier {
-  AppState({required this.db, required this.files, required this.location, DateTime Function()? clock})
+  AppState({required this.db, required this.files, required this.location, AppInfo? info, DateTime Function()? clock})
     : clock = clock ?? DateTime.now,
+      info = info ?? PlatformAppInfo(),
       txns = TransactionsRepo(db),
       catalog = CatalogRepo(db),
       planning = PlanningRepo(db),
-      settings = SettingsRepo(db);
+      settings = SettingsRepo(db) {
+    currentCurrency = currencyByCode(settings.get('currency'));
+    // Installs from before onboarding existed already have data: skip it.
+    if (settings.get('onboarded') == null && db.select('SELECT 1 FROM transactions LIMIT 1').isNotEmpty) settings.set('onboarded', '1');
+  }
 
   final Database db;
   final FileGateway files;
   final LocationService location;
+  final AppInfo info;
   final DateTime Function() clock;
   final TransactionsRepo txns;
   final CatalogRepo catalog;
@@ -43,6 +51,23 @@ class AppState extends ChangeNotifier {
 
   set userName(String name) {
     settings.set('name', name.trim());
+    changed();
+  }
+
+  /// Whether the first-launch flow has been completed (or skipped).
+  bool get onboarded => settings.get('onboarded') == '1';
+
+  void completeOnboarding() {
+    settings.set('onboarded', '1');
+    changed();
+  }
+
+  /// Display currency for all amounts (no conversion).
+  Currency get currency => currentCurrency;
+
+  set currency(Currency c) {
+    settings.set('currency', c.code);
+    currentCurrency = c;
     changed();
   }
 

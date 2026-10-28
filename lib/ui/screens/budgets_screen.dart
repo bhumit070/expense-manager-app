@@ -232,7 +232,7 @@ class _BudgetFormScreenState extends State<BudgetFormScreen> {
             key: const Key('budget-limit'),
             controller: _limit,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Limit (₹)', prefixText: '₹ '),
+            decoration: InputDecoration(labelText: 'Limit ($currencySymbol)', prefixText: '$currencySymbol '),
           ),
           if (suggestion > 0)
             Padding(

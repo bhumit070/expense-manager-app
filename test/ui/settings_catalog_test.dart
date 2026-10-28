@@ -1,17 +1,24 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:expense_manager/app.dart';
+import 'package:expense_manager/core/money.dart';
+import 'package:expense_manager/data/database.dart';
 import 'package:expense_manager/data/models.dart';
 import 'package:expense_manager/data/transactions_repo.dart';
 import 'package:expense_manager/main.dart' as app_main;
+import 'package:expense_manager/services/app_info.dart';
+import 'package:expense_manager/state/app_state.dart';
 import 'package:expense_manager/ui/screens/categories_screen.dart';
 import 'package:expense_manager/ui/screens/import_screen.dart';
+import 'package:expense_manager/ui/screens/onboarding_screen.dart';
 import 'package:expense_manager/ui/screens/settings_screen.dart';
 import 'package:expense_manager/ui/screens/shell.dart';
 import 'package:expense_manager/ui/screens/sources_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
@@ -24,6 +31,13 @@ class FakePaths extends PathProviderPlatform with MockPlatformInterfaceMixin {
 
   @override
   Future<String?> getApplicationDocumentsPath() async => dir;
+}
+
+class _PendingInfo implements AppInfo {
+  final result = Completer<String>();
+
+  @override
+  Future<String> version() => result.future;
 }
 
 void main() {
@@ -239,6 +253,67 @@ void main() {
       expect(find.byType(CategoriesScreen), findsOneWidget);
     });
 
+    testWidgets('default payment mode picker and currency', (tester) async {
+      addTearDown(() => currentCurrency = inr);
+      final s = makeState();
+      final ids = seed(s);
+      await pumpRoute(tester, s, const SettingsScreen());
+      expect(find.text('HDFC Savings'), findsOneWidget);
+      expect(find.text('3 active'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('default-source')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(s.catalog.defaultSource()!.id, ids.hdfc);
+      await tester.tap(find.byKey(const Key('default-source')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(Key('pick-source-${ids.card}')));
+      await tester.pumpAndSettle();
+      expect(s.catalog.defaultSource()!.id, ids.card);
+      expect(find.text('ICICI Card'), findsOneWidget);
+
+      expect(find.text('INR · ₹'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('currency')));
+      await tester.pumpAndSettle();
+      expect(find.text('Changes how amounts are shown. Nothing is converted.'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(s.currency, same(inr));
+      await tester.tap(find.byKey(const Key('currency')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('pick-currency-USD')));
+      await tester.pumpAndSettle();
+      expect(s.currency.code, 'USD');
+      expect(s.settings.get('currency'), 'USD');
+      expect(find.text(r'USD · $'), findsOneWidget);
+    });
+
+    testWidgets('about: version, privacy and licenses', (tester) async {
+      PackageInfo.setMockInitialValues(appName: 'Expense Manager', packageName: 'x', version: '0.1.0', buildNumber: '5', buildSignature: '');
+      final s = makeState();
+      await pumpRoute(tester, s, const SettingsScreen());
+      await tester.pumpAndSettle();
+      expect(find.text('0.1.0 (5)'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('privacy')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('no account, server or analytics'), findsOneWidget);
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('licenses')));
+      await tester.pumpAndSettle();
+      expect(find.byType(LicensePage), findsOneWidget);
+    });
+
+    testWidgets('version shows Unknown when it cannot be read', (tester) async {
+      final info = _PendingInfo();
+      final s = AppState(db: openAppDatabase(null), files: FakeFiles(), location: FakeLocation(), info: info, clock: () => kNow);
+      await pumpRoute(tester, s, const SettingsScreen());
+      expect(find.text('…'), findsOneWidget);
+      info.result.completeError(StateError('no platform'));
+      await tester.pumpAndSettle();
+      expect(find.text('Unknown'), findsOneWidget);
+    });
+
     testWidgets('no default source shows None in defaults', (tester) async {
       final s = makeState();
       s.catalog.archiveSource(s.catalog.defaultSource()!.id);
@@ -345,7 +420,7 @@ void main() {
     PathProviderPlatform.instance = FakePaths(dir.path);
     await tester.runAsync(app_main.main);
     await tester.pump();
-    expect(find.byType(HomeShell), findsOneWidget);
+    expect(find.byType(OnboardingScreen), findsOneWidget);
     expect(File('${dir.path}/expense_manager.db').existsSync(), isTrue);
     await tester.pumpWidget(const SizedBox());
     dir.deleteSync(recursive: true);

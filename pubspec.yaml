@@ -14,6 +14,7 @@ dependencies:
   geocoding: ^5.0.0
   geolocator: ^14.0.1
   latlong2: ^0.10.1
+  package_info_plus: ^10.2.2
   path: ^1.9.1
   path_provider: ^2.1.6
   pdf: ^3.13.1
@@ -36,6 +37,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/fonts/OFL.txt
   fonts:
     - family: PlusJakartaSans
       fonts:

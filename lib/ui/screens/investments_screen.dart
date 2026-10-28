@@ -445,7 +445,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
             key: const Key('inv-amount'),
             controller: _amount,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Amount invested now (optional)', prefixText: '₹ '),
+            decoration: InputDecoration(labelText: 'Amount invested now (optional)', prefixText: '$currencySymbol '),
           ),
           const SizedBox(height: 8),
           ListTile(
