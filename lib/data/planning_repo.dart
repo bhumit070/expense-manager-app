@@ -2,6 +2,7 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../core/dates.dart';
 import 'models.dart';
+import 'transactions_repo.dart';
 
 /// Budgets, investments and debts.
 class PlanningRepo {
@@ -30,8 +31,13 @@ class PlanningRepo {
 
   int _used(Budget b, Period p) {
     final type = b.isGoal ? 'invest' : 'spend';
-    final args = <Object?>[type, p.start.millisecondsSinceEpoch, p.end.millisecondsSinceEpoch, ...b.categoryIds];
-    final cats = b.categoryIds.isEmpty ? '' : ' AND category_id IN (${List.filled(b.categoryIds.length, '?').join(',')})';
+    final args = <Object?>[type, p.start.millisecondsSinceEpoch, p.end.millisecondsSinceEpoch];
+    var cats = '';
+    if (b.categoryIds.isNotEmpty) {
+      final (sql, ids) = categoryClause('category_id', b.categoryIds);
+      cats = ' AND $sql';
+      args.addAll(ids);
+    }
     return db.select('SELECT coalesce(sum(amount), 0) AS s FROM transactions WHERE deleted = 0 AND type = ? AND occurred_at >= ? AND occurred_at < ?$cats', args).first['s'] as int;
   }
 

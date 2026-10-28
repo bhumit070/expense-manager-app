@@ -18,7 +18,7 @@ String encodeCsv(List<TxnView> rows) {
         isoDateTime(t.occurredAt),
         t.type.name,
         (t.amount / paisePerRupee).toStringAsFixed(2),
-        r.category.name,
+        r.categoryPath,
         r.source?.name ?? '',
         t.merchant,
         t.note,
@@ -98,11 +98,15 @@ class CsvMapping {
 }
 
 class ImportRow {
-  const ImportRow({required this.line, this.txn, this.duplicate = false, this.needsReview = false, this.error});
+  const ImportRow({required this.line, this.txn, this.duplicate = false, this.needsReview = false, this.error, this.newSubcategory});
 
   final int line;
   final Txn? txn;
   final bool duplicate;
+
+  /// Sub-category to create under the txn's category when imported
+  /// (from a "Parent / Child" cell whose child doesn't exist yet).
+  final String? newSubcategory;
 
   /// Category could not be matched; the default was used.
   final bool needsReview;
@@ -149,8 +153,8 @@ List<ImportRow> buildImport(List<List<String>> rows, CatalogRepo catalog, Transa
       amount = -amount;
     }
     type ??= TxnType.spend;
-    final catName = cell(r, map.category);
-    var category = catName.isEmpty ? null : catalog.findCategoryByName(catName);
+    final (category: matched, newChild: newSubcategory) = _matchCategory(cell(r, map.category), catalog);
+    var category = matched;
     final needsReview = category == null && type == TxnType.spend;
     category ??= catalog.firstOf(
       type == TxnType.invest
@@ -171,7 +175,39 @@ List<ImportRow> buildImport(List<List<String>> rows, CatalogRepo catalog, Transa
       tags: tags.isEmpty ? const [] : tags.split(RegExp(r'\s+')),
       place: cell(r, map.place),
     );
-    out.add(ImportRow(line: line, txn: txn, duplicate: txns.isDuplicate(txn), needsReview: needsReview));
+    out.add(ImportRow(line: line, txn: txn, duplicate: txns.isDuplicate(txn), needsReview: needsReview, newSubcategory: newSubcategory));
   }
   return out;
+}
+
+/// Matches "Name" or "Parent / Child". A missing child of a known parent is
+/// reported as [newChild] so it can be created on import.
+({Category? category, String? newChild}) _matchCategory(String value, CatalogRepo catalog) {
+  if (value.isEmpty) return (category: null, newChild: null);
+  final parts = value.split('/').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+  if (parts.length < 2) return (category: catalog.findCategoryByName(value), newChild: null);
+  final parent = catalog.findCategoryByName(parts.first);
+  if (parent == null) return (category: catalog.findCategoryByName(value), newChild: null);
+  final childName = parts.sublist(1).join(' / ');
+  final child = catalog.findCategoryByName(childName, parentId: parent.id);
+  if (child != null) return (category: child, newChild: null);
+  return (category: parent, newChild: parent.isChild ? null : childName);
+}
+
+/// Transactions to insert for the chosen rows, creating any new
+/// sub-categories once (rows sharing a new "Parent / Child" share it).
+List<Txn> resolveImport(Iterable<ImportRow> rows, CatalogRepo catalog) {
+  final created = <String, int>{};
+  return [
+    for (final r in rows)
+      if (r.newSubcategory == null)
+        r.txn!
+      else
+        r.txn!.copyWith(
+          categoryId: created.putIfAbsent('${r.txn!.categoryId}/${r.newSubcategory!.toLowerCase()}', () {
+            final parent = catalog.category(r.txn!.categoryId);
+            return catalog.addCategory(name: r.newSubcategory!, kind: parent.kind, icon: parent.icon, color: parent.color, parentId: parent.id);
+          }),
+        ),
+  ];
 }

@@ -33,11 +33,16 @@ void main() {
       'CREATE TABLE sources (id INTEGER PRIMARY KEY, name TEXT NOT NULL, kind TEXT NOT NULL, last4 TEXT, credit_limit INTEGER, is_default INTEGER NOT NULL DEFAULT 0, archived INTEGER NOT NULL DEFAULT 0)',
     );
     old.execute("INSERT INTO sources(name, kind) VALUES ('Old', 'bank')");
+    old.execute(
+      'CREATE TABLE categories (id INTEGER PRIMARY KEY, name TEXT NOT NULL, kind TEXT NOT NULL, icon TEXT NOT NULL, color INTEGER NOT NULL, sort_order INTEGER NOT NULL DEFAULT 0, is_default INTEGER NOT NULL DEFAULT 0, archived INTEGER NOT NULL DEFAULT 0)',
+    );
+    old.execute("INSERT INTO categories(name, kind, icon, color) VALUES ('Food', 'spend', 'food', 1)");
     old.userVersion = 1;
     old.close();
     final db = openAppDatabase(path);
     expect(db.userVersion, schemaVersion);
     expect(db.select('SELECT opening_balance FROM sources').single['opening_balance'], 0);
+    expect(db.select('SELECT parent_id FROM categories').single['parent_id'], isNull);
     db.close();
     dir.deleteSync(recursive: true);
   });

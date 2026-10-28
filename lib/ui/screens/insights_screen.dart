@@ -26,6 +26,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
   PeriodKind _kind = PeriodKind.month;
   Period? _period;
   TxnType _breakdown = TxnType.spend;
+
+  /// Parent categories whose sub-category split is shown.
+  final _expanded = <int>{};
   bool _exporting = false;
 
   Future<void> _export(AppState app, Period p) async {
@@ -223,48 +226,69 @@ class _InsightsScreenState extends State<InsightsScreen> {
               ? Text('Nothing recorded in this period.', style: ts(13, color: c.textMuted))
               : Column(
                   children: [
-                    for (final ct in cats)
-                      InkWell(
-                        key: Key('cat-row-${ct.category.id}'),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => TransactionsScreen(
-                              initialFilter: TxnFilter(categoryIds: {ct.category.id}, types: {_breakdown}),
-                              initialPeriod: p.kind == PeriodKind.month ? p : null,
-                            ),
+                    for (final ct in cats) ...[
+                      _catRow(context, ct, p, share: ct.total / catTotal, bar: ct.total / cats.first.total, expanded: _expanded.contains(ct.category.id)),
+                      if (_expanded.contains(ct.category.id))
+                        for (final sub in app.txns.byCategory(p, _breakdown, parentId: ct.category.id))
+                          Padding(
+                            padding: const EdgeInsets.only(left: 28),
+                            child: _catRow(context, sub, p, share: sub.total / ct.total, bar: sub.total / ct.total, label: sub.category.id == ct.category.id ? '${sub.category.name} (direct)' : null),
                           ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 7),
-                          child: Row(
-                            children: [
-                              CategoryBadge(ct.category, size: 38),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text('${ct.category.name}  ·  ${ct.count} txn${ct.count == 1 ? '' : 's'}', style: ts(13, weight: FontWeight.w600)),
-                                        ),
-                                        Text('${(ct.total * 100 / catTotal).round()}%  ', style: ts(11, color: c.textMuted)),
-                                        Text(formatInr(ct.total), style: ts(13, weight: FontWeight.w700)),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    SegmentBar(segments: [(ct.total / cats.first.total, Color(ct.category.color))], height: 6),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                    ],
                   ],
                 ),
         ),
       ],
+    );
+  }
+
+  /// One breakdown row; tapping opens the matching transactions. Parents with
+  /// sub-categories get a chevron that shows their split.
+  Widget _catRow(BuildContext context, CategoryTotal ct, Period p, {required double share, required double bar, bool expanded = false, String? label}) {
+    final c = context.colors;
+    return InkWell(
+      key: Key('cat-row-${ct.category.id}${label == null ? '' : '-direct'}'),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => TransactionsScreen(
+            initialFilter: TxnFilter(categoryIds: {ct.category.id}, types: {_breakdown}),
+            initialPeriod: p.kind == PeriodKind.month ? p : null,
+          ),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        child: Row(
+          children: [
+            CategoryBadge(ct.category, size: 38),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('${label ?? ct.category.name}  ·  ${ct.count} txn${ct.count == 1 ? '' : 's'}', style: ts(13, weight: FontWeight.w600)),
+                      ),
+                      Text('${(share * 100).round()}%  ', style: ts(11, color: c.textMuted)),
+                      Text(formatInr(ct.total), style: ts(13, weight: FontWeight.w700)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  SegmentBar(segments: [(bar, Color(ct.category.color))], height: 6),
+                ],
+              ),
+            ),
+            if (ct.subCount > 0)
+              IconButton(
+                key: Key('expand-cat-${ct.category.id}'),
+                tooltip: expanded ? 'Hide sub-categories' : 'Show sub-categories',
+                icon: Icon(expanded ? Icons.expand_less : Icons.expand_more),
+                onPressed: () => setState(() => expanded ? _expanded.remove(ct.category.id) : _expanded.add(ct.category.id)),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

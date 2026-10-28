@@ -5,6 +5,7 @@ import '../../core/money.dart';
 import '../../data/models.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
+import '../widgets/category_picker.dart';
 import '../widgets/common.dart';
 
 /// Add or edit a transaction. Defaults: now, default source, "Others"
@@ -199,38 +200,7 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
           ],
           if (_type != TxnType.debt) ...[
             label('Category'),
-            Wrap(
-              spacing: 10,
-              runSpacing: 12,
-              children: [
-                for (final cat in cats)
-                  GestureDetector(
-                    key: Key('cat-${cat.id}'),
-                    onTap: () => setState(() => _categoryId = cat.id),
-                    child: Container(
-                      width: 78,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: selectedCat == cat.id ? c.surface : Colors.transparent,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: selectedCat == cat.id ? Color(cat.color) : Colors.transparent, width: 1.5),
-                      ),
-                      child: Column(
-                        children: [
-                          CategoryBadge(cat, size: 44),
-                          const SizedBox(height: 6),
-                          Text(
-                            cat.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: ts(11, weight: FontWeight.w600, color: selectedCat == cat.id ? c.text : c.textMuted),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+            CategoryPicker(categories: cats, selectedId: selectedCat, onChanged: (id) => setState(() => _categoryId = id)),
             if (_kind == CategoryKind.spend)
               Padding(
                 padding: const EdgeInsets.only(top: 8),

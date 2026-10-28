@@ -46,6 +46,12 @@ class TxnFilter {
       );
 }
 
+/// SQL matching [column] against [ids] and the sub-categories of those ids.
+(String, List<Object>) categoryClause(String column, Iterable<int> ids) {
+  final marks = List.filled(ids.length, '?').join(',');
+  return ('($column IN ($marks) OR $column IN (SELECT id FROM categories WHERE parent_id IN ($marks)))', [...ids, ...ids]);
+}
+
 /// Builds an FTS5 prefix query from free text: `team din` -> `"team"* "din"*`.
 /// Returns null if there is nothing searchable.
 String? ftsQuery(String input) {
@@ -60,10 +66,11 @@ class TransactionsRepo {
   final Database db;
 
   static const _select = '''
-SELECT t.*, c.name AS c_name, c.kind AS c_kind, c.icon AS c_icon, c.color AS c_color,
+SELECT t.*, c.name AS c_name, c.kind AS c_kind, c.icon AS c_icon, c.color AS c_color, c.parent_id AS c_parent_id, pc.name AS c_parent_name,
        s.name AS s_name, s.kind AS s_kind, s.last4 AS s_last4
 FROM transactions t
 JOIN categories c ON c.id = t.category_id
+LEFT JOIN categories pc ON pc.id = c.parent_id
 LEFT JOIN sources s ON s.id = t.source_id
 ''';
 
@@ -153,7 +160,11 @@ WHERE id = ?''',
     }
 
     if (f.types.isNotEmpty) inList('t.type', f.types.map((e) => e.name));
-    if (f.categoryIds.isNotEmpty) inList('t.category_id', f.categoryIds);
+    if (f.categoryIds.isNotEmpty) {
+      final (sql, ids) = categoryClause('t.category_id', f.categoryIds);
+      clauses.add(sql);
+      args.addAll(ids);
+    }
     if (f.sourceIds.isNotEmpty) inList('t.source_id', f.sourceIds);
     if (f.investmentId != null) {
       clauses.add('t.investment_id = ?');
@@ -207,16 +218,26 @@ FROM transactions t WHERE $where''', args).first;
   Totals totalsIn(Period p) => totals(TxnFilter(from: p.start, to: p.end));
 
   /// Totals per category for one transaction type, largest first.
-  List<CategoryTotal> byCategory(Period p, TxnType type) {
-    final r = db.select(
-      '''
-SELECT c.*, sum(t.amount) AS total, count(*) AS n
-FROM transactions t JOIN categories c ON c.id = t.category_id
+  /// Sub-categories roll up into their parent; with [parentId], returns the
+  /// split of that parent (its own transactions and each sub-category).
+  List<CategoryTotal> byCategory(Period p, TxnType type, {int? parentId}) {
+    final args = <Object?>[type.name, p.start.millisecondsSinceEpoch, p.end.millisecondsSinceEpoch];
+    final String sql;
+    if (parentId == null) {
+      sql = '''
+SELECT g.*, sum(t.amount) AS total, count(*) AS n, count(DISTINCT CASE WHEN c.parent_id IS NOT NULL THEN c.id END) AS subs
+FROM transactions t JOIN categories c ON c.id = t.category_id JOIN categories g ON g.id = coalesce(c.parent_id, c.id)
 WHERE t.deleted = 0 AND t.type = ? AND t.occurred_at >= ? AND t.occurred_at < ?
-GROUP BY c.id ORDER BY total DESC''',
-      [type.name, p.start.millisecondsSinceEpoch, p.end.millisecondsSinceEpoch],
-    );
-    return r.map((row) => CategoryTotal(category: Category.fromRow(row), total: row['total'] as int, count: row['n'] as int)).toList();
+GROUP BY g.id ORDER BY total DESC''';
+    } else {
+      sql = '''
+SELECT c.*, sum(t.amount) AS total, count(*) AS n, 0 AS subs
+FROM transactions t JOIN categories c ON c.id = t.category_id
+WHERE t.deleted = 0 AND t.type = ? AND t.occurred_at >= ? AND t.occurred_at < ? AND (c.id = ? OR c.parent_id = ?)
+GROUP BY c.id ORDER BY total DESC''';
+      args.addAll([parentId, parentId]);
+    }
+    return db.select(sql, args).map((row) => CategoryTotal(category: Category.fromRow(row), total: row['total'] as int, count: row['n'] as int, subCount: row['subs'] as int)).toList();
   }
 
   /// Spend/invest per sub-period: weeks of a month, months of a year, days of a week.

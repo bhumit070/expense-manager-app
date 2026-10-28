@@ -25,7 +25,7 @@ DateTime _ms(Object? v) => DateTime.fromMillisecondsSinceEpoch(v! as int);
 DateTime? _msOrNull(Object? v) => v == null ? null : _ms(v);
 
 class Category {
-  const Category({required this.id, required this.name, required this.kind, required this.icon, required this.color, this.sortOrder = 0, this.isDefault = false, this.archived = false});
+  const Category({required this.id, required this.name, required this.kind, required this.icon, required this.color, this.sortOrder = 0, this.isDefault = false, this.archived = false, this.parentId});
 
   factory Category.fromRow(Row r) => Category(
     id: r['id'] as int,
@@ -36,6 +36,7 @@ class Category {
     sortOrder: r['sort_order'] as int,
     isDefault: r['is_default'] == 1,
     archived: r['archived'] == 1,
+    parentId: r['parent_id'] as int?,
   );
 
   final int id;
@@ -46,6 +47,11 @@ class Category {
   final int sortOrder;
   final bool isDefault;
   final bool archived;
+
+  /// Parent category for a sub-category; null for a top-level category.
+  final int? parentId;
+
+  bool get isChild => parentId != null;
 }
 
 class PaymentSource {
@@ -113,11 +119,11 @@ class Txn {
   final int? investmentId;
   final int? debtId;
 
-  Txn copyWith({int? id, DateTime? occurredAt}) => Txn(
+  Txn copyWith({int? id, DateTime? occurredAt, int? categoryId}) => Txn(
     id: id ?? this.id,
     type: type,
     amount: amount,
-    categoryId: categoryId,
+    categoryId: categoryId ?? this.categoryId,
     sourceId: sourceId,
     occurredAt: occurredAt ?? this.occurredAt,
     merchant: merchant,
@@ -136,7 +142,7 @@ class Txn {
 
 /// A transaction joined with display data.
 class TxnView {
-  const TxnView({required this.txn, required this.category, this.source, required this.inflow});
+  const TxnView({required this.txn, required this.category, this.source, required this.inflow, this.parentName});
 
   factory TxnView.fromRow(Row r) {
     final tags = (r['tags'] as String);
@@ -157,7 +163,15 @@ class TxnView {
         investmentId: r['investment_id'] as int?,
         debtId: r['debt_id'] as int?,
       ),
-      category: Category(id: r['category_id'] as int, name: r['c_name'] as String, kind: enumByName(CategoryKind.values, r['c_kind']), icon: r['c_icon'] as String, color: r['c_color'] as int),
+      category: Category(
+        id: r['category_id'] as int,
+        name: r['c_name'] as String,
+        kind: enumByName(CategoryKind.values, r['c_kind']),
+        icon: r['c_icon'] as String,
+        color: r['c_color'] as int,
+        parentId: r['c_parent_id'] as int?,
+      ),
+      parentName: r['c_parent_name'] as String?,
       source: r['source_id'] == null ? null : PaymentSource(id: r['source_id'] as int, name: r['s_name'] as String, kind: enumByName(SourceKind.values, r['s_kind']), last4: r['s_last4'] as String?),
       inflow: r['inflow'] == 1,
     );
@@ -166,6 +180,12 @@ class TxnView {
   final Txn txn;
   final Category category;
   final PaymentSource? source;
+
+  /// Name of the parent category when [category] is a sub-category.
+  final String? parentName;
+
+  /// "Parent / Child" for sub-categories, otherwise the category name.
+  String get categoryPath => parentName == null ? category.name : '$parentName / ${category.name}';
 
   /// True when money came in (income, or repayment of money owed to you).
   final bool inflow;
@@ -347,11 +367,14 @@ class Totals {
 }
 
 class CategoryTotal {
-  const CategoryTotal({required this.category, required this.total, required this.count});
+  const CategoryTotal({required this.category, required this.total, required this.count, this.subCount = 0});
 
   final Category category;
   final int total;
   final int count;
+
+  /// Number of sub-categories rolled up into this total.
+  final int subCount;
 }
 
 class Bucket {

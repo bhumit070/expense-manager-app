@@ -34,7 +34,7 @@ class _ImportScreenState extends State<ImportScreen> {
 
   void _import() {
     final app = AppScope.read(context);
-    final n = app.txns.insertAll([for (final i in _selected) _rows![i].txn!]);
+    final n = app.txns.insertAll(resolveImport([for (final i in _selected) _rows![i]], app.catalog));
     app.changed();
     showSnack(context, 'Imported $n transactions');
     Navigator.of(context).pop();
@@ -105,7 +105,13 @@ class _ImportScreenState extends State<ImportScreen> {
                   onChanged: (v) => setState(() => v! ? _selected.add(i) : _selected.remove(i)),
                   title: Text(t.titleOr(t.type.name), style: ts(14, weight: FontWeight.w600)),
                   subtitle: Text(
-                    [shortDate(t.occurredAt), typeLabel(t.type), if (r.duplicate) 'Duplicate', if (r.needsReview) 'Category → Others'].join(' · '),
+                    [
+                      shortDate(t.occurredAt),
+                      typeLabel(t.type),
+                      if (r.duplicate) 'Duplicate',
+                      if (r.needsReview) 'Category → Others',
+                      if (r.newSubcategory != null) 'New sub-category: ${r.newSubcategory}',
+                    ].join(' · '),
                     style: ts(11, color: r.duplicate ? c.textFaint : (r.needsReview ? c.debt : c.textMuted)),
                   ),
                   secondary: Text(formatInr(t.amount), style: ts(14, weight: FontWeight.w700)),

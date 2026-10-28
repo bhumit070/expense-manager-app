@@ -4,6 +4,7 @@ import '../../core/money.dart';
 import '../../data/models.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
+import '../widgets/category_picker.dart';
 import '../widgets/common.dart';
 
 class BudgetsScreen extends StatefulWidget {
@@ -266,7 +267,7 @@ class _BudgetFormScreenState extends State<BudgetFormScreen> {
             runSpacing: 8,
             children: [
               for (final cat in cats)
-                Pill(cat.name, dot: Color(cat.color), selected: _cats.contains(cat.id), onTap: () => setState(() => _cats.contains(cat.id) ? _cats.remove(cat.id) : _cats.add(cat.id))),
+                Pill(categoryLabel(cat, cats), dot: Color(cat.color), selected: _cats.contains(cat.id), onTap: () => setState(() => _cats.contains(cat.id) ? _cats.remove(cat.id) : _cats.add(cat.id))),
             ],
           ),
           const SizedBox(height: 8),

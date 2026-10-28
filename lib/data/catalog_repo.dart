@@ -9,11 +9,26 @@ class CatalogRepo {
 
   final Database db;
 
+  /// Categories in tree order: each parent followed by its sub-categories.
   List<Category> categories({CategoryKind? kind, bool includeArchived = false}) {
     final where = <String>[if (!includeArchived) 'archived = 0', if (kind != null) 'kind = ?'];
     final sql = 'SELECT * FROM categories${where.isEmpty ? '' : ' WHERE ${where.join(' AND ')}'} ORDER BY sort_order, id';
-    return db.select(sql, [if (kind != null) kind.name]).map(Category.fromRow).toList();
+    final flat = db.select(sql, [if (kind != null) kind.name]).map(Category.fromRow).toList();
+    final ids = {for (final c in flat) c.id};
+    final kids = <int, List<Category>>{};
+    for (final c in flat) {
+      if (c.isChild && ids.contains(c.parentId)) (kids[c.parentId!] ??= []).add(c);
+    }
+    return [
+      for (final c in flat)
+        if (!c.isChild || !ids.contains(c.parentId)) ...[c, ...?kids[c.id]],
+    ];
   }
+
+  /// Top-level categories of [kind] that can take sub-categories.
+  List<Category> parents(CategoryKind kind) => categories(kind: kind).where((c) => !c.isChild).toList();
+
+  List<Category> children(int parentId) => db.select('SELECT * FROM categories WHERE parent_id = ? AND archived = 0 ORDER BY sort_order, id', [parentId]).map(Category.fromRow).toList();
 
   Category category(int id) => Category.fromRow(db.select('SELECT * FROM categories WHERE id = ?', [id]).first);
 
@@ -23,24 +38,49 @@ class CatalogRepo {
   /// First category of a kind, used as default for invest/income.
   Category firstOf(CategoryKind kind) => kind == CategoryKind.spend ? defaultCategory() : categories(kind: kind).first;
 
-  Category? findCategoryByName(String name) {
-    final r = db.select('SELECT * FROM categories WHERE lower(name) = lower(?) LIMIT 1', [name.trim()]);
+  /// Finds a category by name, preferring top-level matches. With [parentId],
+  /// only sub-categories of that parent match.
+  Category? findCategoryByName(String name, {int? parentId}) {
+    final scope = parentId == null ? '' : ' AND parent_id = ?';
+    final r = db.select('SELECT * FROM categories WHERE lower(name) = lower(?)$scope ORDER BY parent_id IS NOT NULL, archived, id LIMIT 1', [name.trim(), ?parentId]);
     return r.isEmpty ? null : Category.fromRow(r.first);
   }
 
-  int addCategory({required String name, required CategoryKind kind, required String icon, required int color}) {
-    final next = db.select('SELECT coalesce(max(sort_order), 0) + 1 AS n FROM categories').first['n'] as int;
-    db.execute('INSERT INTO categories(name, kind, icon, color, sort_order) VALUES (?, ?, ?, ?, ?)', [name.trim(), kind.name, icon, color, next]);
+  int _nextOrder() => db.select('SELECT coalesce(max(sort_order), 0) + 1 AS n FROM categories').first['n'] as int;
+
+  /// Adds a category. With [parentId] it becomes a sub-category and takes the
+  /// parent's kind; the parent must be top-level.
+  int addCategory({required String name, required CategoryKind kind, required String icon, required int color, int? parentId}) {
+    if (parentId != null) {
+      final parent = category(parentId);
+      if (parent.isChild) throw ArgumentError.value(parentId, 'parentId', 'Sub-categories cannot have sub-categories');
+      kind = parent.kind;
+    }
+    db.execute('INSERT INTO categories(name, kind, icon, color, sort_order, parent_id) VALUES (?, ?, ?, ?, ?, ?)', [name.trim(), kind.name, icon, color, _nextOrder(), parentId]);
     return db.lastInsertRowId;
+  }
+
+  /// Moves [id] under [parentId], or to the top level when null. Returns false
+  /// when the move would break the one-level, same-kind rule or the default
+  /// category would become a child.
+  bool setParent(int id, int? parentId) {
+    final c = category(id);
+    if (parentId != null) {
+      final parent = category(parentId);
+      final hasKids = db.select('SELECT 1 FROM categories WHERE parent_id = ? AND archived = 0 LIMIT 1', [id]).isNotEmpty;
+      if (c.isDefault || parent.id == id || parent.isChild || parent.kind != c.kind || hasKids) return false;
+    }
+    db.execute('UPDATE categories SET parent_id = ?, sort_order = ? WHERE id = ?', [parentId, _nextOrder(), id]);
+    return true;
   }
 
   void renameCategory(int id, String name) => db.execute('UPDATE categories SET name = ? WHERE id = ?', [name.trim(), id]);
 
-  /// Archives a category. The default category cannot be archived.
+  /// Archives a category and its sub-categories. The default category cannot be archived.
   bool archiveCategory(int id) {
     final c = category(id);
     if (c.isDefault) return false;
-    db.execute('UPDATE categories SET archived = 1 WHERE id = ?', [id]);
+    db.execute('UPDATE categories SET archived = 1 WHERE id = ? OR parent_id = ?', [id, id]);
     return true;
   }
 
