@@ -17,6 +17,38 @@ void main() {
     expect(ftsQuery('  ,. '), isNull);
   });
 
+  test('ftsQuery can restrict words to columns', () {
+    expect(ftsQuery('team din', columns: ['merchant']), 'merchant : "team"* merchant : "din"*');
+    expect(ftsQuery('work', columns: ['note', 'tags']), '{note tags} : "work"*');
+    expect(searchWords(' Team, #Din '), ['team', 'din']);
+  });
+
+  test('search scopes and sort orders', () {
+    List<String> find(String q, SearchScope scope) => s.txns.list(TxnFilter(search: q, scope: scope)).map((e) => e.txn.merchant).toList();
+    expect(find('dinner', SearchScope.all), containsAll(['Swiggy', 'Toit']));
+    expect(find('dinner', SearchScope.notes), containsAll(['Swiggy', 'Toit']));
+    expect(find('work', SearchScope.notes), ['Swiggy']); // #tag
+    expect(find('dinner', SearchScope.merchant), isEmpty);
+    expect(find('swig', SearchScope.merchant), ['Swiggy']);
+    expect(find('indira', SearchScope.place), ['Swiggy']);
+    expect(find('swiggy', SearchScope.place), isEmpty);
+    expect(find('486', SearchScope.amount), ['Swiggy']);
+    expect(find('₹4,200', SearchScope.amount), ['Toit']);
+    expect(find('abc', SearchScope.amount), isEmpty);
+    expect(s.txns.list(const TxnFilter(scope: SearchScope.amount)).length, s.txns.list(const TxnFilter()).length);
+    expect(find('486', SearchScope.notes), isEmpty); // amount only matches in All / Amount
+
+    final all = s.txns.list(const TxnFilter());
+    final oldest = s.txns.list(const TxnFilter(sort: TxnSort.oldest));
+    expect(oldest.map((e) => e.txn.id), all.reversed.map((e) => e.txn.id));
+    final high = s.txns.list(const TxnFilter(sort: TxnSort.amountDesc)).map((e) => e.txn.amount).toList();
+    expect(high, [...high]..sort((a, b) => b.compareTo(a)));
+    final low = s.txns.list(const TxnFilter(sort: TxnSort.amountAsc)).map((e) => e.txn.amount).toList();
+    expect(low, [...low]..sort());
+    final f = const TxnFilter().copyWith(scope: SearchScope.place, sort: TxnSort.oldest);
+    expect([f.scope, f.sort, f.copyWith().scope, f.copyWith().sort], [SearchScope.place, TxnSort.oldest, SearchScope.place, TxnSort.oldest]);
+  });
+
   test('TxnFilter.activeCount and copyWith', () {
     const f = TxnFilter();
     expect(f.activeCount, 0);

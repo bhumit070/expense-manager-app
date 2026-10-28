@@ -3,11 +3,45 @@ import 'package:flutter/material.dart';
 import '../../core/dates.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
+import '../../data/recent_searches.dart';
 import '../../data/transactions_repo.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
+import '../widgets/highlight.dart';
+import 'txn_actions.dart';
 import 'txn_detail_screen.dart';
+import 'txn_form_screen.dart';
+
+String scopeLabel(SearchScope s) => switch (s) {
+  SearchScope.all => 'All',
+  SearchScope.notes => 'Notes',
+  SearchScope.merchant => 'Merchant',
+  SearchScope.amount => 'Amount',
+  SearchScope.place => 'Place',
+};
+
+String sortLabel(TxnSort s) => switch (s) {
+  TxnSort.newest => 'Newest first',
+  TxnSort.oldest => 'Oldest first',
+  TxnSort.amountDesc => 'Amount: high to low',
+  TxnSort.amountAsc => 'Amount: low to high',
+};
+
+/// The note, tags or place line that matched [query] within [scope], if any.
+String? searchSnippet(TxnView v, String query, SearchScope scope) {
+  final t = v.txn;
+  final candidates = switch (scope) {
+    SearchScope.all => [t.note, t.tags.join(' '), t.place ?? ''],
+    SearchScope.notes => [t.note, t.tags.join(' ')],
+    SearchScope.place => [t.place ?? ''],
+    SearchScope.merchant || SearchScope.amount => const <String>[],
+  };
+  for (final text in candidates) {
+    if (matchRanges(text, query).isNotEmpty) return text;
+  }
+  return null;
+}
 
 /// Searchable, filterable list of transactions grouped by day.
 class TransactionsScreen extends StatefulWidget {
@@ -24,11 +58,28 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   late TxnFilter _filter = widget.initialFilter;
   Period? _period;
   final _search = TextEditingController();
+  final _focus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
     _search.dispose();
+    _focus.dispose();
     super.dispose();
+  }
+
+  void _setSearch(String q) => setState(() => _filter = _filter.copyWith(search: q));
+
+  void _useRecent(RecentSearches recent, String q) {
+    _search.text = q;
+    recent.add(q);
+    _focus.unfocus();
+    _setSearch(q);
   }
 
   @override
@@ -43,13 +94,19 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final rows = app.txns.list(f, limit: 2000);
     final totals = app.txns.totals(f);
     final cats = app.catalog.categories();
+    final recent = RecentSearches(app.settings);
+    final recents = recent.items;
+    final showRecents = _focus.hasFocus && !searching && recents.isNotEmpty;
+    final byDay = _filter.sort == TxnSort.newest || _filter.sort == TxnSort.oldest;
+    final query = _filter.search.trim();
+    final amountQuery = parseInr(query);
 
     // Flatten into day headers + rows for a lazy builder.
     final items = <Object>[];
     DateTime? day;
     for (final r in rows) {
       final d = dayStart(r.txn.occurredAt);
-      if (d != day) {
+      if (byDay && d != day) {
         day = d;
         items.add(d);
       }
@@ -61,6 +118,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Transactions', style: ts(16, weight: FontWeight.w700)),
+        actions: [
+          PopupMenuButton<TxnSort>(
+            key: const Key('sort'),
+            tooltip: 'Sort',
+            icon: const Icon(Icons.sort),
+            initialValue: _filter.sort,
+            onSelected: (v) => setState(() => _filter = _filter.copyWith(sort: v)),
+            itemBuilder: (_) => [for (final v in TxnSort.values) PopupMenuItem(key: Key('sort-${v.name}'), value: v, child: Text(sortLabel(v)))],
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -72,19 +139,31 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   child: TextField(
                     key: const Key('search'),
                     controller: _search,
-                    onChanged: (v) => setState(() => _filter = _filter.copyWith(search: v)),
+                    focusNode: _focus,
+                    textInputAction: TextInputAction.search,
+                    onChanged: _setSearch,
+                    onSubmitted: (v) {
+                      recent.add(v);
+                      setState(() {});
+                    },
                     decoration: InputDecoration(
                       isDense: true,
                       prefixIcon: Icon(Icons.search, color: c.textFaint),
-                      hintText: 'Search merchant, note, #tag, amount…',
+                      hintText: switch (_filter.scope) {
+                        SearchScope.all => 'Search merchant, note, #tag, amount…',
+                        SearchScope.notes => 'Search notes and #tags',
+                        SearchScope.merchant => 'Search merchants',
+                        SearchScope.amount => 'Exact amount, e.g. 450 or ₹1,200',
+                        SearchScope.place => 'Search places',
+                      },
                       suffixIcon: searching
                           ? IconButton(
                               key: const Key('clear-search'),
                               icon: const Icon(Icons.close, size: 18),
-                              onPressed: () => setState(() {
+                              onPressed: () {
                                 _search.clear();
-                                _filter = _filter.copyWith(search: '');
-                              }),
+                                _setSearch('');
+                              },
                             )
                           : null,
                     ),
@@ -113,6 +192,27 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               ],
             ),
           ),
+          if (searching || _focus.hasFocus) ...[
+            const SizedBox(height: 10),
+            SingleChildScrollView(
+              key: const Key('search-scopes'),
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  for (final sc in SearchScope.values) ...[
+                    if (sc != SearchScope.all) const SizedBox(width: 8),
+                    Pill(
+                      key: Key('scope-${sc.name}'),
+                      scopeLabel(sc),
+                      selected: _filter.scope == sc,
+                      onTap: () => setState(() => _filter = _filter.copyWith(scope: sc)),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -192,7 +292,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             ),
           ),
           Expanded(
-            child: items.isEmpty
+            child: showRecents
+                ? _RecentList(items: recents, recent: recent, onPick: (q) => _useRecent(recent, q), onChanged: () => setState(() {}))
+                : items.isEmpty
                 ? EmptyState(icon: Icons.search_off, title: 'Nothing here', message: searching ? 'No transactions match "${_filter.search.trim()}".' : 'No transactions in this period.')
                 : ListView.builder(
                     key: const Key('txn-list'),
@@ -220,15 +322,116 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         );
                       }
                       final v = item as TxnView;
-                      return TxnTile(
-                        v,
-                        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TxnDetailScreen(id: v.txn.id!))),
+                      final id = v.txn.id!;
+                      return Dismissible(
+                        key: ValueKey('swipe-$id'),
+                        background: _SwipeBackground(color: c.brand, icon: Icons.edit_outlined, label: 'Edit', alignment: Alignment.centerLeft),
+                        secondaryBackground: _SwipeBackground(color: c.spend, icon: Icons.delete_outline, label: 'Delete', alignment: Alignment.centerRight),
+                        confirmDismiss: (dir) async {
+                          if (dir == DismissDirection.endToStart) return true;
+                          await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TxnFormScreen(existing: v)));
+                          return false;
+                        },
+                        onDismissed: (_) => deleteTxnWithUndo(ScaffoldMessenger.of(context), app, id),
+                        child: TxnTile(
+                          v,
+                          now: byDay ? null : now,
+                          highlight: searching ? query : null,
+                          snippet: searching ? searchSnippet(v, query, _filter.scope) : null,
+                          highlightAmount: searching && (_filter.scope == SearchScope.all || _filter.scope == SearchScope.amount) && amountQuery == v.txn.amount,
+                          onTap: () {
+                            if (searching) recent.add(query);
+                            Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TxnDetailScreen(id: id)));
+                          },
+                        ),
                       );
                     },
                   ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SwipeBackground extends StatelessWidget {
+  const _SwipeBackground({required this.color, required this.icon, required this.label, required this.alignment});
+
+  final Color color;
+  final IconData icon;
+  final String label;
+  final Alignment alignment;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    alignment: alignment,
+    padding: const EdgeInsets.symmetric(horizontal: 20),
+    decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(14)),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: Colors.white),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: ts(13, weight: FontWeight.w700, color: Colors.white),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Recent searches, shown while the empty search box has focus.
+class _RecentList extends StatelessWidget {
+  const _RecentList({required this.items, required this.recent, required this.onPick, required this.onChanged});
+
+  final List<String> items;
+  final RecentSearches recent;
+  final ValueChanged<String> onPick;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return ListView(
+      key: const Key('recent-searches'),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'RECENT SEARCHES',
+                style: ts(12, weight: FontWeight.w700, color: c.textMuted, spacing: 0.6),
+              ),
+            ),
+            TextButton(
+              key: const Key('clear-recent'),
+              onPressed: () {
+                recent.clear();
+                onChanged();
+              },
+              child: const Text('Clear'),
+            ),
+          ],
+        ),
+        for (final (i, q) in items.indexed)
+          ListTile(
+            key: Key('recent-$i'),
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.history, color: c.textFaint),
+            title: Text(q, style: ts(14, weight: FontWeight.w600)),
+            onTap: () => onPick(q),
+            trailing: IconButton(
+              key: Key('remove-recent-$i'),
+              icon: const Icon(Icons.close, size: 18),
+              onPressed: () {
+                recent.remove(q);
+                onChanged();
+              },
+            ),
+          ),
+      ],
     );
   }
 }

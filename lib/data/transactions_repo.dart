@@ -4,6 +4,12 @@ import '../core/dates.dart';
 import '../core/money.dart';
 import 'models.dart';
 
+/// Which fields a search looks at.
+enum SearchScope { all, notes, merchant, amount, place }
+
+/// Order of listed transactions.
+enum TxnSort { newest, oldest, amountDesc, amountAsc }
+
 /// Filters for listing transactions. All fields are optional and combined with AND.
 class TxnFilter {
   const TxnFilter({
@@ -17,6 +23,8 @@ class TxnFilter {
     this.search = '',
     this.investmentId,
     this.debtId,
+    this.scope = SearchScope.all,
+    this.sort = TxnSort.newest,
   });
 
   final DateTime? from;
@@ -29,30 +37,61 @@ class TxnFilter {
   final String search;
   final int? investmentId;
   final int? debtId;
+  final SearchScope scope;
+  final TxnSort sort;
 
   /// Number of user-chosen filters, shown as a badge.
   int get activeCount => (types.isEmpty ? 0 : 1) + (categoryIds.isEmpty ? 0 : 1) + (sourceIds.isEmpty ? 0 : 1) + (minAmount == null && maxAmount == null ? 0 : 1);
 
-  TxnFilter copyWith({DateTime? from, DateTime? to, Set<TxnType>? types, Set<int>? categoryIds, Set<int>? sourceIds, int? Function()? minAmount, int? Function()? maxAmount, String? search}) =>
-      TxnFilter(
-        from: from ?? this.from,
-        to: to ?? this.to,
-        types: types ?? this.types,
-        categoryIds: categoryIds ?? this.categoryIds,
-        sourceIds: sourceIds ?? this.sourceIds,
-        minAmount: minAmount == null ? this.minAmount : minAmount(),
-        maxAmount: maxAmount == null ? this.maxAmount : maxAmount(),
-        search: search ?? this.search,
-      );
+  TxnFilter copyWith({
+    DateTime? from,
+    DateTime? to,
+    Set<TxnType>? types,
+    Set<int>? categoryIds,
+    Set<int>? sourceIds,
+    int? Function()? minAmount,
+    int? Function()? maxAmount,
+    String? search,
+    SearchScope? scope,
+    TxnSort? sort,
+  }) => TxnFilter(
+    from: from ?? this.from,
+    to: to ?? this.to,
+    types: types ?? this.types,
+    categoryIds: categoryIds ?? this.categoryIds,
+    sourceIds: sourceIds ?? this.sourceIds,
+    minAmount: minAmount == null ? this.minAmount : minAmount(),
+    maxAmount: maxAmount == null ? this.maxAmount : maxAmount(),
+    search: search ?? this.search,
+    scope: scope ?? this.scope,
+    sort: sort ?? this.sort,
+  );
 }
 
+/// Lower-case words of a search, as FTS5 tokenizes them.
+List<String> searchWords(String input) => input.toLowerCase().split(RegExp(r'[^\p{L}\p{N}]+', unicode: true)).where((w) => w.isNotEmpty).toList();
+
 /// Builds an FTS5 prefix query from free text: `team din` -> `"team"* "din"*`.
-/// Returns null if there is nothing searchable.
-String? ftsQuery(String input) {
-  final words = input.toLowerCase().split(RegExp(r'[^\p{L}\p{N}]+', unicode: true)).where((w) => w.isNotEmpty).toList();
+/// With [columns], every word must match within those columns:
+/// `{note tags} : "team"*`. Returns null if there is nothing searchable.
+String? ftsQuery(String input, {List<String> columns = const []}) {
+  final words = searchWords(input);
   if (words.isEmpty) return null;
-  return words.map((w) => '"$w"*').join(' ');
+  final filter = switch (columns.length) {
+    0 => '',
+    1 => '${columns.single} : ',
+    _ => '{${columns.join(' ')}} : ',
+  };
+  return words.map((w) => '$filter"$w"*').join(' ');
 }
+
+/// FTS columns searched by each scope (amount uses no FTS).
+const scopeColumns = {
+  SearchScope.all: <String>[],
+  SearchScope.notes: ['note', 'tags'],
+  SearchScope.merchant: ['merchant'],
+  SearchScope.place: ['place'],
+};
 
 class TransactionsRepo {
   TransactionsRepo(this.db);
@@ -171,10 +210,17 @@ WHERE id = ?''',
       clauses.add('t.amount <= ?');
       args.add(f.maxAmount);
     }
-    final q = ftsQuery(f.search);
+    if (f.scope == SearchScope.amount) {
+      if (f.search.trim().isNotEmpty) {
+        clauses.add('t.amount = ?');
+        args.add(parseInr(f.search) ?? -1);
+      }
+      return (clauses.join(' AND '), args);
+    }
+    final q = ftsQuery(f.search, columns: scopeColumns[f.scope]!);
     if (q != null) {
       final amount = parseInr(f.search);
-      if (amount != null && amount > 0) {
+      if (f.scope == SearchScope.all && amount != null && amount > 0) {
         clauses.add('(t.id IN (SELECT rowid FROM txn_fts WHERE txn_fts MATCH ?) OR t.amount = ?)');
         args.addAll([q, amount]);
       } else {
@@ -187,7 +233,13 @@ WHERE id = ?''',
 
   List<TxnView> list(TxnFilter f, {int limit = 200, int offset = 0}) {
     final (where, args) = _where(f);
-    return db.select('$_select WHERE $where ORDER BY t.occurred_at DESC, t.id DESC LIMIT ? OFFSET ?', [...args, limit, offset]).map(TxnView.fromRow).toList();
+    final order = switch (f.sort) {
+      TxnSort.newest => 't.occurred_at DESC, t.id DESC',
+      TxnSort.oldest => 't.occurred_at ASC, t.id ASC',
+      TxnSort.amountDesc => 't.amount DESC, t.occurred_at DESC',
+      TxnSort.amountAsc => 't.amount ASC, t.occurred_at DESC',
+    };
+    return db.select('$_select WHERE $where ORDER BY $order LIMIT ? OFFSET ?', [...args, limit, offset]).map(TxnView.fromRow).toList();
   }
 
   Totals totals(TxnFilter f) {
