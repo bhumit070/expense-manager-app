@@ -11,6 +11,8 @@ import 'package:expense_manager/ui/screens/settings_screen.dart';
 import 'package:expense_manager/ui/screens/shell.dart';
 import 'package:expense_manager/ui/screens/sources_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/test/test_flutter_secure_storage_platform.dart';
+import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
@@ -343,6 +345,7 @@ void main() {
   testWidgets('main() boots the app on an on-device database', (tester) async {
     final dir = Directory.systemTemp.createTempSync('main');
     PathProviderPlatform.instance = FakePaths(dir.path);
+    FlutterSecureStoragePlatform.instance = TestFlutterSecureStoragePlatform({});
     await tester.runAsync(app_main.main);
     await tester.pump();
     expect(find.byType(HomeShell), findsOneWidget);

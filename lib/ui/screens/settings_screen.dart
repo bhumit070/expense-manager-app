@@ -12,6 +12,7 @@ import '../theme/tokens.dart';
 import '../widgets/common.dart';
 import 'categories_screen.dart';
 import 'import_screen.dart';
+import 'security_screen.dart';
 import 'sources_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -157,6 +158,13 @@ class SettingsScreen extends StatelessWidget {
               title: const Text('Location on transactions'),
               value: app.locationEnabled,
               onChanged: (v) => _toggleLocation(context, app, v),
+            ),
+            ListTile(
+              key: const Key('open-security'),
+              leading: const Icon(Icons.lock_outline),
+              title: const Text('App lock & privacy'),
+              trailing: Text(app.security.lockEnabled ? 'On' : 'Off'),
+              onTap: () => open(const SecurityScreen()),
             ),
           ]),
         ],

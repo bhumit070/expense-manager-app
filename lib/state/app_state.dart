@@ -7,16 +7,20 @@ import '../data/settings_repo.dart';
 import '../data/transactions_repo.dart';
 import '../services/file_gateway.dart';
 import '../services/location.dart';
+import '../services/security_platform.dart';
+import 'security_state.dart';
 
 /// App-wide state. Repositories are synchronous (SQLite via FFI) and fast;
 /// screens re-query when [notifyListeners] fires after a write.
 class AppState extends ChangeNotifier {
-  AppState({required this.db, required this.files, required this.location, DateTime Function()? clock})
+  AppState({required this.db, required this.files, required this.location, DateTime Function()? clock, SecurityPlatform? security})
     : clock = clock ?? DateTime.now,
       txns = TransactionsRepo(db),
       catalog = CatalogRepo(db),
       planning = PlanningRepo(db),
-      settings = SettingsRepo(db);
+      settings = SettingsRepo(db) {
+    this.security = SecurityState(db: db, settings: settings, platform: security ?? SecurityPlatform(), clock: this.clock);
+  }
 
   final Database db;
   final FileGateway files;
@@ -26,6 +30,9 @@ class AppState extends ChangeNotifier {
   final CatalogRepo catalog;
   final PlanningRepo planning;
   final SettingsRepo settings;
+
+  /// App lock, app-switcher privacy and database encryption.
+  late final SecurityState security;
 
   DateTime now() => clock();
 
@@ -56,6 +63,7 @@ class AppState extends ChangeNotifier {
 
   @override
   void dispose() {
+    security.dispose();
     db.close();
     super.dispose();
   }

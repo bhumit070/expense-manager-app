@@ -6,8 +6,10 @@ const schemaVersion = 2;
 final List<void Function(Database)> _migrations = [_v1, _v2];
 
 /// Opens (or creates) the app database and runs pending migrations.
-Database openAppDatabase(String? path) {
+/// [key] unlocks a database encrypted from Settings → Security.
+Database openAppDatabase(String? path, {String? key}) {
   final db = path == null ? sqlite3.openInMemory() : sqlite3.open(path);
+  if (key != null) db.execute("PRAGMA key = '${key.replaceAll("'", "''")}'");
   db.execute('PRAGMA foreign_keys = ON');
   db.execute('PRAGMA journal_mode = WAL');
   migrate(db);
