@@ -12,6 +12,7 @@ import 'package:expense_manager/services/app_info.dart';
 import 'package:expense_manager/state/app_state.dart';
 import 'package:expense_manager/ui/screens/categories_screen.dart';
 import 'package:expense_manager/ui/screens/import_screen.dart';
+import 'package:expense_manager/ui/screens/onboarding_screen.dart';
 import 'package:expense_manager/ui/screens/settings_screen.dart';
 import 'package:expense_manager/ui/screens/shell.dart';
 import 'package:expense_manager/ui/screens/sources_screen.dart';
@@ -419,7 +420,7 @@ void main() {
     PathProviderPlatform.instance = FakePaths(dir.path);
     await tester.runAsync(app_main.main);
     await tester.pump();
-    expect(find.byType(HomeShell), findsOneWidget);
+    expect(find.byType(OnboardingScreen), findsOneWidget);
     expect(File('${dir.path}/expense_manager.db').existsSync(), isTrue);
     await tester.pumpWidget(const SizedBox());
     dir.deleteSync(recursive: true);

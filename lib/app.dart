@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'state/app_state.dart';
+import 'ui/screens/onboarding_screen.dart';
 import 'ui/screens/shell.dart';
 import 'ui/theme/tokens.dart';
 
@@ -20,7 +21,7 @@ class ExpenseApp extends StatelessWidget {
           theme: buildTheme(Brightness.light),
           darkTheme: buildTheme(Brightness.dark),
           themeMode: AppScope.of(context).themeMode,
-          home: const HomeShell(),
+          home: AppScope.of(context).onboarded ? const HomeShell() : const OnboardingScreen(),
         ),
       ),
     );

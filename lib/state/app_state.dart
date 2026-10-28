@@ -21,6 +21,8 @@ class AppState extends ChangeNotifier {
       planning = PlanningRepo(db),
       settings = SettingsRepo(db) {
     currentCurrency = currencyByCode(settings.get('currency'));
+    // Installs from before onboarding existed already have data: skip it.
+    if (settings.get('onboarded') == null && db.select('SELECT 1 FROM transactions LIMIT 1').isNotEmpty) settings.set('onboarded', '1');
   }
 
   final Database db;
@@ -49,6 +51,14 @@ class AppState extends ChangeNotifier {
 
   set userName(String name) {
     settings.set('name', name.trim());
+    changed();
+  }
+
+  /// Whether the first-launch flow has been completed (or skipped).
+  bool get onboarded => settings.get('onboarded') == '1';
+
+  void completeOnboarding() {
+    settings.set('onboarded', '1');
     changed();
   }
 

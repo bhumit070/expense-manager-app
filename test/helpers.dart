@@ -49,8 +49,12 @@ class FakeLocation implements LocationService {
   }
 }
 
-AppState makeState({DateTime? now, FakeFiles? files, FakeLocation? location}) =>
-    AppState(db: openAppDatabase(null), files: files ?? FakeFiles(), location: location ?? FakeLocation(), clock: () => now ?? kNow);
+/// A fresh in-memory app. Onboarding is marked done unless [onboarded] is false.
+AppState makeState({DateTime? now, FakeFiles? files, FakeLocation? location, bool onboarded = true}) {
+  final s = AppState(db: openAppDatabase(null), files: files ?? FakeFiles(), location: location ?? FakeLocation(), clock: () => now ?? kNow);
+  if (onboarded) s.settings.set('onboarded', '1');
+  return s;
+}
 
 int catId(AppState s, String name) => s.catalog.findCategoryByName(name)!.id;
 
