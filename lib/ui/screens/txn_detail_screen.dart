@@ -5,6 +5,8 @@ import '../../core/money.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
+import '../widgets/map_preview.dart';
+import 'txn_actions.dart';
 import 'txn_form_screen.dart';
 
 class TxnDetailScreen extends StatelessWidget {
@@ -65,6 +67,7 @@ class TxnDetailScreen extends StatelessWidget {
               ],
             ),
           ),
+          if (t.lat != null && t.lng != null) ...[const SizedBox(height: 12), MapPreview(lat: t.lat!, lng: t.lng!, label: t.place ?? t.titleOr(v.category.name))],
           if (t.note.isNotEmpty || t.tags.isNotEmpty) ...[
             const SizedBox(height: 12),
             AppCard(
@@ -120,21 +123,8 @@ class TxnDetailScreen extends StatelessWidget {
                   style: OutlinedButton.styleFrom(foregroundColor: c.spend),
                   onPressed: () {
                     final messenger = ScaffoldMessenger.of(context);
-                    app.txns.delete(id);
-                    app.changed();
                     Navigator.of(context).pop();
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: const Text('Transaction deleted'),
-                        action: SnackBarAction(
-                          label: 'Undo',
-                          onPressed: () {
-                            app.txns.restore(id);
-                            app.changed();
-                          },
-                        ),
-                      ),
-                    );
+                    deleteTxnWithUndo(messenger, app, id);
                   },
                   icon: const Icon(Icons.delete_outline),
                   label: const Text('Delete'),

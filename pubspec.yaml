@@ -10,13 +10,16 @@ dependencies:
   file_picker: ^13.3.0
   flutter:
     sdk: flutter
+  flutter_map: ^8.3.2
   geocoding: ^5.0.0
   geolocator: ^14.0.1
+  latlong2: ^0.10.1
   path: ^1.9.1
   path_provider: ^2.1.6
   pdf: ^3.13.1
   share_plus: ^13.3.1
   sqlite3: ^3.5.2
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:
@@ -29,6 +32,7 @@ dev_dependencies:
   geolocator_platform_interface: ^4.4.1
   geocoding_platform_interface: ^5.0.0
   flutter_launcher_icons: ^0.14.4
+  url_launcher_platform_interface: ^2.3.2
 
 flutter:
   uses-material-design: true

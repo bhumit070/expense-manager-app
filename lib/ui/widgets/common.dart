@@ -4,6 +4,7 @@ import '../../core/dates.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
 import '../theme/tokens.dart';
+import 'highlight.dart';
 
 TextStyle ts(double size, {FontWeight weight = FontWeight.w500, Color? color, double? height, double? spacing}) =>
     TextStyle(fontFamily: fontFamily, fontSize: size, fontWeight: weight, color: color, height: height, letterSpacing: spacing);
@@ -286,11 +287,20 @@ class EmptyState extends StatelessWidget {
 
 /// A transaction row used in lists.
 class TxnTile extends StatelessWidget {
-  const TxnTile(this.view, {super.key, this.onTap, this.now});
+  const TxnTile(this.view, {super.key, this.onTap, this.now, this.highlight, this.snippet, this.highlightAmount = false});
 
   final TxnView view;
   final VoidCallback? onTap;
   final DateTime? now;
+
+  /// Search query whose words are emphasised in the title and [snippet].
+  final String? highlight;
+
+  /// Extra matched line (note, tags or place) shown under the title.
+  final String? snippet;
+
+  /// Emphasises the amount (it matched the search).
+  final bool highlightAmount;
 
   @override
   Widget build(BuildContext context) {
@@ -309,12 +319,31 @@ class TxnTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    t.titleOr(view.category.name),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: ts(14, weight: FontWeight.w600),
-                  ),
+                  if (highlight == null)
+                    Text(
+                      t.titleOr(view.category.name),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: ts(14, weight: FontWeight.w600),
+                    )
+                  else
+                    HighlightedText(
+                      t.titleOr(view.category.name),
+                      query: highlight!,
+                      style: ts(14, weight: FontWeight.w600, color: c.text),
+                      highlight: c.brandSoft,
+                    ),
+                  if (snippet != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: HighlightedText(
+                        snippet!,
+                        query: highlight ?? '',
+                        style: ts(12, color: c.textMuted),
+                        highlight: c.brandSoft,
+                        maxLines: 2,
+                      ),
+                    ),
                   const SizedBox(height: 3),
                   Row(
                     children: [
@@ -334,9 +363,13 @@ class TxnTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              formatInr(view.signedAmount, signed: true),
-              style: ts(14, weight: FontWeight.w700, color: view.inflow ? c.positive : c.text),
+            Container(
+              padding: highlightAmount ? const EdgeInsets.symmetric(horizontal: 4) : EdgeInsets.zero,
+              color: highlightAmount ? c.brandSoft : null,
+              child: Text(
+                formatInr(view.signedAmount, signed: true),
+                style: ts(14, weight: FontWeight.w700, color: view.inflow ? c.positive : c.text),
+              ),
             ),
           ],
         ),
