@@ -100,3 +100,6 @@ Icon?
 
 # CI-decoded release keystore
 android/app/upload-keystore.jks
+
+# Session handover notes (local only)
+handover.md
