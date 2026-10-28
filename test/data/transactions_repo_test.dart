@@ -85,7 +85,9 @@ void main() {
     expect(s.txns.byId(id), isNotNull);
     final tmp = s.txns.insert(Txn(type: TxnType.spend, amount: 5, categoryId: 1, sourceId: null, occurredAt: DateTime(2020)));
     s.txns.delete(tmp);
-    s.txns.purgeDeleted();
+    final withReceipt = s.txns.insert(Txn(type: TxnType.spend, amount: 5, categoryId: 1, sourceId: null, occurredAt: DateTime(2020), receipt: '/r/a.jpg'));
+    s.txns.delete(withReceipt);
+    expect(s.txns.purgeDeleted(), ['/r/a.jpg']);
     expect(s.db.select('SELECT count(*) AS n FROM transactions WHERE id = ?', [tmp]).single['n'], 0);
     expect(s.txns.list(const TxnFilter(search: 'zzz')), isEmpty);
   });

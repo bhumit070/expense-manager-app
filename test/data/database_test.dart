@@ -32,6 +32,7 @@ void main() {
     old.execute(
       'CREATE TABLE sources (id INTEGER PRIMARY KEY, name TEXT NOT NULL, kind TEXT NOT NULL, last4 TEXT, credit_limit INTEGER, is_default INTEGER NOT NULL DEFAULT 0, archived INTEGER NOT NULL DEFAULT 0)',
     );
+    old.execute('CREATE TABLE transactions (id INTEGER PRIMARY KEY)');
     old.execute("INSERT INTO sources(name, kind) VALUES ('Old', 'bank')");
     old.userVersion = 1;
     old.close();

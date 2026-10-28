@@ -1,9 +1,9 @@
 import 'package:sqlite3/sqlite3.dart';
 
 /// Current schema version. Bump and add a step to [_migrations] for changes.
-const schemaVersion = 2;
+const schemaVersion = 3;
 
-final List<void Function(Database)> _migrations = [_v1, _v2];
+final List<void Function(Database)> _migrations = [_v1, _v2, _v3];
 
 /// Opens (or creates) the app database and runs pending migrations.
 Database openAppDatabase(String? path) {
@@ -162,4 +162,46 @@ void _seed(Database db) {
 /// v2: opening balance per payment source (paise; negative = card outstanding).
 void _v2(Database db) {
   db.execute('ALTER TABLE sources ADD COLUMN opening_balance INTEGER NOT NULL DEFAULT 0');
+}
+
+/// v3: receipts and recurring rules on transactions, recurring rules, templates.
+void _v3(Database db) {
+  db.execute('''
+ALTER TABLE transactions ADD COLUMN receipt TEXT;
+ALTER TABLE transactions ADD COLUMN recurring_id INTEGER;
+CREATE TABLE recurring_rules (
+  id INTEGER PRIMARY KEY,
+  type TEXT NOT NULL,
+  amount INTEGER NOT NULL CHECK (amount > 0),
+  category_id INTEGER NOT NULL REFERENCES categories(id),
+  source_id INTEGER REFERENCES sources(id),
+  merchant TEXT NOT NULL DEFAULT '',
+  note TEXT NOT NULL DEFAULT '',
+  tags TEXT NOT NULL DEFAULT '',
+  place TEXT,
+  lat REAL,
+  lng REAL,
+  investment_id INTEGER REFERENCES investments(id),
+  debt_id INTEGER REFERENCES debts(id),
+  frequency TEXT NOT NULL,
+  start_at INTEGER NOT NULL,
+  end_at INTEGER,
+  count INTEGER NOT NULL DEFAULT 0,
+  next_run INTEGER NOT NULL,
+  paused INTEGER NOT NULL DEFAULT 0,
+  auto_create INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX idx_txn_recurring ON transactions(recurring_id);
+CREATE TABLE templates (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  amount INTEGER NOT NULL,
+  category_id INTEGER NOT NULL REFERENCES categories(id),
+  source_id INTEGER REFERENCES sources(id),
+  merchant TEXT NOT NULL DEFAULT '',
+  note TEXT NOT NULL DEFAULT '',
+  tags TEXT NOT NULL DEFAULT ''
+);
+''');
 }

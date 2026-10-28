@@ -3,9 +3,15 @@ import 'package:flutter/material.dart';
 import '../../core/dates.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
+import '../../data/recurring_repo.dart';
+import '../../data/templates_repo.dart';
+import '../../services/location.dart';
+import '../../services/receipts.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
+import '../widgets/amount_keypad.dart';
 import '../widgets/common.dart';
+import 'location_picker_screen.dart';
 
 /// Add or edit a transaction. Defaults: now, default source, "Others"
 /// category, current location when permitted.
@@ -31,7 +37,7 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
   int? _investmentId;
   int? _debtId;
   late DateTime _at;
-  final _amount = TextEditingController();
+  final _amount = AmountInput();
   final _merchant = TextEditingController();
   final _note = TextEditingController();
   final _tags = TextEditingController();
@@ -40,6 +46,17 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
   double? _lng;
   bool _locating = false;
   bool _initialized = false;
+  bool _repeat = false;
+  Frequency _frequency = Frequency.monthly;
+  DateTime? _repeatEnd;
+
+  /// Receipt as saved (edit only), the current one, and files picked in this
+  /// session (deleted unless they end up saved).
+  String? _originalReceipt;
+  String? _receipt;
+  final _pickedReceipts = <String>{};
+  bool _saved = false;
+  late ReceiptStore _receipts;
 
   bool get _editing => widget.existing != null && !widget.duplicate;
 
@@ -49,6 +66,7 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
     if (_initialized) return;
     _initialized = true;
     final app = AppScope.read(context);
+    _receipts = app.receipts;
     final e = widget.existing?.txn;
     _type = e?.type ?? widget.initialType;
     _at = _editing ? e!.occurredAt : app.now();
@@ -57,13 +75,14 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
     _investmentId = e?.investmentId ?? widget.investmentId;
     _debtId = e?.debtId ?? widget.debtId;
     if (e != null) {
-      _amount.text = (e.amount % 100 == 0) ? '${e.amount ~/ 100}' : (e.amount / 100).toStringAsFixed(2);
+      _amount.text = plainAmount(e.amount);
       _merchant.text = e.merchant;
       _note.text = e.note;
       _tags.text = e.tags.join(' ');
       _place.text = e.place ?? '';
       _lat = e.lat;
       _lng = e.lng;
+      if (_editing) _originalReceipt = _receipt = e.receipt;
     } else if (app.locationEnabled) {
       _locate(app);
     }
@@ -85,10 +104,91 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
 
   @override
   void dispose() {
-    for (final c in [_amount, _merchant, _note, _tags, _place]) {
+    if (!_saved) _discardPicked(keep: null);
+    for (final c in [_merchant, _note, _tags, _place]) {
       c.dispose();
     }
     super.dispose();
+  }
+
+  void _discardPicked({required String? keep}) {
+    for (final path in _pickedReceipts) {
+      if (path != keep) _receipts.delete(path);
+    }
+  }
+
+  Future<void> _pickLocation() async {
+    final initial = _lat == null ? null : Place(name: _place.text, lat: _lat!, lng: _lng!);
+    final picked = await Navigator.of(context).push<Place>(MaterialPageRoute(builder: (_) => LocationPickerScreen(initial: initial)));
+    if (picked != null) {
+      setState(() {
+        _place.text = picked.name;
+        _lat = picked.lat;
+        _lng = picked.lng;
+      });
+    }
+  }
+
+  Future<void> _pickReceipt(AppState app, ReceiptSource source) async {
+    final path = await app.receipts.pick(source);
+    if (path == null || !mounted) return;
+    setState(() {
+      _pickedReceipts.add(path);
+      _receipt = path;
+    });
+  }
+
+  void _applyTemplate(AppState app, TxnTemplate t) {
+    setState(() {
+      _type = t.type;
+      _amount.text = plainAmount(t.amount);
+      _categoryId = t.categoryId;
+      if (t.sourceId != null && app.catalog.sources().any((x) => x.id == t.sourceId)) _sourceId = t.sourceId;
+      _merchant.text = t.merchant;
+      _note.text = t.note;
+      _tags.text = t.tags.join(' ');
+    });
+  }
+
+  Future<void> _saveTemplate(AppState app) async {
+    final amount = _amount.value;
+    if (amount == null || amount <= 0) {
+      showSnack(context, 'Enter an amount greater than zero');
+      return;
+    }
+    final categoryId = _categoryId ?? app.catalog.firstOf(_kind).id;
+    final suggested = _merchant.text.trim().isNotEmpty ? _merchant.text.trim() : app.catalog.category(categoryId).name;
+    final name = await showDialog<String>(
+      context: context,
+      builder: (_) => TemplateNameDialog(initial: suggested),
+    );
+    if (name == null || name.trim().isEmpty || !mounted) return;
+    app.templates.add(TxnTemplate(name: name, type: _type, amount: amount, categoryId: categoryId, sourceId: _sourceId, merchant: _merchant.text, note: _note.text, tags: _parseTags(_tags.text)));
+    app.changed();
+    showSnack(context, 'Saved “${name.trim()}” as a template');
+  }
+
+  Future<void> _deleteTemplate(AppState app, TxnTemplate t) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete “${t.name}”?'),
+        content: const Text('The template is removed. Transactions made from it stay.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(key: const Key('confirm-delete-template'), onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (ok == true) {
+      app.templates.delete(t.id!);
+      app.changed();
+    }
+  }
+
+  Future<void> _pickRepeatEnd() async {
+    final d = await showDatePicker(context: context, initialDate: occurrence(_at, _frequency, 12), firstDate: _at, lastDate: DateTime(2100));
+    if (d != null) setState(() => _repeatEnd = DateTime(d.year, d.month, d.day, 23, 59));
   }
 
   CategoryKind get _kind => switch (_type) {
@@ -111,7 +211,7 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
 
   void _save() {
     final app = AppScope.read(context);
-    final amount = parseInr(_amount.text);
+    final amount = _amount.value;
     if (amount == null || amount <= 0) {
       showSnack(context, 'Enter an amount greater than zero');
       return;
@@ -136,8 +236,19 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
       lng: _place.text.trim().isEmpty ? null : _lng,
       investmentId: _type == TxnType.invest ? _investmentId : null,
       debtId: _type == TxnType.debt ? _debtId : null,
+      receipt: _receipt,
+      recurringId: _editing ? widget.existing!.txn.recurringId : null,
     );
-    _editing ? app.txns.update(txn) : app.txns.insert(txn, now: app.now());
+    if (_editing) {
+      app.txns.update(txn);
+    } else if (_repeat) {
+      app.recurring.createFrom(txn, _frequency, endAt: _repeatEnd, now: app.now());
+    } else {
+      app.txns.insert(txn, now: app.now());
+    }
+    _saved = true;
+    _discardPicked(keep: _receipt);
+    if (_originalReceipt != null && _originalReceipt != _receipt) app.receipts.delete(_originalReceipt!);
     app.changed();
     Navigator.of(context).pop(true);
   }
@@ -157,10 +268,12 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_editing ? 'Edit transaction' : 'New transaction', style: ts(16, weight: FontWeight.w700)),
+        actions: [IconButton(key: const Key('save-template'), tooltip: 'Save as template', icon: const Icon(Icons.bookmark_add_outlined), onPressed: () => _saveTemplate(app))],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
         children: [
+          if (!_editing && widget.existing == null) _QuickAdd(onPick: (t) => _applyTemplate(app, t), onDelete: (t) => _deleteTemplate(app, t)),
           Segmented<TxnType>(
             values: TxnType.values,
             selected: _type,
@@ -172,23 +285,37 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
             }),
           ),
           const SizedBox(height: 18),
-          TextField(
-            key: const Key('amount'),
-            controller: _amount,
-            autofocus: !_editing,
-            textAlign: TextAlign.center,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: ts(44, weight: FontWeight.w800, spacing: -1),
-            decoration: InputDecoration(
-              prefixText: '₹ ',
-              prefixStyle: ts(28, weight: FontWeight.w600, color: c.textFaint),
-              hintText: '0',
-              filled: false,
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                '₹ ',
+                style: ts(28, weight: FontWeight.w600, color: c.textFaint),
+              ),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    _amount.display,
+                    key: const Key('amount'),
+                    style: ts(44, weight: FontWeight.w800, spacing: -1, color: _amount.text.isEmpty ? c.textFaint : c.text),
+                  ),
+                ),
+              ),
+            ],
           ),
+          if (_amount.hasMath)
+            Center(
+              child: Text(
+                '= ${formatInr(_amount.value!)}',
+                key: const Key('amount-total'),
+                style: ts(15, weight: FontWeight.w700, color: (_amount.value ?? 0) > 0 ? accent : c.spend),
+              ),
+            ),
+          const SizedBox(height: 8),
+          AmountKeypad(accent: accent, onKey: (k) => setState(() => _amount.press(k))),
           if (sources.isNotEmpty) ...[
             label(_type == TxnType.income ? 'Received in' : 'Paid from'),
             Wrap(
@@ -308,12 +435,19 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
                     filled: false,
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
-                    suffixIcon: _locating
-                        ? const Padding(
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(key: const Key('pick-location'), tooltip: 'Pick on map', icon: const Icon(Icons.map_outlined), onPressed: _pickLocation),
+                        if (_locating)
+                          const Padding(
                             padding: EdgeInsets.all(12),
                             child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
                           )
-                        : IconButton(key: const Key('locate'), icon: const Icon(Icons.my_location), onPressed: () => _locate(app)),
+                        else
+                          IconButton(key: const Key('locate'), tooltip: 'Use current location', icon: const Icon(Icons.my_location), onPressed: () => _locate(app)),
+                      ],
+                    ),
                   ),
                 ),
                 const Divider(),
@@ -332,10 +466,155 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
               ],
             ),
           ),
+          label('Receipt'),
+          AppCard(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: _receipt == null
+                ? Row(
+                    children: [
+                      for (final (src, icon, text) in const [
+                        (ReceiptSource.camera, Icons.photo_camera_outlined, 'Camera'),
+                        (ReceiptSource.gallery, Icons.photo_library_outlined, 'Gallery'),
+                        (ReceiptSource.pdf, Icons.picture_as_pdf_outlined, 'PDF'),
+                      ])
+                        Expanded(
+                          child: TextButton.icon(key: Key('receipt-${src.name}'), onPressed: () => _pickReceipt(app, src), icon: Icon(icon, size: 18), label: Text(text)),
+                        ),
+                    ],
+                  )
+                : ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(isPdf(_receipt!) ? Icons.picture_as_pdf_outlined : Icons.image_outlined, color: c.brand),
+                    title: Text(isPdf(_receipt!) ? 'PDF receipt attached' : 'Photo receipt attached', style: ts(14, weight: FontWeight.w600)),
+                    trailing: IconButton(key: const Key('receipt-clear'), tooltip: 'Remove receipt', icon: const Icon(Icons.close), onPressed: () => setState(() => _receipt = null)),
+                  ),
+          ),
+          if (_editing && widget.existing!.txn.recurringId != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 14),
+              child: Text('Part of a recurring series. Changes apply to this one only; manage the series in Settings › Recurring.', style: ts(12, color: c.textMuted)),
+            )
+          else if (!_editing) ...[
+            label('Repeat'),
+            AppCard(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    key: const Key('repeat'),
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('Repeat this transaction', style: ts(14, weight: FontWeight.w600)),
+                    subtitle: Text(
+                      _repeat ? '${frequencyLabel(_frequency)} · next ${longDate(occurrence(_at, _frequency, 1))}' : 'Adds it automatically on schedule',
+                      style: ts(11, color: c.textMuted),
+                    ),
+                    value: _repeat,
+                    onChanged: (v) => setState(() => _repeat = v),
+                  ),
+                  if (_repeat) ...[
+                    Segmented<Frequency>(values: Frequency.values, selected: _frequency, label: frequencyLabel, activeColor: accent, onChanged: (f) => setState(() => _frequency = f)),
+                    ListTile(
+                      key: const Key('repeat-end'),
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.event_busy_outlined),
+                      title: Text(_repeatEnd == null ? 'Never ends' : 'Ends ${longDate(_repeatEnd!)}', style: ts(14, weight: FontWeight.w600)),
+                      trailing: _repeatEnd == null ? null : IconButton(key: const Key('repeat-end-clear'), icon: const Icon(Icons.close), onPressed: () => setState(() => _repeatEnd = null)),
+                      onTap: _pickRepeatEnd,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           FilledButton.icon(key: const Key('save-txn'), onPressed: _save, icon: const Icon(Icons.check), label: Text(_editing ? 'Save changes' : 'Save transaction')),
         ],
       ),
     );
   }
+}
+
+/// Templates and frequent merchants for one-tap re-adding.
+class _QuickAdd extends StatelessWidget {
+  const _QuickAdd({required this.onPick, required this.onDelete});
+
+  final ValueChanged<TxnTemplate> onPick;
+  final ValueChanged<TxnTemplate> onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppScope.of(context);
+    final c = context.colors;
+    final picks = [...app.templates.list(), ...app.templates.frequent(app.now())];
+    if (picks.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Quick add',
+            style: ts(12, weight: FontWeight.w700, color: c.textMuted, spacing: 0.4),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 40,
+            child: ListView(
+              key: const Key('quick-add'),
+              scrollDirection: Axis.horizontal,
+              children: [
+                for (final t in picks)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: GestureDetector(
+                      onLongPress: t.id == null ? null : () => onDelete(t),
+                      child: ActionChip(
+                        key: Key(t.id == null ? 'freq-${t.name.toLowerCase()}' : 'tpl-${t.id}'),
+                        avatar: Icon(t.id == null ? Icons.history : Icons.bookmark_outline, size: 16),
+                        label: Text('${t.name} · ${formatInr(t.amount)}'),
+                        onPressed: () => onPick(t),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class TemplateNameDialog extends StatefulWidget {
+  const TemplateNameDialog({super.key, required this.initial});
+
+  final String initial;
+
+  @override
+  State<TemplateNameDialog> createState() => _TemplateNameDialogState();
+}
+
+class _TemplateNameDialogState extends State<TemplateNameDialog> {
+  late final _ctrl = TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Save as template'),
+    content: TextField(
+      key: const Key('template-name'),
+      controller: _ctrl,
+      autofocus: true,
+      decoration: const InputDecoration(labelText: 'Name'),
+    ),
+    actions: [
+      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+      FilledButton(key: const Key('template-save'), onPressed: () => Navigator.pop(context, _ctrl.text), child: const Text('Save')),
+    ],
+  );
 }

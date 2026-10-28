@@ -16,15 +16,28 @@ abstract class LocationService {
 
   /// Asks the OS for permission (from Settings). Returns true if granted.
   Future<bool> requestPermission();
+
+  /// Places matching an address or landmark, for the manual picker.
+  Future<List<Place>> search(String query);
+
+  /// A readable name for coordinates picked on the map.
+  Future<String> describe(double lat, double lng);
 }
 
+String coordinates(double lat, double lng) => '${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}';
+
 class PlatformLocationService implements LocationService {
-  PlatformLocationService({GeolocatorPlatform? geolocator, Future<List<geo.Placemark>> Function(double lat, double lng)? reverseGeocode})
-    : _geo = geolocator ?? GeolocatorPlatform.instance,
-      _reverse = reverseGeocode ?? ((lat, lng) => geo.Geocoding().placemarkFromCoordinates(lat, lng));
+  PlatformLocationService({
+    GeolocatorPlatform? geolocator,
+    Future<List<geo.Placemark>> Function(double lat, double lng)? reverseGeocode,
+    Future<List<geo.Location>> Function(String query)? forwardGeocode,
+  }) : _geo = geolocator ?? GeolocatorPlatform.instance,
+       _reverse = reverseGeocode ?? ((lat, lng) => geo.Geocoding().placemarkFromCoordinates(lat, lng)),
+       _forward = forwardGeocode ?? ((q) => geo.Geocoding().locationFromAddress(q));
 
   final GeolocatorPlatform _geo;
   final Future<List<geo.Placemark>> Function(double lat, double lng) _reverse;
+  final Future<List<geo.Location>> Function(String query) _forward;
 
   static bool _granted(LocationPermission p) => p == LocationPermission.always || p == LocationPermission.whileInUse;
 
@@ -35,18 +48,7 @@ class PlatformLocationService implements LocationService {
       final pos = await _geo.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium, timeLimit: Duration(seconds: 8)),
       );
-      var name = '${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}';
-      try {
-        final marks = await _reverse(pos.latitude, pos.longitude);
-        if (marks.isNotEmpty) {
-          final m = marks.first;
-          final parts = [m.subLocality, m.locality].whereType<String>().where((e) => e.isNotEmpty).toList();
-          if (parts.isNotEmpty) name = parts.join(', ');
-        }
-      } catch (_) {
-        // Reverse geocoding is best-effort; keep coordinates.
-      }
-      return Place(name: name, lat: pos.latitude, lng: pos.longitude);
+      return Place(name: await describe(pos.latitude, pos.longitude), lat: pos.latitude, lng: pos.longitude);
     } catch (_) {
       return null;
     }
@@ -58,6 +60,33 @@ class PlatformLocationService implements LocationService {
       return _granted(await _geo.requestPermission());
     } catch (_) {
       return false;
+    }
+  }
+
+  @override
+  Future<String> describe(double lat, double lng) async {
+    try {
+      final marks = await _reverse(lat, lng);
+      if (marks.isNotEmpty) {
+        final m = marks.first;
+        final parts = [m.subLocality, m.locality].whereType<String>().where((e) => e.isNotEmpty).toList();
+        if (parts.isNotEmpty) return parts.join(', ');
+      }
+    } catch (_) {
+      // Reverse geocoding is best-effort; keep coordinates.
+    }
+    return coordinates(lat, lng);
+  }
+
+  @override
+  Future<List<Place>> search(String query) async {
+    final q = query.trim();
+    if (q.isEmpty) return const [];
+    try {
+      final found = await _forward(q);
+      return [for (final l in found.take(5)) Place(name: found.length == 1 ? q : '$q · ${await describe(l.latitude, l.longitude)}', lat: l.latitude, lng: l.longitude)];
+    } catch (_) {
+      return const [];
     }
   }
 }

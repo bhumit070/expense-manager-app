@@ -1,13 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:expense_manager/core/dates.dart';
 import 'package:expense_manager/data/database.dart';
 import 'package:expense_manager/data/models.dart';
 import 'package:expense_manager/services/file_gateway.dart';
 import 'package:expense_manager/services/location.dart';
+import 'package:expense_manager/services/receipts.dart';
 import 'package:expense_manager/state/app_state.dart';
 import 'package:expense_manager/ui/theme/tokens.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Wednesday, 28 Oct 2026, 9:41 PM.
@@ -47,10 +50,39 @@ class FakeLocation implements LocationService {
     requests++;
     return grant;
   }
+
+  /// Results for [search], keyed by query.
+  final results = <String, List<Place>>{};
+
+  @override
+  Future<List<Place>> search(String query) async => results[query] ?? const [];
+
+  @override
+  Future<String> describe(double lat, double lng) async => 'Pin ${coordinates(lat, lng)}';
 }
 
-AppState makeState({DateTime? now, FakeFiles? files, FakeLocation? location}) =>
-    AppState(db: openAppDatabase(null), files: files ?? FakeFiles(), location: location ?? FakeLocation(), clock: () => now ?? kNow);
+class FakeReceipts implements ReceiptStore {
+  /// Path returned by the next [pick]; null means the user cancelled.
+  String? next;
+  final picked = <ReceiptSource>[];
+  final opened = <String>[];
+  final deleted = <String>[];
+
+  @override
+  Future<String?> pick(ReceiptSource source) async {
+    picked.add(source);
+    return next;
+  }
+
+  @override
+  Future<void> open(String path) async => opened.add(path);
+
+  @override
+  Future<void> delete(String path) async => deleted.add(path);
+}
+
+AppState makeState({DateTime? now, FakeFiles? files, FakeLocation? location, FakeReceipts? receipts}) =>
+    AppState(db: openAppDatabase(null), files: files ?? FakeFiles(), location: location ?? FakeLocation(), receipts: receipts ?? FakeReceipts(), clock: () => now ?? kNow);
 
 int catId(AppState s, String name) => s.catalog.findCategoryByName(name)!.id;
 
@@ -155,4 +187,29 @@ Future<void> pumpRoute(WidgetTester tester, AppState state, Widget child, {Brigh
   unawaited(nav.currentState!.push(MaterialPageRoute<void>(builder: (_) => child)));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
+}
+
+/// Types [amount] (e.g. `1250.5` or `100+20`) on the amount keypad.
+Future<void> typeAmount(WidgetTester tester, String amount) async {
+  for (final ch in amount.split('')) {
+    final name = switch (ch) {
+      '+' => 'plus',
+      '−' || '-' => 'minus',
+      _ => ch,
+    };
+    await tester.tap(find.byKey(Key('key-$name')));
+  }
+  await tester.pump();
+}
+
+/// The amount shown above the keypad.
+String amountShown(WidgetTester tester) => tester.widget<Text>(find.byKey(const Key('amount'))).data!;
+
+/// A 1×1 transparent PNG.
+final kPng = base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
+
+/// Offline map tiles for widget tests.
+class FakeTiles extends TileProvider {
+  @override
+  ImageProvider getImage(TileCoordinates coordinates, TileLayer options) => MemoryImage(kPng);
 }
