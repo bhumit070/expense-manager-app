@@ -8,9 +8,11 @@ import 'package:expense_manager/data/models.dart';
 import 'package:expense_manager/services/error_log.dart';
 import 'package:expense_manager/services/file_gateway.dart';
 import 'package:expense_manager/services/location.dart';
+import 'package:expense_manager/services/receipts.dart';
 import 'package:expense_manager/state/app_state.dart';
 import 'package:expense_manager/ui/theme/tokens.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Wednesday, 28 Oct 2026, 9:41 PM.
@@ -63,11 +65,40 @@ class FakeLocation implements LocationService {
     requests++;
     return grant;
   }
+
+  /// Results for [search], keyed by query.
+  final results = <String, List<Place>>{};
+
+  @override
+  Future<List<Place>> search(String query) async => results[query] ?? const [];
+
+  @override
+  Future<String> describe(double lat, double lng) async => 'Pin ${coordinates(lat, lng)}';
+}
+
+class FakeReceipts implements ReceiptStore {
+  /// Path returned by the next [pick]; null means the user cancelled.
+  String? next;
+  final picked = <ReceiptSource>[];
+  final opened = <String>[];
+  final deleted = <String>[];
+
+  @override
+  Future<String?> pick(ReceiptSource source) async {
+    picked.add(source);
+    return next;
+  }
+
+  @override
+  Future<void> open(String path) async => opened.add(path);
+
+  @override
+  Future<void> delete(String path) async => deleted.add(path);
 }
 
 /// A fresh in-memory app. Onboarding is marked done unless [onboarded] is false.
-AppState makeState({DateTime? now, FakeFiles? files, FakeLocation? location, ErrorLog? errorLog, bool onboarded = true}) {
-  final s = AppState(db: openAppDatabase(null), files: files ?? FakeFiles(), location: location ?? FakeLocation(), errorLog: errorLog, clock: () => now ?? kNow);
+AppState makeState({DateTime? now, FakeFiles? files, FakeLocation? location, FakeReceipts? receipts, ErrorLog? errorLog, bool onboarded = true}) {
+  final s = AppState(db: openAppDatabase(null), files: files ?? FakeFiles(), location: location ?? FakeLocation(), receipts: receipts ?? FakeReceipts(), errorLog: errorLog, clock: () => now ?? kNow);
   if (onboarded) s.settings.set('onboarded', '1');
   return s;
 }
@@ -139,7 +170,7 @@ int catId(AppState s, String name) => s.catalog.findCategoryByName(name)!.id;
 
 /// Pumps [child] inside the app theme and scope on a tall phone-width view.
 Future<void> pumpScreen(WidgetTester tester, AppState state, Widget child, {Brightness brightness = Brightness.light}) async {
-  tester.view.physicalSize = const Size(1170, 6000);
+  tester.view.physicalSize = const Size(1170, 9000);
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
@@ -158,7 +189,7 @@ Period month(DateTime d) => Period.of(PeriodKind.month, d);
 
 /// Pumps a home route and pushes [child] on top, so screens can pop.
 Future<void> pumpRoute(WidgetTester tester, AppState state, Widget child, {Brightness brightness = Brightness.light}) async {
-  tester.view.physicalSize = const Size(1170, 6000);
+  tester.view.physicalSize = const Size(1170, 9000);
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.reset);
   final nav = GlobalKey<NavigatorState>();
@@ -175,4 +206,29 @@ Future<void> pumpRoute(WidgetTester tester, AppState state, Widget child, {Brigh
   unawaited(nav.currentState!.push(MaterialPageRoute<void>(builder: (_) => child)));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
+}
+
+/// Types [amount] (e.g. `1250.5` or `100+20`) on the amount keypad.
+Future<void> typeAmount(WidgetTester tester, String amount) async {
+  for (final ch in amount.split('')) {
+    final name = switch (ch) {
+      '+' => 'plus',
+      '−' || '-' => 'minus',
+      _ => ch,
+    };
+    await tester.tap(find.byKey(Key('key-$name')));
+  }
+  await tester.pump();
+}
+
+/// The amount shown above the keypad.
+String amountShown(WidgetTester tester) => tester.widget<Text>(find.byKey(const Key('amount'))).data!;
+
+/// A 1×1 transparent PNG.
+final kPng = base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
+
+/// Offline map tiles for widget tests.
+class FakeTiles extends TileProvider {
+  @override
+  ImageProvider getImage(TileCoordinates coordinates, TileLayer options) => MemoryImage(kPng);
 }

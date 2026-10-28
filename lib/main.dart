@@ -12,6 +12,7 @@ import 'services/error_log.dart';
 import 'services/file_gateway.dart';
 import 'services/location.dart';
 import 'services/security_platform.dart';
+import 'services/receipts.dart';
 import 'state/app_state.dart';
 
 /// Opens the on-device database and builds the app state.
@@ -20,13 +21,16 @@ Future<AppState> bootstrap({Flavor? flavor}) async {
   final keys = SecureKeyStore();
   final db = openAppDatabase(p.join(dir.path, databaseFileName(flavor ?? currentFlavor)), key: await keys.read());
   final log = ErrorLog(File(p.join(dir.path, 'logs', 'errors.log')));
-  return AppState(
+  final state = AppState(
     db: db,
     files: PlatformFileGateway(),
     location: PlatformLocationService(),
     errorLog: log,
+    receipts: PlatformReceiptStore(),
     security: SecurityPlatform(biometrics: PlatformBiometrics(), keys: keys),
   );
+  await state.startup();
+  return state;
 }
 
 Future<void> main() async {

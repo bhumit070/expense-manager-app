@@ -20,6 +20,7 @@ dependencies:
   flutter_secure_storage: ^11.2.0
   geocoding: ^5.0.0
   geolocator: ^14.0.1
+  image_picker: ^1.2.4
   intl: ^0.20.2
   latlong2: ^0.10.1
   local_auth: ^3.0.2
@@ -43,6 +44,7 @@ dev_dependencies:
   geocoding_platform_interface: ^5.0.0
   flutter_launcher_icons: ^0.14.4
   flutter_native_splash: ^2.4.8
+  image_picker_platform_interface: ^2.11.2
   flutter_secure_storage_platform_interface: ^2.1.1
   local_auth_platform_interface: ^1.1.0
   url_launcher_platform_interface: ^2.3.2

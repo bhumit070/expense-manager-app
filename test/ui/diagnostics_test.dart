@@ -24,7 +24,8 @@ void main() {
     final files = FakeFiles();
     final s = makeState(files: files, errorLog: log);
     await pumpRoute(tester, s, const SettingsScreen());
-    await tester.scrollUntilVisible(find.byKey(const Key('open-diagnostics')), 200);
+    await tester.ensureVisible(find.byKey(const Key('open-diagnostics')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('open-diagnostics')));
     await tester.pumpAndSettle();
     expect(find.byType(DiagnosticsScreen), findsOneWidget);

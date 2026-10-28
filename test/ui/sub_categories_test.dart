@@ -118,7 +118,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(Key('sub-$coffee')));
     await tester.pump();
-    await tester.enterText(find.byKey(const Key('amount')), '180');
+    await typeAmount(tester, '180');
     await tester.tap(find.byKey(const Key('save-txn')));
     await tester.pumpAndSettle();
     expect(s.txns.list(const TxnFilter()).single.txn.categoryId, coffee);

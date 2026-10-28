@@ -100,6 +100,8 @@ class Txn {
     this.lng,
     this.investmentId,
     this.debtId,
+    this.receipt,
+    this.recurringId,
   });
 
   final int? id;
@@ -119,10 +121,16 @@ class Txn {
   final int? investmentId;
   final int? debtId;
 
-  Txn copyWith({int? id, DateTime? occurredAt, int? categoryId}) => Txn(
+  /// Path of an attached receipt (photo or PDF) in the app documents directory.
+  final String? receipt;
+
+  /// The recurring rule that created this transaction, if any.
+  final int? recurringId;
+
+  Txn copyWith({int? id, int? amount, DateTime? occurredAt, int? categoryId, String? Function()? receipt, int? Function()? recurringId}) => Txn(
     id: id ?? this.id,
     type: type,
-    amount: amount,
+    amount: amount ?? this.amount,
     categoryId: categoryId ?? this.categoryId,
     sourceId: sourceId,
     occurredAt: occurredAt ?? this.occurredAt,
@@ -134,6 +142,8 @@ class Txn {
     lng: lng,
     investmentId: investmentId,
     debtId: debtId,
+    receipt: receipt == null ? this.receipt : receipt(),
+    recurringId: recurringId == null ? this.recurringId : recurringId(),
   );
 
   /// Title shown in lists: merchant, else note, else category name.
@@ -162,6 +172,8 @@ class TxnView {
         lng: r['lng'] as double?,
         investmentId: r['investment_id'] as int?,
         debtId: r['debt_id'] as int?,
+        receipt: r['receipt'] as String?,
+        recurringId: r['recurring_id'] as int?,
       ),
       category: Category(
         id: r['category_id'] as int,

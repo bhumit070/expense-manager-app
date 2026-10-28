@@ -30,7 +30,7 @@ void main() {
       await tester.pump();
       expect(find.text('Enter an amount greater than zero'), findsWidgets);
 
-      await tester.enterText(find.byKey(const Key('amount')), '1,250.5');
+      await typeAmount(tester, '1250.5');
       await tester.enterText(find.byKey(const Key('merchant')), 'Cafe');
       await tester.enterText(find.byKey(const Key('note')), 'Coffee with team');
       await tester.enterText(find.byKey(const Key('tags')), '#Work, split ##');
@@ -55,7 +55,7 @@ void main() {
     testWidgets('picks category, date and time; cancel keeps values', (tester) async {
       final s = makeState()..locationEnabled = false;
       await pumpRoute(tester, s, const TxnFormScreen());
-      await tester.enterText(find.byKey(const Key('amount')), '99');
+      await typeAmount(tester, '99');
       await tester.tap(find.byKey(Key('cat-${catId(s, 'Rent')}')));
       await tester.tap(find.byKey(const Key('pick-date')));
       await tester.pumpAndSettle();
@@ -94,7 +94,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Nifty 50 Index').last);
       await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const Key('amount')), '10000');
+      await typeAmount(tester, '10000');
       await tester.tap(find.byKey(const Key('save-txn')));
       await tester.pumpAndSettle();
       expect(s.planning.holdings().firstWhere((h) => h.investment.id == ids.sip).invested, 2000000);
@@ -104,7 +104,7 @@ void main() {
       await tester.tap(find.text('Debt'));
       await tester.pump();
       expect(find.text('Category'), findsNothing);
-      await tester.enterText(find.byKey(const Key('amount')), '500');
+      await typeAmount(tester, '500');
       await tester.tap(find.byKey(const Key('save-txn')));
       await tester.pump();
       expect(find.text('Pick which debt this payment belongs to'), findsWidgets);
@@ -139,7 +139,7 @@ void main() {
       );
       await pumpRoute(tester, s, TxnFormScreen(existing: s.txns.byId(swiggy.txn.id!)));
       expect(find.text('Edit transaction'), findsOneWidget);
-      expect(tester.widget<TextField>(find.byKey(const Key('amount'))).controller!.text, '12.50');
+      expect(amountShown(tester), '12.50');
       await tester.enterText(find.byKey(const Key('place')), '');
       await tester.tap(find.byKey(const Key('save-txn')));
       await tester.pumpAndSettle();
@@ -155,7 +155,7 @@ void main() {
       final uber = byMerchant(s, 'Uber');
       await pumpRoute(tester, s, TxnFormScreen(existing: uber, duplicate: true));
       expect(find.text('New transaction'), findsOneWidget);
-      expect(tester.widget<TextField>(find.byKey(const Key('amount'))).controller!.text, '312');
+      expect(amountShown(tester), '312');
       await tester.tap(find.byKey(const Key('save-txn')));
       await tester.pumpAndSettle();
       expect(s.txns.list(const TxnFilter(search: 'uber')).map((e) => e.txn.occurredAt), [kNow, DateTime(2026, 10, 27, 9)]);

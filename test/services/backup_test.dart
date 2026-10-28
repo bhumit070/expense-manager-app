@@ -235,18 +235,22 @@ void main() {
       seed(src);
       final zip = buildLedgerZip(src, docs: docs, temp: temp);
       final l = await openLedger(zip);
-      // Simulate a v3 snapshot: drop the v4 debt columns and reset the version.
+      // Simulate the previous schema: undo the latest (v5) migration and reset the version.
       final f = File('${temp.path}/old.db')..writeAsBytesSync(l.database);
       final old = openAppDatabase(f.path)
-        ..execute('ALTER TABLE debts DROP COLUMN statement_amount')
-        ..execute('ALTER TABLE debts DROP COLUMN statement_due_at')
-        ..userVersion = 3;
+        ..execute('DROP INDEX idx_txn_recurring')
+        ..execute('ALTER TABLE transactions DROP COLUMN receipt')
+        ..execute('ALTER TABLE transactions DROP COLUMN recurring_id')
+        ..execute('DROP TABLE recurring_rules')
+        ..execute('DROP TABLE templates')
+        ..userVersion = 4;
       old.close();
       final v1 = Ledger(manifest: l.manifest, database: f.readAsBytesSync(), receipts: const {});
       f.deleteSync();
       final dst = makeState();
       expect(restoreLedger(dst, v1, RestoreMode.replace, docs: docs, temp: temp).transactions, 9);
-      expect(dst.db.select('SELECT statement_amount FROM debts').every((r) => r['statement_amount'] == null), isTrue);
+      expect(dst.db.select('SELECT receipt FROM transactions').every((r) => r['receipt'] == null), isTrue);
+      expect(dst.db.userVersion, schemaVersion);
 
       // A snapshot missing a table fails and leaves data untouched.
       final g = File('${temp.path}/broken.db')..writeAsBytesSync(l.database);

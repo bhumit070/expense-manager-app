@@ -30,7 +30,12 @@ void main() {
       lng: 2,
       investmentId: 3,
       debtId: 4,
+      receipt: '/r.jpg',
+      recurringId: 7,
     ).copyWith(id: 9, occurredAt: DateTime(2027));
+    expect([c.receipt, c.recurringId, c.amount], ['/r.jpg', 7, 1]);
+    final d = c.copyWith(amount: 5, receipt: () => null, recurringId: () => null);
+    expect([d.receipt, d.recurringId, d.amount], [null, null, 5]);
     expect(c.id, 9);
     expect(c.occurredAt, DateTime(2027));
     expect(c.titleOr(''), 'Uber');

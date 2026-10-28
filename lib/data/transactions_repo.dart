@@ -136,13 +136,15 @@ LEFT JOIN sources s ON s.id = t.source_id
     t.lng,
     t.investmentId,
     t.debtId,
+    t.receipt,
+    t.recurringId,
   ];
 
   int insert(Txn t, {DateTime? now}) {
     db.execute(
       '''
-INSERT INTO transactions(type, amount, inflow, category_id, source_id, occurred_at, merchant, note, tags, place, lat, lng, investment_id, debt_id, created_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+INSERT INTO transactions(type, amount, inflow, category_id, source_id, occurred_at, merchant, note, tags, place, lat, lng, investment_id, debt_id, receipt, recurring_id, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
       [..._values(t), (now ?? DateTime.now()).millisecondsSinceEpoch],
     );
     return db.lastInsertRowId;
@@ -163,7 +165,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
   void update(Txn t) {
     db.execute(
       '''
-UPDATE transactions SET type = ?, amount = ?, inflow = ?, category_id = ?, source_id = ?, occurred_at = ?, merchant = ?, note = ?, tags = ?, place = ?, lat = ?, lng = ?, investment_id = ?, debt_id = ?
+UPDATE transactions SET type = ?, amount = ?, inflow = ?, category_id = ?, source_id = ?, occurred_at = ?, merchant = ?, note = ?, tags = ?, place = ?, lat = ?, lng = ?, investment_id = ?, debt_id = ?, receipt = ?, recurring_id = ?
 WHERE id = ?''',
       [..._values(t), t.id],
     );
@@ -174,8 +176,13 @@ WHERE id = ?''',
 
   void restore(int id) => db.execute('UPDATE transactions SET deleted = 0 WHERE id = ?', [id]);
 
-  /// Permanently removes soft-deleted rows.
-  void purgeDeleted() => db.execute('DELETE FROM transactions WHERE deleted = 1');
+  /// Permanently removes soft-deleted rows. Returns the receipt files they
+  /// referenced so the caller can delete them.
+  List<String> purgeDeleted() {
+    final receipts = db.select('SELECT receipt FROM transactions WHERE deleted = 1 AND receipt IS NOT NULL').map((r) => r['receipt'] as String).toList();
+    db.execute('DELETE FROM transactions WHERE deleted = 1');
+    return receipts;
+  }
 
   TxnView? byId(int id) {
     final r = db.select('$_select WHERE t.id = ? AND t.deleted = 0', [id]);

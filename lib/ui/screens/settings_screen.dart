@@ -12,6 +12,7 @@ import 'categories_screen.dart';
 import 'data_flows.dart';
 import 'diagnostics_screen.dart';
 import 'security_screen.dart';
+import 'recurring_screen.dart';
 import 'sources_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -188,6 +189,13 @@ class SettingsScreen extends StatelessWidget {
               title: const Text('Currency'),
               trailing: Text('${app.currency.code} · $currencySymbol'),
               onTap: () => _pickCurrency(context, app),
+            ),
+            ListTile(
+              key: const Key('open-recurring'),
+              leading: const Icon(Icons.repeat),
+              title: const Text('Recurring transactions'),
+              trailing: Text('${app.recurring.rules().where((r) => !r.paused && !r.ended).length} active'),
+              onTap: () => open(const RecurringScreen()),
             ),
             const ListTile(leading: Icon(Icons.calendar_today_outlined), title: Text('Week starts on'), subtitle: Text('Weekly budgets run Monday → Sunday'), trailing: Text('Monday')),
           ]),

@@ -7,6 +7,7 @@ import '../../data/transactions_repo.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
+import 'sip_card.dart';
 import 'txn_detail_screen.dart';
 import 'txn_form_screen.dart';
 
@@ -310,6 +311,8 @@ class InvestmentDetailScreen extends StatelessWidget {
               ),
             ),
           ],
+          const SizedBox(height: 12),
+          SipCard(investment: inv),
           SectionHeader('Contributions (${linked.length})'),
           if (linked.isEmpty)
             Text('No money added yet.', style: ts(13, color: c.textMuted))

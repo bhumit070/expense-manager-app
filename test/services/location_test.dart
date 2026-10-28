@@ -27,10 +27,14 @@ class FakeGeo extends GeolocatorPlatform with MockPlatformInterfaceMixin {
 }
 
 class FakeGeocoding extends pi.Geocoding {
-  FakeGeocoding(this.marks, {this.fail = false}) : super.implementation(const pi.GeocodingCreationParams());
+  FakeGeocoding(this.marks, {this.fail = false, this.found = const []}) : super.implementation(const pi.GeocodingCreationParams());
 
   final List<pi.Placemark> marks;
   final bool fail;
+  final List<pi.Location> found;
+
+  @override
+  Future<List<pi.Location>> locationFromAddress(String address, {dynamic locale}) async => found;
 
   @override
   Future<List<pi.Placemark>> placemarkFromCoordinates(double latitude, double longitude, {dynamic locale}) async {
@@ -95,5 +99,30 @@ void main() {
     GeolocatorPlatform.instance = FakeGeo();
     pi.GeocodingPlatformFactory.instance = FakeFactory(FakeGeocoding(const [pi.Placemark(locality: 'Pune')]));
     expect((await PlatformLocationService().current())!.name, 'Pune');
+  });
+
+  test('search returns named matches, nothing for blank or failures', () async {
+    final svc = PlatformLocationService(
+      geolocator: FakeGeo(),
+      reverseGeocode: (lat, lng) async => [pi.Placemark(locality: lat > 13 ? 'Hebbal' : 'Koramangala')],
+      forwardGeocode: (q) async => q == 'one'
+          ? const [pi.Location(latitude: 12.9, longitude: 77.6)]
+          : q == 'boom'
+          ? throw Exception('offline')
+          : const [pi.Location(latitude: 12.9, longitude: 77.6), pi.Location(latitude: 13.1, longitude: 77.5)],
+    );
+    expect(await svc.search('  '), isEmpty);
+    expect((await svc.search('one')).single.name, 'one');
+    final two = await svc.search('mall');
+    expect(two.map((p) => p.name), ['mall · Koramangala', 'mall · Hebbal']);
+    expect(two.last.lat, 13.1);
+    expect(await svc.search('boom'), isEmpty);
+    expect(await svc.describe(1, 2), 'Koramangala');
+    expect(coordinates(12.971599, 77.6), '12.9716, 77.6000');
+  });
+
+  test('default forward geocoder uses the platform instance', () async {
+    pi.GeocodingPlatformFactory.instance = FakeFactory(FakeGeocoding(const [pi.Placemark(locality: 'Pune')], found: const [pi.Location(latitude: 18.5, longitude: 73.8)]));
+    expect((await PlatformLocationService(geolocator: FakeGeo()).search('fc road')).single.lat, 18.5);
   });
 }

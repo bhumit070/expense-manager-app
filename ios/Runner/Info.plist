@@ -4,6 +4,10 @@
 <dict>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Unlock Expense Manager with Face ID.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Take a photo of a receipt to attach it to a transaction. Photos stay on this device.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose a receipt photo to attach to a transaction. Photos stay on this device.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Optionally tag transactions with where you spent. Location stays on your device.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>

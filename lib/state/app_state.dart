@@ -4,7 +4,9 @@ import 'package:sqlite3/sqlite3.dart';
 import '../core/money.dart';
 import '../data/catalog_repo.dart';
 import '../data/planning_repo.dart';
+import '../data/recurring_repo.dart';
 import '../data/settings_repo.dart';
+import '../data/templates_repo.dart';
 import '../data/transactions_repo.dart';
 import '../services/app_info.dart';
 import '../services/error_log.dart';
@@ -12,17 +14,21 @@ import '../services/file_gateway.dart';
 import '../services/location.dart';
 import '../services/security_platform.dart';
 import 'security_state.dart';
+import '../services/receipts.dart';
 
 /// App-wide state. Repositories are synchronous (SQLite via FFI) and fast;
 /// screens re-query when [notifyListeners] fires after a write.
 class AppState extends ChangeNotifier {
-  AppState({required this.db, required this.files, required this.location, this.errorLog, AppInfo? info, DateTime Function()? clock, SecurityPlatform? security})
+  AppState({required this.db, required this.files, required this.location, ReceiptStore? receipts, this.errorLog, AppInfo? info, DateTime Function()? clock, SecurityPlatform? security})
     : clock = clock ?? DateTime.now,
       info = info ?? PlatformAppInfo(),
+      receipts = receipts ?? PlatformReceiptStore(),
       txns = TransactionsRepo(db),
       catalog = CatalogRepo(db),
       planning = PlanningRepo(db),
-      settings = SettingsRepo(db) {
+      settings = SettingsRepo(db),
+      recurring = RecurringRepo(db),
+      templates = TemplatesRepo(db) {
     currentCurrency = currencyByCode(settings.get('currency'));
     // Installs from before onboarding existed already have data: skip it.
     if (settings.get('onboarded') == null && db.select('SELECT 1 FROM transactions LIMIT 1').isNotEmpty) settings.set('onboarded', '1');
@@ -36,16 +42,32 @@ class AppState extends ChangeNotifier {
 
   /// Local crash/error log; null in tests that don't need it.
   final ErrorLog? errorLog;
+  final ReceiptStore receipts;
   final DateTime Function() clock;
   final TransactionsRepo txns;
   final CatalogRepo catalog;
   final PlanningRepo planning;
   final SettingsRepo settings;
+  final RecurringRepo recurring;
+  final TemplatesRepo templates;
 
   /// App lock, app-switcher privacy and database encryption.
   late final SecurityState security;
 
   DateTime now() => clock();
+
+  /// Work done once when the app opens: create due recurring transactions
+  /// and drop rows deleted in the last session (with their receipt files).
+  Future<void> startup() async {
+    recurring.run(now());
+    await purgeDeleted();
+  }
+
+  Future<void> purgeDeleted() async {
+    for (final path in txns.purgeDeleted()) {
+      await receipts.delete(path);
+    }
+  }
 
   /// Call after any write so dependent screens rebuild.
   void changed() => notifyListeners();

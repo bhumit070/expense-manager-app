@@ -44,7 +44,7 @@ void main() {
   });
 
   test('default clock is the wall clock', () {
-    final s = AppState(db: openAppDatabase(null), files: FakeFiles(), location: FakeLocation());
+    final s = AppState(db: openAppDatabase(null), files: FakeFiles(), location: FakeLocation(), receipts: FakeReceipts());
     expect(s.now().difference(DateTime.now()).inSeconds.abs(), lessThan(5));
   });
 
