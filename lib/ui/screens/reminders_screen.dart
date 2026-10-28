@@ -6,6 +6,7 @@ import '../../data/models.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
+import '../theme/icons.dart';
 
 /// "Today", "Tomorrow", "in 5 days".
 String dueIn(DateTime date, DateTime now) {
@@ -33,9 +34,9 @@ String upcomingKindLabel(UpcomingKind k) => switch (k) {
 };
 
 IconData upcomingIcon(UpcomingKind k) => switch (k) {
-  UpcomingKind.emi => Icons.event_repeat,
-  UpcomingKind.cardDue => Icons.credit_card,
-  UpcomingKind.maturity => Icons.savings_outlined,
+  UpcomingKind.emi => AppIcons.eventRepeat,
+  UpcomingKind.cardDue => AppIcons.creditCard,
+  UpcomingKind.maturity => AppIcons.savings,
 };
 
 class UpcomingTile extends StatelessWidget {
@@ -105,7 +106,7 @@ class RemindersScreen extends StatelessWidget {
         title: Text('Reminders', style: ts(16, weight: FontWeight.w700)),
       ),
       body: items.isEmpty
-          ? const EmptyState(icon: Icons.notifications_none, title: 'Nothing coming up', message: 'EMIs, card bills and FD maturities in the next 60 days show up here.')
+          ? const EmptyState(icon: AppIcons.notifications, title: 'Nothing coming up', message: 'EMIs, card bills and FD maturities in the next 60 days show up here.')
           : ListView(
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
               children: [

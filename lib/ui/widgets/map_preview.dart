@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../services/maps.dart';
 import '../theme/tokens.dart';
+import '../theme/icons.dart';
 
 /// Static (non-interactive) map with a pin. Tap opens the maps app.
 class MapPreview extends StatelessWidget {
@@ -42,7 +43,7 @@ class MapPreview extends StatelessWidget {
                       width: 36,
                       height: 36,
                       alignment: Alignment.topCenter,
-                      child: Icon(Icons.location_on, size: 36, color: c.spend),
+                      child: Icon(AppIcons.locationPin, size: 36, color: c.spend),
                     ),
                   ],
                 ),

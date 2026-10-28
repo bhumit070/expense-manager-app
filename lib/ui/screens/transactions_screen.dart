@@ -13,6 +13,7 @@ import '../widgets/highlight.dart';
 import 'txn_actions.dart';
 import 'txn_detail_screen.dart';
 import 'txn_form_screen.dart';
+import '../theme/icons.dart';
 
 String scopeLabel(SearchScope s) => switch (s) {
   SearchScope.all => 'All',
@@ -123,7 +124,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           PopupMenuButton<TxnSort>(
             key: const Key('sort'),
             tooltip: 'Sort',
-            icon: const Icon(Icons.sort),
+            icon: const Icon(AppIcons.sort),
             initialValue: _filter.sort,
             onSelected: (v) => setState(() => _filter = _filter.copyWith(sort: v)),
             itemBuilder: (_) => [for (final v in TxnSort.values) PopupMenuItem(key: Key('sort-${v.name}'), value: v, child: Text(sortLabel(v)))],
@@ -149,7 +150,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     },
                     decoration: InputDecoration(
                       isDense: true,
-                      prefixIcon: Icon(Icons.search, color: c.textFaint),
+                      prefixIcon: Icon(AppIcons.search, color: c.textFaint),
                       hintText: switch (_filter.scope) {
                         SearchScope.all => 'Search merchant, note, #tag, amount…',
                         SearchScope.notes => 'Search notes and #tags',
@@ -160,7 +161,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       suffixIcon: searching
                           ? IconButton(
                               key: const Key('clear-search'),
-                              icon: const Icon(Icons.close, size: 18),
+                              icon: const Icon(AppIcons.close, size: 18),
                               onPressed: () {
                                 _search.clear();
                                 _setSearch('');
@@ -178,7 +179,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   child: IconButton.filled(
                     key: const Key('open-filters'),
                     style: IconButton.styleFrom(backgroundColor: c.text, foregroundColor: c.bg, fixedSize: const Size(48, 48)),
-                    icon: const Icon(Icons.filter_alt_outlined),
+                    icon: const Icon(AppIcons.filter),
                     onPressed: () async {
                       final next = await showModalBottomSheet<TxnFilter>(
                         context: context,
@@ -260,7 +261,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
               child: Row(
                 children: [
-                  if (!searching) IconButton(key: const Key('prev-period'), icon: const Icon(Icons.chevron_left), onPressed: () => setState(() => _period = _period!.previous)),
+                  if (!searching) IconButton(key: const Key('prev-period'), icon: const Icon(AppIcons.chevronLeft), onPressed: () => setState(() => _period = _period!.previous)),
                   Expanded(
                     child: Padding(
                       padding: EdgeInsets.only(left: searching ? 8 : 0),
@@ -273,7 +274,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       ),
                     ),
                   ),
-                  if (!searching) IconButton(key: const Key('next-period'), icon: const Icon(Icons.chevron_right), onPressed: () => setState(() => _period = _period!.next)),
+                  if (!searching) IconButton(key: const Key('next-period'), icon: const Icon(AppIcons.chevronRight), onPressed: () => setState(() => _period = _period!.next)),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -296,7 +297,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             child: showRecents
                 ? _RecentList(items: recents, recent: recent, onPick: (q) => _useRecent(recent, q), onChanged: () => setState(() {}))
                 : items.isEmpty
-                ? EmptyState(icon: Icons.search_off, title: 'Nothing here', message: searching ? 'No transactions match "${_filter.search.trim()}".' : 'No transactions in this period.')
+                ? EmptyState(icon: AppIcons.searchOff, title: 'Nothing here', message: searching ? 'No transactions match "${_filter.search.trim()}".' : 'No transactions in this period.')
                 : ListView.builder(
                     key: const Key('txn-list'),
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
@@ -326,8 +327,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       final id = v.txn.id!;
                       return Dismissible(
                         key: ValueKey('swipe-$id'),
-                        background: _SwipeBackground(color: c.brand, icon: Icons.edit_outlined, label: 'Edit', alignment: Alignment.centerLeft),
-                        secondaryBackground: _SwipeBackground(color: c.spend, icon: Icons.delete_outline, label: 'Delete', alignment: Alignment.centerRight),
+                        background: _SwipeBackground(color: c.brand, icon: AppIcons.edit, label: 'Edit', alignment: Alignment.centerLeft),
+                        secondaryBackground: _SwipeBackground(color: c.spend, icon: AppIcons.delete, label: 'Delete', alignment: Alignment.centerRight),
                         confirmDismiss: (dir) async {
                           if (dir == DismissDirection.endToStart) return true;
                           await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TxnFormScreen(existing: v)));
@@ -420,12 +421,12 @@ class _RecentList extends StatelessWidget {
           ListTile(
             key: Key('recent-$i'),
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.history, color: c.textFaint),
+            leading: Icon(AppIcons.history, color: c.textFaint),
             title: Text(q, style: ts(14, weight: FontWeight.w600)),
             onTap: () => onPick(q),
             trailing: IconButton(
               key: Key('remove-recent-$i'),
-              icon: const Icon(Icons.close, size: 18),
+              icon: const Icon(AppIcons.close, size: 18),
               onPressed: () {
                 recent.remove(q);
                 onChanged();
@@ -514,7 +515,7 @@ class _FilterSheetState extends State<FilterSheet> {
           TextField(
             key: const Key('category-search'),
             onChanged: (v) => setState(() => _catQuery = v),
-            decoration: const InputDecoration(isDense: true, prefixIcon: Icon(Icons.search), hintText: 'Search categories'),
+            decoration: const InputDecoration(isDense: true, prefixIcon: Icon(AppIcons.search), hintText: 'Search categories'),
           ),
           const SizedBox(height: 10),
           Wrap(

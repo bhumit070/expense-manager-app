@@ -13,6 +13,7 @@ import '../widgets/common.dart';
 import '../widgets/map_preview.dart';
 import 'txn_actions.dart';
 import 'txn_form_screen.dart';
+import '../theme/icons.dart';
 
 class TxnDetailScreen extends StatelessWidget {
   const TxnDetailScreen({super.key, required this.id});
@@ -27,7 +28,7 @@ class TxnDetailScreen extends StatelessWidget {
     if (v == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: const EmptyState(icon: Icons.delete_outline, title: 'Transaction deleted', message: 'This transaction no longer exists.'),
+        body: const EmptyState(icon: AppIcons.delete, title: 'Transaction deleted', message: 'This transaction no longer exists.'),
       );
     }
     final t = v.txn;
@@ -110,7 +111,7 @@ class TxnDetailScreen extends StatelessWidget {
                 child: OutlinedButton.icon(
                   key: const Key('duplicate'),
                   onPressed: () => open(TxnFormScreen(existing: v, duplicate: true)),
-                  icon: const Icon(Icons.copy),
+                  icon: const Icon(AppIcons.copy),
                   label: const Text('Duplicate'),
                 ),
               ),
@@ -119,7 +120,7 @@ class TxnDetailScreen extends StatelessWidget {
                 child: OutlinedButton.icon(
                   key: const Key('edit'),
                   onPressed: () => open(TxnFormScreen(existing: v)),
-                  icon: const Icon(Icons.edit_outlined),
+                  icon: const Icon(AppIcons.edit),
                   label: const Text('Edit'),
                 ),
               ),
@@ -133,7 +134,7 @@ class TxnDetailScreen extends StatelessWidget {
                     Navigator.of(context).pop();
                     deleteTxnWithUndo(messenger, app, id);
                   },
-                  icon: const Icon(Icons.delete_outline),
+                  icon: const Icon(AppIcons.delete),
                   label: const Text('Delete'),
                 ),
               ),
@@ -167,7 +168,7 @@ class _ReceiptCard extends StatelessWidget {
           if (isPdf(path))
             Row(
               children: [
-                Icon(Icons.picture_as_pdf_outlined, color: c.spend, size: 32),
+                Icon(AppIcons.pdf, color: c.spend, size: 32),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text('PDF receipt', style: ts(14, weight: FontWeight.w600)),
@@ -186,7 +187,7 @@ class _ReceiptCard extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              TextButton.icon(key: const Key('receipt-open'), onPressed: () => app.receipts.open(path), icon: const Icon(Icons.open_in_new, size: 18), label: const Text('Open')),
+              TextButton.icon(key: const Key('receipt-open'), onPressed: () => app.receipts.open(path), icon: const Icon(AppIcons.openExternal, size: 18), label: const Text('Open')),
               const Spacer(),
               TextButton.icon(
                 key: const Key('receipt-remove'),
@@ -196,7 +197,7 @@ class _ReceiptCard extends StatelessWidget {
                   app.receipts.delete(path);
                   app.changed();
                 },
-                icon: const Icon(Icons.delete_outline, size: 18),
+                icon: const Icon(AppIcons.delete, size: 18),
                 label: const Text('Remove'),
               ),
             ],

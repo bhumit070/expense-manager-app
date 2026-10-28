@@ -13,6 +13,7 @@ import '../widgets/category_picker.dart';
 import '../widgets/amount_keypad.dart';
 import '../widgets/common.dart';
 import 'location_picker_screen.dart';
+import '../theme/icons.dart';
 
 /// Add or edit a transaction. Defaults: now, default source, "Others"
 /// category, current location when permitted.
@@ -269,7 +270,7 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_editing ? 'Edit transaction' : 'New transaction', style: ts(16, weight: FontWeight.w700)),
-        actions: [IconButton(key: const Key('save-template'), tooltip: 'Save as template', icon: const Icon(Icons.bookmark_add_outlined), onPressed: () => _saveTemplate(app))],
+        actions: [IconButton(key: const Key('save-template'), tooltip: 'Save as template', icon: const Icon(AppIcons.bookmarkAdd), onPressed: () => _saveTemplate(app))],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -376,7 +377,7 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
                 ListTile(
                   key: const Key('pick-date'),
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.calendar_today_outlined),
+                  leading: const Icon(AppIcons.calendar),
                   title: Text(longDate(_at), style: ts(14, weight: FontWeight.w600)),
                   subtitle: Text('Date', style: ts(11, color: c.textMuted)),
                   onTap: _pickDate,
@@ -385,7 +386,7 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
                 ListTile(
                   key: const Key('pick-time'),
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.schedule),
+                  leading: const Icon(AppIcons.time),
                   title: Text(timeOfDay(_at), style: ts(14, weight: FontWeight.w600)),
                   subtitle: Text('Time', style: ts(11, color: c.textMuted)),
                   onTap: _pickTime,
@@ -408,14 +409,14 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
                     suffixIcon: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        IconButton(key: const Key('pick-location'), tooltip: 'Pick on map', icon: const Icon(Icons.map_outlined), onPressed: _pickLocation),
+                        IconButton(key: const Key('pick-location'), tooltip: 'Pick on map', icon: const Icon(AppIcons.map), onPressed: _pickLocation),
                         if (_locating)
                           const Padding(
                             padding: EdgeInsets.all(12),
                             child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
                           )
                         else
-                          IconButton(key: const Key('locate'), tooltip: 'Use current location', icon: const Icon(Icons.my_location), onPressed: () => _locate(app)),
+                          IconButton(key: const Key('locate'), tooltip: 'Use current location', icon: const Icon(AppIcons.myLocation), onPressed: () => _locate(app)),
                       ],
                     ),
                   ),
@@ -443,9 +444,9 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
                 ? Row(
                     children: [
                       for (final (src, icon, text) in const [
-                        (ReceiptSource.camera, Icons.photo_camera_outlined, 'Camera'),
-                        (ReceiptSource.gallery, Icons.photo_library_outlined, 'Gallery'),
-                        (ReceiptSource.pdf, Icons.picture_as_pdf_outlined, 'PDF'),
+                        (ReceiptSource.camera, AppIcons.camera, 'Camera'),
+                        (ReceiptSource.gallery, AppIcons.gallery, 'Gallery'),
+                        (ReceiptSource.pdf, AppIcons.pdf, 'PDF'),
                       ])
                         Expanded(
                           child: TextButton.icon(key: Key('receipt-${src.name}'), onPressed: () => _pickReceipt(app, src), icon: Icon(icon, size: 18), label: Text(text)),
@@ -454,9 +455,9 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
                   )
                 : ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: Icon(isPdf(_receipt!) ? Icons.picture_as_pdf_outlined : Icons.image_outlined, color: c.brand),
+                    leading: Icon(isPdf(_receipt!) ? AppIcons.pdf : AppIcons.image, color: c.brand),
                     title: Text(isPdf(_receipt!) ? 'PDF receipt attached' : 'Photo receipt attached', style: ts(14, weight: FontWeight.w600)),
-                    trailing: IconButton(key: const Key('receipt-clear'), tooltip: 'Remove receipt', icon: const Icon(Icons.close), onPressed: () => setState(() => _receipt = null)),
+                    trailing: IconButton(key: const Key('receipt-clear'), tooltip: 'Remove receipt', icon: const Icon(AppIcons.close), onPressed: () => setState(() => _receipt = null)),
                   ),
           ),
           if (_editing && widget.existing!.txn.recurringId != null)
@@ -486,9 +487,9 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
                     ListTile(
                       key: const Key('repeat-end'),
                       contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.event_busy_outlined),
+                      leading: const Icon(AppIcons.eventBusy),
                       title: Text(_repeatEnd == null ? 'Never ends' : 'Ends ${longDate(_repeatEnd!)}', style: ts(14, weight: FontWeight.w600)),
-                      trailing: _repeatEnd == null ? null : IconButton(key: const Key('repeat-end-clear'), icon: const Icon(Icons.close), onPressed: () => setState(() => _repeatEnd = null)),
+                      trailing: _repeatEnd == null ? null : IconButton(key: const Key('repeat-end-clear'), icon: const Icon(AppIcons.close), onPressed: () => setState(() => _repeatEnd = null)),
                       onTap: _pickRepeatEnd,
                     ),
                   ],
@@ -497,7 +498,7 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
             ),
           ],
           const SizedBox(height: 20),
-          FilledButton.icon(key: const Key('save-txn'), onPressed: _save, icon: const Icon(Icons.check), label: Text(_editing ? 'Save changes' : 'Save transaction')),
+          FilledButton.icon(key: const Key('save-txn'), onPressed: _save, icon: const Icon(AppIcons.check), label: Text(_editing ? 'Save changes' : 'Save transaction')),
         ],
       ),
     );
@@ -540,7 +541,7 @@ class _QuickAdd extends StatelessWidget {
                       onLongPress: t.id == null ? null : () => onDelete(t),
                       child: ActionChip(
                         key: Key(t.id == null ? 'freq-${t.name.toLowerCase()}' : 'tpl-${t.id}'),
-                        avatar: Icon(t.id == null ? Icons.history : Icons.bookmark_outline, size: 16),
+                        avatar: Icon(t.id == null ? AppIcons.history : AppIcons.bookmark, size: 16),
                         label: Text('${t.name} · ${formatInr(t.amount)}'),
                         onPressed: () => onPick(t),
                       ),

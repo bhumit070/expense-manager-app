@@ -10,6 +10,7 @@ import '../widgets/common.dart';
 import 'sip_card.dart';
 import 'txn_detail_screen.dart';
 import 'txn_form_screen.dart';
+import '../theme/icons.dart';
 
 const _allocationColors = [Color(0xFF34D399), Color(0xFF5EEAD4), Color(0xFFA3E635), Color(0xFFFDE047), Color(0xFFFFFFFF), Color(0xFF93C5FD)];
 
@@ -45,7 +46,7 @@ class InvestmentsScreen extends StatelessWidget {
               key: const Key('add-investment'),
               style: FilledButton.styleFrom(minimumSize: const Size(0, 40), backgroundColor: c.invest),
               onPressed: () => open(const InvestmentFormScreen()),
-              icon: const Icon(Icons.add),
+              icon: const Icon(AppIcons.add),
               label: const Text('Add'),
             ),
           ],
@@ -109,7 +110,7 @@ class InvestmentsScreen extends StatelessWidget {
               padding: const EdgeInsets.all(14),
               child: Row(
                 children: [
-                  Icon(Icons.event, color: c.debt),
+                  Icon(AppIcons.event, color: c.debt),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text('${m.name} matures on ${shortDate(m.maturityAt!)}', style: ts(13, weight: FontWeight.w700)),
@@ -120,7 +121,7 @@ class InvestmentsScreen extends StatelessWidget {
           ),
         if (holdings.isEmpty)
           EmptyState(
-            icon: Icons.trending_up,
+            icon: AppIcons.trendingUp,
             title: 'No investments yet',
             message: 'Add an FD, SIP, stock or gold holding to track what you invest.',
             action: 'Add investment',
@@ -340,7 +341,7 @@ class InvestmentDetailScreen extends StatelessWidget {
                   builder: (_) => TxnFormScreen(initialType: TxnType.invest, investmentId: id),
                 ),
               ),
-              icon: const Icon(Icons.add),
+              icon: const Icon(AppIcons.add),
               label: const Text('Add money'),
             ),
             const SizedBox(height: 10),

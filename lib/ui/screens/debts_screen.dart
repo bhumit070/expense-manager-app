@@ -7,6 +7,7 @@ import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
 import 'txn_form_screen.dart';
+import '../theme/icons.dart';
 
 enum DebtTab { iOwe, owedToMe, settled }
 
@@ -80,7 +81,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
               key: const Key('add-debt'),
               style: FilledButton.styleFrom(minimumSize: const Size(0, 40), backgroundColor: c.text, foregroundColor: c.bg),
               onPressed: () => open(const DebtFormScreen()),
-              icon: const Icon(Icons.add),
+              icon: const Icon(AppIcons.add),
               label: const Text('Add'),
             ),
           ],
@@ -105,7 +106,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
           onChanged: (t) => setState(() => _tab = t),
         ),
         const SizedBox(height: 14),
-        if (list.isEmpty) const EmptyState(icon: Icons.people_outline, title: 'Nothing here', message: 'Loans, credit cards and money lent or borrowed show up here.'),
+        if (list.isEmpty) const EmptyState(icon: AppIcons.people, title: 'Nothing here', message: 'Loans, credit cards and money lent or borrowed show up here.'),
         for (final s in list) ...[
           _DebtCard(
             s,
@@ -177,9 +178,9 @@ class _DebtCard extends StatelessWidget {
     final urgent = dueIn != null && dueIn <= 3;
     final color = d.direction == DebtDirection.iOwe ? c.debt : c.brand;
     final icon = switch (d.kind) {
-      DebtKind.loan => Icons.directions_car_outlined,
-      DebtKind.card => Icons.credit_card,
-      DebtKind.personal => Icons.people_outline,
+      DebtKind.loan => AppIcons.car,
+      DebtKind.card => AppIcons.creditCard,
+      DebtKind.personal => AppIcons.people,
     };
     final sub = [
       if (d.counterparty.isNotEmpty) d.counterparty,
@@ -217,7 +218,7 @@ class _DebtCard extends StatelessWidget {
                 key: Key('edit-debt-${d.id}'),
                 tooltip: 'Edit',
                 visualDensity: VisualDensity.compact,
-                icon: Icon(Icons.edit_outlined, size: 18, color: c.textMuted),
+                icon: Icon(AppIcons.edit, size: 18, color: c.textMuted),
                 onPressed: onEdit,
               ),
             ],
@@ -230,7 +231,7 @@ class _DebtCard extends StatelessWidget {
               decoration: BoxDecoration(color: urgent ? c.spendSoft : c.surfaceMuted, borderRadius: BorderRadius.circular(12)),
               child: Row(
                 children: [
-                  Icon(urgent ? Icons.warning_amber_rounded : Icons.receipt_long_outlined, size: 18, color: urgent ? c.spend : c.textMuted),
+                  Icon(urgent ? AppIcons.warning : AppIcons.receipt, size: 18, color: urgent ? c.spend : c.textMuted),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text('Statement ${formatInr(d.statementAmount!)}${d.statementDueAt == null ? '' : ' · due ${shortDate(d.statementDueAt!)}'}', style: ts(12, weight: FontWeight.w600)),
@@ -262,7 +263,7 @@ class _DebtCard extends StatelessWidget {
                   key: Key('remind-${d.id}'),
                   style: OutlinedButton.styleFrom(minimumSize: const Size(0, 34)),
                   onPressed: onRemind,
-                  icon: const Icon(Icons.send_outlined, size: 16),
+                  icon: const Icon(AppIcons.send, size: 16),
                   label: const Text('Remind'),
                 ),
               if (!d.settled)
@@ -420,11 +421,11 @@ class _DebtFormScreenState extends State<DebtFormScreen> {
             ListTile(
               key: const Key('debt-statement-due'),
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.event),
+              leading: const Icon(AppIcons.event),
               title: Text(_statementDue == null ? 'Statement due date' : 'Due ${longDate(_statementDue!)}'),
               trailing: _statementDue == null
                   ? null
-                  : IconButton(key: const Key('clear-statement-due'), tooltip: 'Clear', icon: const Icon(Icons.close), onPressed: () => setState(() => _statementDue = null)),
+                  : IconButton(key: const Key('clear-statement-due'), tooltip: 'Clear', icon: const Icon(AppIcons.close), onPressed: () => setState(() => _statementDue = null)),
               onTap: _pickStatementDue,
             ),
           ],

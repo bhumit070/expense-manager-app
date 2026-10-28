@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/models.dart';
+import 'icons.dart';
 
 /// Color tokens from the Penpot design system (00 · Design system).
 @immutable
@@ -147,31 +148,31 @@ ThemeData buildTheme(Brightness brightness) {
 
 /// Category icon keys stored in the database.
 const categoryIcons = <String, IconData>{
-  'food': Icons.restaurant,
-  'home': Icons.home_outlined,
-  'bag': Icons.shopping_bag_outlined,
-  'car': Icons.directions_car_outlined,
-  'bolt': Icons.bolt,
-  'heart': Icons.favorite_border,
-  'play': Icons.play_circle_outline,
-  'plane': Icons.flight_outlined,
-  'grid': Icons.grid_view,
-  'bank': Icons.account_balance_outlined,
-  'coins': Icons.savings_outlined,
-  'trend': Icons.trending_up,
-  'gem': Icons.diamond_outlined,
-  'shield': Icons.shield_outlined,
-  'wallet': Icons.account_balance_wallet_outlined,
-  'gift': Icons.card_giftcard,
+  'food': AppIcons.food,
+  'home': AppIcons.home,
+  'bag': AppIcons.shopping,
+  'car': AppIcons.car,
+  'bolt': AppIcons.bolt,
+  'heart': AppIcons.health,
+  'play': AppIcons.entertainment,
+  'plane': AppIcons.travel,
+  'grid': AppIcons.grid,
+  'bank': AppIcons.bank,
+  'coins': AppIcons.savings,
+  'trend': AppIcons.trendingUp,
+  'gem': AppIcons.gem,
+  'shield': AppIcons.shield,
+  'wallet': AppIcons.wallet,
+  'gift': AppIcons.gift,
 };
 
-IconData iconFor(String key) => categoryIcons[key] ?? Icons.grid_view;
+IconData iconFor(String key) => categoryIcons[key] ?? AppIcons.grid;
 
 IconData sourceIcon(SourceKind k) => switch (k) {
-  SourceKind.bank => Icons.account_balance_outlined,
-  SourceKind.card => Icons.credit_card,
-  SourceKind.cash => Icons.payments_outlined,
-  SourceKind.wallet => Icons.bolt,
+  SourceKind.bank => AppIcons.bank,
+  SourceKind.card => AppIcons.creditCard,
+  SourceKind.cash => AppIcons.cash,
+  SourceKind.wallet => AppIcons.bolt,
 };
 
 String typeLabel(TxnType t) => switch (t) {
@@ -191,10 +192,10 @@ String investmentKindLabel(InvestmentKind k) => switch (k) {
 };
 
 IconData investmentIcon(InvestmentKind k) => switch (k) {
-  InvestmentKind.fd => Icons.account_balance_outlined,
-  InvestmentKind.mutualFund => Icons.savings_outlined,
-  InvestmentKind.stock => Icons.trending_up,
-  InvestmentKind.gold => Icons.diamond_outlined,
-  InvestmentKind.retirement => Icons.shield_outlined,
-  InvestmentKind.other => Icons.grid_view,
+  InvestmentKind.fd => AppIcons.bank,
+  InvestmentKind.mutualFund => AppIcons.savings,
+  InvestmentKind.stock => AppIcons.trendingUp,
+  InvestmentKind.gold => AppIcons.gem,
+  InvestmentKind.retirement => AppIcons.shield,
+  InvestmentKind.other => AppIcons.grid,
 };

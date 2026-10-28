@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/money.dart';
 import '../theme/tokens.dart';
 import 'common.dart';
+import '../theme/icons.dart';
 
 /// Paise as the user would type it: `1250`, `12.50`.
 String plainAmount(int paise) => paise % paisePerRupee == 0 ? '${paise ~/ paisePerRupee}' : (paise / paisePerRupee).toStringAsFixed(2);
@@ -124,7 +125,7 @@ class AmountKeypad extends StatelessWidget {
                           height: 52,
                           child: Center(
                             child: k == '⌫'
-                                ? Icon(Icons.backspace_outlined, color: c.textMuted, semanticLabel: 'Backspace')
+                                ? Icon(AppIcons.backspace, color: c.textMuted, semanticLabel: 'Backspace')
                                 : Text(
                                     k,
                                     style: ts(22, weight: FontWeight.w600, color: k == '=' || k == '+' || k == '−' ? accent : c.text),

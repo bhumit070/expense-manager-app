@@ -6,6 +6,7 @@ import '../../data/models.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
+import '../theme/icons.dart';
 
 String sourceKindLabel(SourceKind k) => switch (k) {
   SourceKind.bank => 'Bank account',
@@ -49,7 +50,7 @@ class SourcesScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Payment sources', style: ts(16, weight: FontWeight.w700)),
-        actions: [IconButton(key: const Key('add-source'), icon: const Icon(Icons.add), onPressed: () => _add(context, app))],
+        actions: [IconButton(key: const Key('add-source'), icon: const Icon(AppIcons.add), onPressed: () => _add(context, app))],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -59,7 +60,7 @@ class SourcesScreen extends StatelessWidget {
             decoration: BoxDecoration(color: c.hero, borderRadius: BorderRadius.circular(20)),
             child: Row(
               children: [
-                const Icon(Icons.check_circle, color: Colors.white),
+                const Icon(AppIcons.checkCircleFilled, color: Colors.white),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -115,7 +116,7 @@ class SourcesScreen extends StatelessWidget {
                           if (sources.length > 1)
                             IconButton(
                               key: Key('archive-source-${s.id}'),
-                              icon: const Icon(Icons.archive_outlined),
+                              icon: const Icon(AppIcons.archive),
                               onPressed: () {
                                 app.catalog.archiveSource(s.id);
                                 app.changed();
@@ -151,7 +152,7 @@ class SourcesScreen extends StatelessWidget {
                         subtitle: Text('${sourceKindLabel(s.kind)} · ${balanceLabel(s, balances[s.id]!)}', style: ts(11, color: c.textMuted)),
                         trailing: TextButton.icon(
                           key: Key('restore-source-${s.id}'),
-                          icon: const Icon(Icons.unarchive_outlined, size: 18),
+                          icon: const Icon(AppIcons.unarchive, size: 18),
                           label: const Text('Restore'),
                           onPressed: () {
                             app.catalog.restoreSource(s.id);

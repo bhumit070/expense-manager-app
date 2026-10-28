@@ -13,6 +13,7 @@ import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
 import 'import_screen.dart';
+import '../theme/icons.dart';
 
 // Export, import, backup and restore flows started from Settings.
 
@@ -369,7 +370,7 @@ class BackupIntervalTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
     return ListTile(
-      leading: const Icon(Icons.alarm_outlined),
+      leading: const Icon(AppIcons.alarm),
       title: const Text('Backup reminder'),
       subtitle: Text(app.lastBackupLabel),
       trailing: DropdownButton<BackupInterval>(
@@ -402,7 +403,7 @@ class BackupBanner extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(14, 6, 4, 6),
         child: Row(
           children: [
-            Icon(Icons.cloud_upload_outlined, color: c.debt),
+            Icon(AppIcons.cloudUpload, color: c.debt),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -411,7 +412,7 @@ class BackupBanner extends StatelessWidget {
               ),
             ),
             TextButton(key: const Key('backup-banner-go'), onPressed: () => backUpFlow(context, app), child: const Text('Back up')),
-            IconButton(key: const Key('backup-banner-dismiss'), icon: const Icon(Icons.close, size: 18), tooltip: 'Remind me later', onPressed: app.snoozeBackupReminder),
+            IconButton(key: const Key('backup-banner-dismiss'), icon: const Icon(AppIcons.close, size: 18), tooltip: 'Remind me later', onPressed: app.snoozeBackupReminder),
           ],
         ),
       ),

@@ -11,6 +11,7 @@ import '../widgets/charts.dart';
 import '../widgets/common.dart';
 import 'budgets_screen.dart';
 import 'transactions_screen.dart';
+import '../theme/icons.dart';
 
 /// Percent change from [before] to [now], or null when there is no baseline.
 int? percentChange(int before, int now) => before == 0 ? null : ((now - before) * 100 / before).round();
@@ -81,7 +82,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
             IconButton(
               key: const Key('open-budgets'),
               tooltip: 'Budgets',
-              icon: const Icon(Icons.donut_large),
+              icon: const Icon(AppIcons.insights),
               onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const BudgetsScreen())),
             ),
             _exporting
@@ -89,7 +90,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     padding: EdgeInsets.all(12),
                     child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
                   )
-                : IconButton(key: const Key('export-pdf'), tooltip: 'PDF report', icon: const Icon(Icons.picture_as_pdf_outlined), onPressed: () => _export(app, p)),
+                : IconButton(key: const Key('export-pdf'), tooltip: 'PDF report', icon: const Icon(AppIcons.pdf), onPressed: () => _export(app, p)),
           ],
         ),
         const SizedBox(height: 12),
@@ -109,7 +110,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
         const SizedBox(height: 12),
         Row(
           children: [
-            IconButton(key: const Key('insights-prev'), icon: const Icon(Icons.chevron_left), onPressed: () => setState(() => _period = _period!.previous)),
+            IconButton(key: const Key('insights-prev'), icon: const Icon(AppIcons.chevronLeft), onPressed: () => setState(() => _period = _period!.previous)),
             Expanded(
               child: Column(
                 children: [
@@ -118,7 +119,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                 ],
               ),
             ),
-            IconButton(key: const Key('insights-next'), icon: const Icon(Icons.chevron_right), onPressed: () => setState(() => _period = _period!.next)),
+            IconButton(key: const Key('insights-next'), icon: const Icon(AppIcons.chevronRight), onPressed: () => setState(() => _period = _period!.next)),
           ],
         ),
         const SizedBox(height: 8),
@@ -283,7 +284,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
               IconButton(
                 key: Key('expand-cat-${ct.category.id}'),
                 tooltip: expanded ? 'Hide sub-categories' : 'Show sub-categories',
-                icon: Icon(expanded ? Icons.expand_less : Icons.expand_more),
+                icon: Icon(expanded ? AppIcons.expandLess : AppIcons.expandMore),
                 onPressed: () => setState(() => expanded ? _expanded.remove(ct.category.id) : _expanded.add(ct.category.id)),
               ),
           ],

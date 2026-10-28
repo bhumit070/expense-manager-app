@@ -5,6 +5,7 @@ import '../../state/security_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
 import 'lock_screen.dart';
+import '../theme/icons.dart';
 
 String timeoutLabel(Duration d) => switch (d.inSeconds) {
   0 => 'Immediately',
@@ -186,21 +187,21 @@ class _SecurityScreenState extends State<SecurityScreen> {
             group('App lock', [
               SwitchListTile(
                 key: const Key('lock-switch'),
-                secondary: const Icon(Icons.lock_outline),
+                secondary: const Icon(AppIcons.lock),
                 title: const Text('Lock with PIN'),
                 subtitle: const Text('Asked when the app opens'),
                 value: sec.lockEnabled,
                 onChanged: (v) => _toggleLock(sec, v),
               ),
               if (sec.lockEnabled) ...[
-                ListTile(key: const Key('change-pin'), leading: const Icon(Icons.pin_outlined), title: const Text('Change PIN'), onTap: () => _changePin(sec)),
+                ListTile(key: const Key('change-pin'), leading: const Icon(AppIcons.pin), title: const Text('Change PIN'), onTap: () => _changePin(sec)),
                 FutureBuilder<bool>(
                   future: _bioAvailable,
                   builder: (context, snap) {
                     final available = snap.data ?? false;
                     return SwitchListTile(
                       key: const Key('bio-switch'),
-                      secondary: const Icon(Icons.fingerprint),
+                      secondary: const Icon(AppIcons.fingerprint),
                       title: const Text('Unlock with fingerprint / face'),
                       subtitle: available ? null : const Text('Not available on this device'),
                       value: available && sec.biometricsOn,
@@ -224,7 +225,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
             group('Privacy', [
               SwitchListTile(
                 key: const Key('hide-switch'),
-                secondary: const Icon(Icons.visibility_off_outlined),
+                secondary: const Icon(AppIcons.hidden),
                 title: const Text('Hide in app switcher'),
                 subtitle: const Text('Blurs the recent-apps preview and blocks screenshots'),
                 value: sec.hideInSwitcher,
@@ -234,7 +235,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
             group('Encryption', [
               SwitchListTile(
                 key: const Key('encrypt-switch'),
-                secondary: const Icon(Icons.enhanced_encryption_outlined),
+                secondary: const Icon(AppIcons.encryption),
                 title: const Text('Encrypt database'),
                 subtitle: Text(sec.canEncrypt ? 'Key stored in the phone\'s secure storage' : 'Not available for this database'),
                 value: sec.encrypted,
