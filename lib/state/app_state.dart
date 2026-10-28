@@ -12,26 +12,38 @@ import '../services/app_info.dart';
 import '../services/error_log.dart';
 import '../services/file_gateway.dart';
 import '../services/location.dart';
+import '../services/notifications.dart';
 import '../services/security_platform.dart';
+import 'reminders.dart';
 import 'security_state.dart';
 import '../services/receipts.dart';
 
 /// App-wide state. Repositories are synchronous (SQLite via FFI) and fast;
 /// screens re-query when [notifyListeners] fires after a write.
 class AppState extends ChangeNotifier {
-  AppState({required this.db, required this.files, required this.location, ReceiptStore? receipts, this.errorLog, AppInfo? info, DateTime Function()? clock, SecurityPlatform? security})
-    : clock = clock ?? DateTime.now,
-      info = info ?? PlatformAppInfo(),
-      receipts = receipts ?? PlatformReceiptStore(),
-      txns = TransactionsRepo(db),
-      catalog = CatalogRepo(db),
-      planning = PlanningRepo(db),
-      settings = SettingsRepo(db),
-      recurring = RecurringRepo(db),
-      templates = TemplatesRepo(db) {
+  AppState({
+    required this.db,
+    required this.files,
+    required this.location,
+    ReceiptStore? receipts,
+    NotificationService? notifications,
+    this.errorLog,
+    AppInfo? info,
+    DateTime Function()? clock,
+    SecurityPlatform? security,
+  }) : clock = clock ?? DateTime.now,
+       info = info ?? PlatformAppInfo(),
+       receipts = receipts ?? PlatformReceiptStore(),
+       txns = TransactionsRepo(db),
+       catalog = CatalogRepo(db),
+       planning = PlanningRepo(db),
+       settings = SettingsRepo(db),
+       recurring = RecurringRepo(db),
+       templates = TemplatesRepo(db) {
     currentCurrency = currencyByCode(settings.get('currency'));
     // Installs from before onboarding existed already have data: skip it.
     if (settings.get('onboarded') == null && db.select('SELECT 1 FROM transactions LIMIT 1').isNotEmpty) settings.set('onboarded', '1');
+    reminders = Reminders(db: db, service: notifications ?? NotificationService.none, clock: this.clock);
     this.security = SecurityState(db: db, settings: settings, platform: security ?? SecurityPlatform(), clock: this.clock);
   }
 
@@ -51,6 +63,9 @@ class AppState extends ChangeNotifier {
   final RecurringRepo recurring;
   final TemplatesRepo templates;
 
+  /// Notifications: budget alerts and scheduled reminders.
+  late final Reminders reminders;
+
   /// App lock, app-switcher privacy and database encryption.
   late final SecurityState security;
 
@@ -61,6 +76,7 @@ class AppState extends ChangeNotifier {
   Future<void> startup() async {
     recurring.run(now());
     await purgeDeleted();
+    await reminders.refresh();
   }
 
   Future<void> purgeDeleted() async {
@@ -69,8 +85,17 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  /// Call after any write so dependent screens rebuild.
-  void changed() => notifyListeners();
+  /// Call after any write so dependent screens rebuild. Also re-checks budget
+  /// alerts and reminders (queued, one run at a time).
+  void changed() {
+    notifyListeners();
+    if (reminders.service.available) _reminderRun = _reminderRun.then((_) => reminders.refresh()).catchError((Object _) {});
+  }
+
+  Future<void> _reminderRun = Future.value();
+
+  /// Completes when reminder work queued by [changed] has finished.
+  Future<void> get reminderWork => _reminderRun;
 
   ThemeMode get themeMode => ThemeMode.values.firstWhere((m) => m.name == settings.get('theme'), orElse: () => ThemeMode.system);
 

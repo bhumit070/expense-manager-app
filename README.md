@@ -59,6 +59,20 @@ Android has product flavors, so `flutter run` / `flutter build apk` on Android n
 
 Framework errors and uncaught async errors are appended to `<app documents>/logs/errors.log` (rotated at 256 KB, one previous file kept). Nothing is sent anywhere. **Settings → Support → Diagnostics** shows the log and lets the user share or clear it.
 
+## Reminders and alerts
+
+Local notifications only, through `flutter_local_notifications`: there's no push and no server. They're off until the user turns them on, either in onboarding or under Settings › Reminders & alerts.
+
+- **What gets notified:**
+  - Budget alerts at 80% and 100%, each sent once per budget per cycle.
+  - EMI and card due dates, the day before and on the day.
+  - Reminder-only SIPs.
+  - FD maturity, N days before (default 3).
+  - "Remind me" follow-ups on money owed to you.
+- **When:** reminders are delivered around 9 AM local time. They're scheduled as inexact alarms, so no exact-alarm permission is needed and they may arrive a few minutes late.
+- **How they stay current:** `lib/state/reminders.dart` re-plans them on app open, after every edit and in a daily background task. On Android that task is WorkManager, via `workmanager`: it creates due recurring transactions, checks budgets and reschedules.
+- **iOS:** iOS has no reliable daily background slot, so that work happens when the app opens. Reminders that are already scheduled are still delivered by iOS.
+
 ## Tests
 
 `test/` mirrors `lib/`:

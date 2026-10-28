@@ -124,7 +124,7 @@ void main() {
     final f = makeSecureState(bio: FakeBiometrics(isAvailable: false));
     final sec = f.state.security;
     await pumpRoute(tester, f.state, const SettingsScreen());
-    expect(find.text('Off'), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const Key('open-security')), matching: find.text('Off')), findsOneWidget);
     await tester.tap(find.byKey(const Key('open-security')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('change-pin')), findsNothing);
@@ -180,7 +180,7 @@ void main() {
     expect(sec.lockEnabled, isFalse);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text('Off'), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const Key('open-security')), matching: find.text('Off')), findsOneWidget);
   });
 
   testWidgets('change PIN backed out after confirming keeps the old PIN', (tester) async {

@@ -83,6 +83,11 @@ void main() {
     expect(loc.requests, 1);
     expect(s.locationEnabled, isTrue);
 
+    expect(find.text('Get reminders?'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('onboarding-notif-skip')));
+    await tester.pumpAndSettle();
+    expect(s.reminders.enabled, isFalse);
+
     expect(find.text('Finish'), findsOneWidget);
     expect(find.text('Lock the app?'), findsOneWidget);
     await tester.tap(find.byKey(const Key('onboarding-lock-skip')));
@@ -95,7 +100,7 @@ void main() {
   testWidgets('every step can be skipped', (tester) async {
     final s = makeState(onboarded: false);
     await pumpApp(tester, s);
-    for (var i = 0; i < 6; i++) {
+    for (var i = 0; i < 7; i++) {
       await tester.tap(find.byKey(const Key('onboarding-skip')));
       await tester.pumpAndSettle();
     }

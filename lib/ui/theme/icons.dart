@@ -62,6 +62,9 @@ abstract final class AppIcons {
   static const IconData more = LucideIcons.ellipsisVertical;
   static const IconData myLocation = LucideIcons.locateFixed;
   static const IconData notifications = LucideIcons.bell;
+  static const IconData bellRing = LucideIcons.bellRing;
+  static const IconData alarmAdd = LucideIcons.alarmClockPlus;
+  static const IconData alarmOn = LucideIcons.alarmClockCheck;
   static const IconData offline = LucideIcons.wifiOff;
   static const IconData openExternal = LucideIcons.externalLink;
   static const IconData pdf = LucideIcons.fileText;
@@ -180,5 +183,8 @@ abstract final class AppIcons {
     wallet,
     warning,
     wave,
+    bellRing,
+    alarmAdd,
+    alarmOn,
   ];
 }

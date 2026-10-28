@@ -8,6 +8,7 @@ import 'package:expense_manager/data/models.dart';
 import 'package:expense_manager/services/error_log.dart';
 import 'package:expense_manager/services/file_gateway.dart';
 import 'package:expense_manager/services/location.dart';
+import 'package:expense_manager/services/notifications.dart';
 import 'package:expense_manager/services/receipts.dart';
 import 'package:expense_manager/state/app_state.dart';
 import 'package:expense_manager/ui/theme/tokens.dart';
@@ -97,8 +98,46 @@ class FakeReceipts implements ReceiptStore {
 }
 
 /// A fresh in-memory app. Onboarding is marked done unless [onboarded] is false.
-AppState makeState({DateTime? now, FakeFiles? files, FakeLocation? location, FakeReceipts? receipts, ErrorLog? errorLog, bool onboarded = true}) {
-  final s = AppState(db: openAppDatabase(null), files: files ?? FakeFiles(), location: location ?? FakeLocation(), receipts: receipts ?? FakeReceipts(), errorLog: errorLog, clock: () => now ?? kNow);
+/// Records notifications instead of posting them.
+class FakeNotifications extends NotificationService {
+  FakeNotifications({this.grant = true});
+
+  /// Answer to [requestPermission].
+  bool grant;
+  int permissionRequests = 0;
+  final shown = <(int, String, String)>[];
+  final scheduled = <int, (DateTime, String, String)>{};
+  final cancelled = <int>[];
+
+  @override
+  Future<bool> requestPermission() async {
+    permissionRequests++;
+    return grant;
+  }
+
+  @override
+  Future<void> show(int id, String title, String body) async => shown.add((id, title, body));
+
+  @override
+  Future<void> schedule(int id, DateTime at, String title, String body) async => scheduled[id] = (at, title, body);
+
+  @override
+  Future<void> cancel(int id) async {
+    cancelled.add(id);
+    scheduled.remove(id);
+  }
+}
+
+AppState makeState({DateTime? now, FakeFiles? files, FakeLocation? location, FakeReceipts? receipts, FakeNotifications? notifications, ErrorLog? errorLog, bool onboarded = true}) {
+  final s = AppState(
+    db: openAppDatabase(null),
+    files: files ?? FakeFiles(),
+    location: location ?? FakeLocation(),
+    receipts: receipts ?? FakeReceipts(),
+    notifications: notifications,
+    errorLog: errorLog,
+    clock: () => now ?? kNow,
+  );
   if (onboarded) s.settings.set('onboarded', '1');
   return s;
 }

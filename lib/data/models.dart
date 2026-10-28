@@ -422,9 +422,11 @@ class Bucket {
   final int invest;
 }
 
-/// What an [Upcoming] item is about. Add new kinds (e.g. recurring rules,
-/// SIPs) here and a matching generator in `PlanningRepo.upcoming`.
-enum UpcomingKind { emi, cardDue, maturity }
+/// What an [Upcoming] item is about. Add new kinds here and a matching
+/// generator in `PlanningRepo.upcoming`.
+/// [sip] is a reminder-only SIP; [followUp] a "remind me" date the user set on
+/// money owed to them.
+enum UpcomingKind { emi, cardDue, maturity, sip, followUp }
 
 /// A dated obligation or event the user should know about.
 class Upcoming {
