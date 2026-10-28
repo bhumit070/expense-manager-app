@@ -27,9 +27,15 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
         title: Text('Diagnostics', style: ts(16, weight: FontWeight.w700)),
         actions: [
           if (text.isNotEmpty) ...[
-            IconButton(key: const Key('share-log'), icon: const Icon(AppIcons.share), onPressed: () => app.files.saveAndShare('expense-manager-errors.log', utf8.encode(text), 'text/plain')),
+            IconButton(
+              key: const Key('share-log'),
+              tooltip: 'Share log',
+              icon: const Icon(AppIcons.share),
+              onPressed: () => app.files.saveAndShare('expense-manager-errors.log', utf8.encode(text), 'text/plain'),
+            ),
             IconButton(
               key: const Key('clear-log'),
+              tooltip: 'Clear log',
               icon: const Icon(AppIcons.delete),
               onPressed: () {
                 log!.clear();

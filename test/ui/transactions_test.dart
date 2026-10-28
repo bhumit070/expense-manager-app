@@ -49,6 +49,8 @@ void main() {
     await tester.tap(find.text('All').first);
     await tester.pump();
     await tester.dragUntilVisible(find.text('Transport'), find.byKey(const Key('category-chips')), const Offset(-150, 0));
+    await tester.ensureVisible(find.text('Transport'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Transport'));
     await tester.pump();
     expect(find.text('Uber'), findsOneWidget);

@@ -56,7 +56,7 @@ jobs:
       - run: flutter pub get
       - run: dart format --output=none --set-exit-if-changed --line-length 200 lib test tool
       - run: flutter analyze
-      - run: flutter test --coverage
+      - run: flutter test --coverage --exclude-tags golden,perf
       - run: dart run tool/check_coverage.dart 100
 
   version:

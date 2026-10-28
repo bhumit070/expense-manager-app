@@ -81,6 +81,19 @@ Local notifications only, through `flutter_local_notifications`: there's no push
 - **data:** repository tests on a real in-memory SQLite database, covering migrations, FTS search, aggregates, rollover budgets, holdings, debts and duplicate detection.
 - **services:** CSV round-trip and bank-statement import, PDF generation, and platform gateways tested with fake plugin implementations.
 - **ui:** widget tests for every screen, including the user flows: add, edit, duplicate and delete with undo, filters, search, budgets, investments, debts, categories, sources, settings, import/export, theme and `main()`.
+- **accessibility:** `test/ui/accessibility_test.dart` runs Flutter's tap-target (48dp), labelled-tap-target and text-contrast (WCAG AA) guidelines on the main screens in light and dark, and lays each screen out at 1.5× and 2× text.
+
+These run outside `tool/verify.sh` and CI:
+
+| What | Where | Run |
+|---|---|---|
+| Golden screenshots of 10 key screens, light and dark, with the real fonts | `test/goldens/` | `tool/goldens.sh` to compare, `tool/goldens.sh --update` after an intended UI change |
+| Timing of list, totals, day totals, category, bucket and search queries on 10k transactions (each must be under 50 ms) | `test/perf/` | `tool/perf.sh` |
+| End-to-end flow on a device: skip onboarding, add a spend, then find it in the list, Insights and a budget | `integration_test/` | `flutter test integration_test --flavor dev -d <device>` |
+
+- **Why goldens are excluded:** text rendering differs between macOS, where the images were made, and CI's Linux runners. They're tagged `golden` in `dart_test.yaml`.
+- **Why perf is excluded:** timings depend on the machine. It's tagged `perf`.
+- **CI still covers the integration flow:** the same steps run headless in `test/ui/app_flow_test.dart`.
 
 ## Import, export and backup
 

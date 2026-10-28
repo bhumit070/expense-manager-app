@@ -1,0 +1,7 @@
+# Tags used to keep machine-specific tests out of CI and tool/verify.sh:
+#   golden – pixel comparisons (font rendering differs between macOS and Linux)
+#   perf   – timing checks on 10k transactions (depends on the machine)
+# Run them with tool/goldens.sh and tool/perf.sh.
+tags:
+  golden:
+  perf:

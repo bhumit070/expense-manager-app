@@ -110,7 +110,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
         const SizedBox(height: 12),
         Row(
           children: [
-            IconButton(key: const Key('insights-prev'), icon: const Icon(AppIcons.chevronLeft), onPressed: () => setState(() => _period = _period!.previous)),
+            IconButton(key: const Key('insights-prev'), tooltip: 'Previous period', icon: const Icon(AppIcons.chevronLeft), onPressed: () => setState(() => _period = _period!.previous)),
             Expanded(
               child: Column(
                 children: [
@@ -119,7 +119,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                 ],
               ),
             ),
-            IconButton(key: const Key('insights-next'), icon: const Icon(AppIcons.chevronRight), onPressed: () => setState(() => _period = _period!.next)),
+            IconButton(key: const Key('insights-next'), tooltip: 'Next period', icon: const Icon(AppIcons.chevronRight), onPressed: () => setState(() => _period = _period!.next)),
           ],
         ),
         const SizedBox(height: 8),
@@ -128,13 +128,20 @@ class _InsightsScreenState extends State<InsightsScreen> {
           child: Row(
             children: [
               DonutChart(
+                semanticLabel: 'Spent ${formatInr(t.spend)}, invested ${formatInr(t.invest)}',
                 segments: [(t.spend.toDouble(), c.spend), (t.invest.toDouble(), c.invest)],
-                center: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Money out', style: ts(11, color: c.textMuted)),
-                    Text(formatInrCompact(t.moneyOut), style: ts(18, weight: FontWeight.w800)),
-                  ],
+                center: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Money out', style: ts(11, color: c.textMuted)),
+                        Text(formatInrCompact(t.moneyOut), style: ts(18, weight: FontWeight.w800)),
+                      ],
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 18),

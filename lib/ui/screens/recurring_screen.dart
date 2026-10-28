@@ -86,7 +86,7 @@ class RecurringScreen extends StatelessWidget {
                                     app.changed();
                                   },
                                 ),
-                              IconButton(key: Key('delete-rule-${r.id}'), icon: const Icon(AppIcons.delete), onPressed: () => _delete(context, app, r)),
+                              IconButton(key: Key('delete-rule-${r.id}'), tooltip: 'Delete rule', icon: const Icon(AppIcons.delete), onPressed: () => _delete(context, app, r)),
                             ],
                           ),
                         ),

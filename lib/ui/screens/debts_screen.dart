@@ -208,17 +208,25 @@ class _DebtCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(formatInr(s.remaining), style: ts(15, weight: FontWeight.w800)),
-                  Text('left of ${formatInr(d.principal)}', style: ts(11, color: c.textMuted)),
-                ],
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(formatInr(s.remaining), style: ts(15, weight: FontWeight.w800)),
+                    ),
+                    Text(
+                      'left of ${formatInr(d.principal)}',
+                      textAlign: TextAlign.end,
+                      style: ts(11, color: c.textMuted),
+                    ),
+                  ],
+                ),
               ),
               IconButton(
                 key: Key('edit-debt-${d.id}'),
                 tooltip: 'Edit',
-                visualDensity: VisualDensity.compact,
                 icon: Icon(AppIcons.edit, size: 18, color: c.textMuted),
                 onPressed: onEdit,
               ),

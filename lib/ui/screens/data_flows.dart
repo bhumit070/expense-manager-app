@@ -353,7 +353,11 @@ class _RestoreDialogState extends State<RestoreDialog> {
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         FilledButton(
           key: const Key('restore-go'),
-          style: FilledButton.styleFrom(minimumSize: const Size(80, 40), backgroundColor: _mode == RestoreMode.replace ? c.spend : null),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(80, 40),
+            backgroundColor: _mode == RestoreMode.replace ? solidForWhite(c.spend) : null,
+            foregroundColor: _mode == RestoreMode.replace ? Colors.white : null,
+          ),
           onPressed: _mode == RestoreMode.replace && !_confirmed ? null : () => Navigator.pop(context, _mode),
           child: Text(_mode == RestoreMode.merge ? 'Merge' : 'Replace'),
         ),

@@ -489,7 +489,9 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(AppIcons.eventBusy),
                       title: Text(_repeatEnd == null ? 'Never ends' : 'Ends ${longDate(_repeatEnd!)}', style: ts(14, weight: FontWeight.w600)),
-                      trailing: _repeatEnd == null ? null : IconButton(key: const Key('repeat-end-clear'), icon: const Icon(AppIcons.close), onPressed: () => setState(() => _repeatEnd = null)),
+                      trailing: _repeatEnd == null
+                          ? null
+                          : IconButton(key: const Key('repeat-end-clear'), tooltip: 'Clear end date', icon: const Icon(AppIcons.close), onPressed: () => setState(() => _repeatEnd = null)),
                       onTap: _pickRepeatEnd,
                     ),
                   ],
@@ -529,7 +531,7 @@ class _QuickAdd extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           SizedBox(
-            height: 40,
+            height: 48,
             child: ListView(
               key: const Key('quick-add'),
               scrollDirection: Axis.horizontal,

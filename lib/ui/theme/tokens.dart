@@ -39,7 +39,8 @@ class AppColors extends ThemeExtension<AppColors> {
     track: Color(0xFFEBEDF3),
     line: Color(0xFFE8EBF2),
     text: Color(0xFF0F172A),
-    textMuted: Color(0xFF64748B),
+    // Darker than slate-500 so secondary text meets WCAG AA (4.5:1) on bg and track.
+    textMuted: Color(0xFF5B6678),
     textFaint: Color(0xFF94A3B8),
     brand: Color(0xFF4F46E5),
     brandSoft: Color(0xFFEEF2FF),
@@ -52,7 +53,8 @@ class AppColors extends ThemeExtension<AppColors> {
     incomeSoft: Color(0xFFF0F9FF),
     debt: Color(0xFFF59E0B),
     debtSoft: Color(0xFFFFFBEB),
-    positive: Color(0xFF059669),
+    // Emerald-700: 5.2:1 on investSoft (emerald-600 was 3.6:1).
+    positive: Color(0xFF047857),
   );
 
   static const dark = AppColors(
@@ -103,7 +105,22 @@ extension AppColorsX on BuildContext {
   AppColors get colors => Theme.of(this).extension<AppColors>()!;
 }
 
+/// [c] darkened just enough for white text on it to reach WCAG AA (4.5:1).
+/// Used for filled buttons and selected segments tinted with a type colour.
+Color solidForWhite(Color c) {
+  var hsl = HSLColor.fromColor(c);
+  double contrast(Color x) => 1.05 / (x.computeLuminance() + 0.05);
+  while (contrast(hsl.toColor()) < 4.5 && hsl.lightness > 0.05) {
+    hsl = hsl.withLightness(hsl.lightness - 0.02);
+  }
+  return hsl.toColor();
+}
+
 const fontFamily = 'PlusJakartaSans';
+
+/// Plus Jakarta Sans has no ₹ (and some other currency) glyphs; fall back to
+/// Roboto (bundled with Android, loaded in golden tests) before the system font.
+const fontFallback = ['Roboto'];
 
 ThemeData buildTheme(Brightness brightness) {
   final c = brightness == Brightness.light ? AppColors.light : AppColors.dark;
@@ -111,6 +128,7 @@ ThemeData buildTheme(Brightness brightness) {
     brightness: brightness,
     useMaterial3: true,
     fontFamily: fontFamily,
+    fontFamilyFallback: fontFallback,
     scaffoldBackgroundColor: c.bg,
     colorScheme: ColorScheme.fromSeed(seedColor: c.brand, brightness: brightness, primary: c.brand, surface: c.surface),
     extensions: [c],
@@ -140,7 +158,7 @@ ThemeData buildTheme(Brightness brightness) {
         backgroundColor: c.brand,
         minimumSize: const Size.fromHeight(54),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        textStyle: const TextStyle(fontFamily: fontFamily, fontSize: 15, fontWeight: FontWeight.w700),
+        textStyle: const TextStyle(fontFamily: fontFamily, fontFamilyFallback: fontFallback, fontSize: 15, fontWeight: FontWeight.w700),
       ),
     ),
   );

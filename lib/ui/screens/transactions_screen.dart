@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 
 import '../../core/dates.dart';
 import '../../core/money.dart';
@@ -58,6 +59,7 @@ class TransactionsScreen extends StatefulWidget {
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
   late TxnFilter _filter = widget.initialFilter;
+  int _limit = txnPageSize;
   Period? _period;
   final _search = TextEditingController();
   final _focus = FocusNode();
@@ -93,7 +95,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final searching = _filter.search.trim().isNotEmpty;
     // Searching spans all time; browsing is per period.
     final f = searching ? _filter : _filter.copyWith(from: period.start, to: period.end);
-    final rows = app.txns.list(f, limit: 2000);
+    final rows = app.txns.list(f, limit: _limit);
     final totals = app.txns.totals(f);
     final cats = app.catalog.categories();
     final recent = RecentSearches(app.settings);
@@ -114,7 +116,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       }
       items.add(r);
     }
-    int dayTotal(DateTime d) => rows.where((r) => dayStart(r.txn.occurredAt) == d).fold(0, (a, r) => a + r.signedAmount);
+    final dayTotals = byDay ? app.txns.dayTotals(f) : const <DateTime, int>{};
+    int dayTotal(DateTime d) => dayTotals[d] ?? 0;
+    final hasMore = rows.length < totals.count;
 
     final type = _filter.types.length == 1 ? _filter.types.first : null;
     return Scaffold(
@@ -131,230 +135,277 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    key: const Key('search'),
-                    controller: _search,
-                    focusNode: _focus,
-                    textInputAction: TextInputAction.search,
-                    onChanged: _setSearch,
-                    onSubmitted: (v) {
-                      recent.add(v);
-                      setState(() {});
-                    },
-                    decoration: InputDecoration(
-                      isDense: true,
-                      prefixIcon: Icon(AppIcons.search, color: c.textFaint),
-                      hintText: switch (_filter.scope) {
-                        SearchScope.all => 'Search merchant, note, #tag, amount…',
-                        SearchScope.notes => 'Search notes and #tags',
-                        SearchScope.merchant => 'Search merchants',
-                        SearchScope.amount => 'Exact amount, e.g. 450 or ₹1,200',
-                        SearchScope.place => 'Search places',
-                      },
-                      suffixIcon: searching
-                          ? IconButton(
-                              key: const Key('clear-search'),
-                              icon: const Icon(AppIcons.close, size: 18),
-                              onPressed: () {
-                                _search.clear();
-                                _setSearch('');
-                              },
-                            )
-                          : null,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Badge(
-                  isLabelVisible: _filter.activeCount > 0,
-                  label: Text('${_filter.activeCount}'),
-                  backgroundColor: c.spend,
-                  child: IconButton.filled(
-                    key: const Key('open-filters'),
-                    style: IconButton.styleFrom(backgroundColor: c.text, foregroundColor: c.bg, fixedSize: const Size(48, 48)),
-                    icon: const Icon(AppIcons.filter),
-                    onPressed: () async {
-                      final next = await showModalBottomSheet<TxnFilter>(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: c.surface,
-                        builder: (_) => FilterSheet(initial: _filter, app: app),
-                      );
-                      if (next != null) setState(() => _filter = next.copyWith(search: _filter.search));
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (searching || _focus.hasFocus) ...[
-            const SizedBox(height: 10),
-            SingleChildScrollView(
-              key: const Key('search-scopes'),
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  for (final sc in SearchScope.values) ...[
-                    if (sc != SearchScope.all) const SizedBox(width: 8),
-                    Pill(
-                      key: Key('scope-${sc.name}'),
-                      scopeLabel(sc),
-                      selected: _filter.scope == sc,
-                      onTap: () => setState(() => _filter = _filter.copyWith(scope: sc)),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Segmented<TxnType?>(
-              values: const [null, ...TxnType.values],
-              selected: type,
-              label: (t) => t == null ? 'All' : typeLabel(t),
-              onChanged: (t) => setState(() => _filter = _filter.copyWith(types: t == null ? {} : {t})),
-            ),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 36,
-            child: ListView(
-              key: const Key('category-chips'),
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              children: [
-                Pill(
-                  'All categories',
-                  selected: _filter.categoryIds.isEmpty,
-                  onTap: () => setState(() => _filter = _filter.copyWith(categoryIds: {})),
-                ),
-                for (final cat in cats.where((x) => !x.isChild)) ...[
-                  const SizedBox(width: 8),
-                  Pill(
-                    cat.name,
-                    dot: Color(cat.color),
-                    selected: _filter.categoryIds.contains(cat.id),
-                    onTap: () {
-                      final ids = {..._filter.categoryIds};
-                      ids.contains(cat.id) ? ids.remove(cat.id) : ids.add(cat.id);
-                      setState(() => _filter = _filter.copyWith(categoryIds: ids));
-                    },
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: AppCard(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-              child: Row(
-                children: [
-                  if (!searching) IconButton(key: const Key('prev-period'), icon: const Icon(AppIcons.chevronLeft), onPressed: () => setState(() => _period = _period!.previous)),
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.only(left: searching ? 8 : 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+      // The filters header scrolls on its own (capped at 60% of the height) so
+      // large text never squeezes the list out of view.
+      body: LayoutBuilder(
+        builder: (context, box) => Column(
+          children: [
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: box.maxHeight * 0.6),
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+                      child: Row(
                         children: [
-                          Text(searching ? 'All time' : period.label, style: ts(14, weight: FontWeight.w700)),
-                          Text('${totals.count} transactions', style: ts(12, color: c.textMuted)),
+                          Expanded(
+                            child: TextField(
+                              key: const Key('search'),
+                              controller: _search,
+                              focusNode: _focus,
+                              textInputAction: TextInputAction.search,
+                              onChanged: _setSearch,
+                              onSubmitted: (v) {
+                                recent.add(v);
+                                setState(() {});
+                              },
+                              decoration: InputDecoration(
+                                isDense: true,
+                                prefixIcon: Icon(AppIcons.search, color: c.textFaint),
+                                hintText: switch (_filter.scope) {
+                                  SearchScope.all => 'Search merchant, note, #tag, amount…',
+                                  SearchScope.notes => 'Search notes and #tags',
+                                  SearchScope.merchant => 'Search merchants',
+                                  SearchScope.amount => 'Exact amount, e.g. 450 or ₹1,200',
+                                  SearchScope.place => 'Search places',
+                                },
+                                suffixIcon: searching
+                                    ? IconButton(
+                                        key: const Key('clear-search'),
+                                        tooltip: 'Clear search',
+                                        icon: const Icon(AppIcons.close, size: 18),
+                                        onPressed: () {
+                                          _search.clear();
+                                          _setSearch('');
+                                        },
+                                      )
+                                    : null,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Badge(
+                            isLabelVisible: _filter.activeCount > 0,
+                            label: Text('${_filter.activeCount}'),
+                            backgroundColor: c.spend,
+                            child: IconButton.filled(
+                              key: const Key('open-filters'),
+                              tooltip: 'Filters',
+                              style: IconButton.styleFrom(backgroundColor: c.text, foregroundColor: c.bg, fixedSize: const Size(48, 48)),
+                              icon: const Icon(AppIcons.filter),
+                              onPressed: () async {
+                                final next = await showModalBottomSheet<TxnFilter>(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor: c.surface,
+                                  builder: (_) => FilterSheet(initial: _filter, app: app),
+                                );
+                                if (next != null) setState(() => _filter = next.copyWith(search: _filter.search));
+                              },
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                  ),
-                  if (!searching) IconButton(key: const Key('next-period'), icon: const Icon(AppIcons.chevronRight), onPressed: () => setState(() => _period = _period!.next)),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Out ${formatInr(totals.allOut)}',
-                        style: ts(12, weight: FontWeight.w700, color: c.spend),
-                      ),
-                      Text(
-                        'In ${formatInr(totals.allIn)}',
-                        style: ts(12, weight: FontWeight.w700, color: c.positive),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              ),
-            ),
-          ),
-          Expanded(
-            child: showRecents
-                ? _RecentList(items: recents, recent: recent, onPick: (q) => _useRecent(recent, q), onChanged: () => setState(() {}))
-                : items.isEmpty
-                ? EmptyState(icon: AppIcons.searchOff, title: 'Nothing here', message: searching ? 'No transactions match "${_filter.search.trim()}".' : 'No transactions in this period.')
-                : ListView.builder(
-                    key: const Key('txn-list'),
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
-                    itemCount: items.length,
-                    itemBuilder: (context, i) {
-                      final item = items[i];
-                      if (item is DateTime) {
-                        return Padding(
-                          padding: const EdgeInsets.fromLTRB(4, 14, 4, 4),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  relativeDay(item, now),
-                                  style: ts(13, weight: FontWeight.w700, color: c.textMuted),
-                                ),
-                              ),
-                              Text(
-                                formatInr(dayTotal(item), signed: true),
-                                style: ts(13, weight: FontWeight.w600, color: c.textMuted),
+                    if (searching || _focus.hasFocus) ...[
+                      const SizedBox(height: 10),
+                      SingleChildScrollView(
+                        key: const Key('search-scopes'),
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          children: [
+                            for (final sc in SearchScope.values) ...[
+                              if (sc != SearchScope.all) const SizedBox(width: 8),
+                              Pill(
+                                key: Key('scope-${sc.name}'),
+                                scopeLabel(sc),
+                                selected: _filter.scope == sc,
+                                onTap: () => setState(() => _filter = _filter.copyWith(scope: sc)),
                               ),
                             ],
-                          ),
-                        );
-                      }
-                      final v = item as TxnView;
-                      final id = v.txn.id!;
-                      return Dismissible(
-                        key: ValueKey('swipe-$id'),
-                        background: _SwipeBackground(color: c.brand, icon: AppIcons.edit, label: 'Edit', alignment: Alignment.centerLeft),
-                        secondaryBackground: _SwipeBackground(color: c.spend, icon: AppIcons.delete, label: 'Delete', alignment: Alignment.centerRight),
-                        confirmDismiss: (dir) async {
-                          if (dir == DismissDirection.endToStart) return true;
-                          await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TxnFormScreen(existing: v)));
-                          return false;
-                        },
-                        onDismissed: (_) => deleteTxnWithUndo(ScaffoldMessenger.of(context), app, id),
-                        child: TxnTile(
-                          v,
-                          now: byDay ? null : now,
-                          highlight: searching ? query : null,
-                          snippet: searching ? searchSnippet(v, query, _filter.scope) : null,
-                          highlightAmount: searching && (_filter.scope == SearchScope.all || _filter.scope == SearchScope.amount) && amountQuery == v.txn.amount,
-                          onTap: () {
-                            if (searching) recent.add(query);
-                            Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TxnDetailScreen(id: id)));
-                          },
+                          ],
                         ),
-                      );
-                    },
-                  ),
-          ),
-        ],
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Segmented<TxnType?>(
+                        values: const [null, ...TxnType.values],
+                        selected: type,
+                        label: (t) => t == null ? 'All' : typeLabel(t),
+                        onChanged: (t) => setState(() => _filter = _filter.copyWith(types: t == null ? {} : {t})),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      height: 48,
+                      child: ListView(
+                        key: const Key('category-chips'),
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        children: [
+                          Pill(
+                            'All categories',
+                            selected: _filter.categoryIds.isEmpty,
+                            onTap: () => setState(() => _filter = _filter.copyWith(categoryIds: {})),
+                          ),
+                          for (final cat in cats.where((x) => !x.isChild)) ...[
+                            const SizedBox(width: 8),
+                            Pill(
+                              cat.name,
+                              dot: Color(cat.color),
+                              selected: _filter.categoryIds.contains(cat.id),
+                              onTap: () {
+                                final ids = {..._filter.categoryIds};
+                                ids.contains(cat.id) ? ids.remove(cat.id) : ids.add(cat.id);
+                                setState(() => _filter = _filter.copyWith(categoryIds: ids));
+                              },
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: AppCard(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                        child: Row(
+                          children: [
+                            if (!searching)
+                              IconButton(
+                                key: const Key('prev-period'),
+                                tooltip: 'Previous month',
+                                icon: const Icon(AppIcons.chevronLeft),
+                                onPressed: () => setState(() => _period = _period!.previous),
+                              ),
+                            Expanded(
+                              child: Padding(
+                                padding: EdgeInsets.only(left: searching ? 8 : 0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(searching ? 'All time' : period.label, style: ts(14, weight: FontWeight.w700)),
+                                    Text('${totals.count} transactions', style: ts(12, color: c.textMuted)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (!searching)
+                              IconButton(key: const Key('next-period'), tooltip: 'Next month', icon: const Icon(AppIcons.chevronRight), onPressed: () => setState(() => _period = _period!.next)),
+                            ConstrainedBox(
+                              constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.35),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerRight,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      'Out ${formatInr(totals.allOut)}',
+                                      style: ts(12, weight: FontWeight.w700, color: c.spend),
+                                    ),
+                                    Text(
+                                      'In ${formatInr(totals.allIn)}',
+                                      style: ts(12, weight: FontWeight.w700, color: c.positive),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: showRecents
+                  ? _RecentList(items: recents, recent: recent, onPick: (q) => _useRecent(recent, q), onChanged: () => setState(() {}))
+                  : items.isEmpty
+                  ? EmptyState(icon: AppIcons.searchOff, title: 'Nothing here', message: searching ? 'No transactions match "${_filter.search.trim()}".' : 'No transactions in this period.')
+                  : NotificationListener<ScrollNotification>(
+                      // Load the next page as the end comes into view.
+                      onNotification: (n) {
+                        if (hasMore && n.metrics.extentAfter < 800) setState(() => _limit += txnPageSize);
+                        return false;
+                      },
+                      child: ListView.builder(
+                        key: const Key('txn-list'),
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+                        itemCount: items.length,
+                        itemBuilder: (context, i) {
+                          final item = items[i];
+                          if (item is DateTime) {
+                            return Padding(
+                              padding: const EdgeInsets.fromLTRB(4, 14, 4, 4),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      relativeDay(item, now),
+                                      style: ts(13, weight: FontWeight.w700, color: c.textMuted),
+                                    ),
+                                  ),
+                                  Text(
+                                    formatInr(dayTotal(item), signed: true),
+                                    style: ts(13, weight: FontWeight.w600, color: c.textMuted),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                          final v = item as TxnView;
+                          final id = v.txn.id!;
+                          return Dismissible(
+                            key: ValueKey('swipe-$id'),
+                            background: _SwipeBackground(color: c.brand, icon: AppIcons.edit, label: 'Edit', alignment: Alignment.centerLeft),
+                            secondaryBackground: _SwipeBackground(color: c.spend, icon: AppIcons.delete, label: 'Delete', alignment: Alignment.centerRight),
+                            confirmDismiss: (dir) async {
+                              if (dir == DismissDirection.endToStart) return true;
+                              await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TxnFormScreen(existing: v)));
+                              return false;
+                            },
+                            onDismissed: (_) => deleteTxnWithUndo(ScaffoldMessenger.of(context), app, id),
+                            // Swipe actions, also offered to screen readers.
+                            child: Semantics(
+                              key: Key('row-actions-$id'),
+                              customSemanticsActions: {
+                                const CustomSemanticsAction(label: 'Edit'): () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TxnFormScreen(existing: v))),
+                                const CustomSemanticsAction(label: 'Delete'): () => deleteTxnWithUndo(ScaffoldMessenger.of(context), app, id),
+                              },
+                              child: TxnTile(
+                                v,
+                                now: byDay ? null : now,
+                                highlight: searching ? query : null,
+                                snippet: searching ? searchSnippet(v, query, _filter.scope) : null,
+                                highlightAmount: searching && (_filter.scope == SearchScope.all || _filter.scope == SearchScope.amount) && amountQuery == v.txn.amount,
+                                onTap: () {
+                                  if (searching) recent.add(query);
+                                  Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TxnDetailScreen(id: id)));
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+
+/// Rows loaded per page in the transactions list.
+const txnPageSize = 200;
 
 class _SwipeBackground extends StatelessWidget {
   const _SwipeBackground({required this.color, required this.icon, required this.label, required this.alignment});
@@ -426,6 +477,7 @@ class _RecentList extends StatelessWidget {
             onTap: () => onPick(q),
             trailing: IconButton(
               key: Key('remove-recent-$i'),
+              tooltip: 'Remove from recent searches',
               icon: const Icon(AppIcons.close, size: 18),
               onPressed: () {
                 recent.remove(q);

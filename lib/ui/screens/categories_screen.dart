@@ -71,6 +71,7 @@ class CategoriesScreen extends StatelessWidget {
             if (!cat.isDefault)
               IconButton(
                 key: Key('archive-${cat.id}'),
+                tooltip: 'Archive ${cat.name}',
                 icon: const Icon(AppIcons.archive),
                 onPressed: () {
                   app.catalog.archiveCategory(cat.id);
@@ -139,7 +140,7 @@ class CategoriesScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Categories', style: ts(16, weight: FontWeight.w700)),
-        actions: [IconButton(key: const Key('add-category'), icon: const Icon(AppIcons.add), onPressed: () => _add(context, app))],
+        actions: [IconButton(key: const Key('add-category'), tooltip: 'Add category', icon: const Icon(AppIcons.add), onPressed: () => _add(context, app))],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
@@ -213,6 +214,7 @@ class _CategoryDialogState extends State<CategoryDialog> {
                 for (final e in categoryIcons.entries)
                   IconButton(
                     key: Key('icon-${e.key}'),
+                    tooltip: e.key,
                     isSelected: _icon == e.key,
                     onPressed: () => setState(() => _icon = e.key),
                     icon: Icon(e.value, color: _icon == e.key ? Color(_color) : null),
