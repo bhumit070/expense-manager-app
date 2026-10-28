@@ -1,8 +1,20 @@
 name: CI
 
-# Pushes to main are verified by release.yml; this checks pull requests.
+# Pushes to main are verified by release.yml; this checks pull requests
+# that change code or build inputs (docs-only PRs are skipped).
 on:
   pull_request:
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'tool/**'
+      - 'assets/**'
+      - 'android/**'
+      - 'ios/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - '.github/workflows/ci.yml'
 
 jobs:
   verify:

@@ -16,9 +16,21 @@ name: Release
 #     IOS_PROVISIONING_PROFILE_BASE64 base64 of the .mobileprovision
 #     IOS_EXPORT_OPTIONS_PLIST_BASE64 base64 of an ExportOptions.plist (method: ad-hoc / app-store)
 
+# Only pushes that touch code/build inputs release; docs-only changes
+# (README, LICENSE, tasks.md, ...) are skipped. Use "Run workflow" to force one.
 on:
   push:
     branches: [main]
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'tool/**'
+      - 'assets/**'
+      - 'android/**'
+      - 'ios/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
   workflow_dispatch:
 
 permissions:
