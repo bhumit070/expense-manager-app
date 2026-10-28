@@ -7,11 +7,16 @@ import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
 
-/// Preview of a CSV import with duplicate detection and per-row selection.
+/// Preview of a CSV or statement import with duplicate detection and per-row selection.
 class ImportScreen extends StatefulWidget {
-  const ImportScreen({super.key, required this.csvText});
+  const ImportScreen({super.key, this.csvText = '', this.rows, this.title = 'Import preview'});
 
+  /// Raw CSV text, used when [rows] is null.
   final String csvText;
+
+  /// Already-split rows with a header (e.g. from a PDF statement).
+  final List<List<String>>? rows;
+  final String title;
 
   @override
   State<ImportScreen> createState() => _ImportScreenState();
@@ -26,7 +31,7 @@ class _ImportScreenState extends State<ImportScreen> {
     super.didChangeDependencies();
     if (_rows != null) return;
     final app = AppScope.read(context);
-    _rows = buildImport(parseCsv(widget.csvText), app.catalog, app.txns, sourceId: app.catalog.defaultSource()?.id);
+    _rows = buildImport(widget.rows ?? parseCsv(widget.csvText), app.catalog, app.txns, sourceId: app.catalog.defaultSource()?.id);
     for (var i = 0; i < _rows!.length; i++) {
       if (_rows![i].importable) _selected.add(i);
     }
@@ -67,7 +72,7 @@ class _ImportScreenState extends State<ImportScreen> {
     );
     return Scaffold(
       appBar: AppBar(
-        title: Text('Import preview', style: ts(16, weight: FontWeight.w700)),
+        title: Text(widget.title, style: ts(16, weight: FontWeight.w700)),
       ),
       body: Column(
         children: [

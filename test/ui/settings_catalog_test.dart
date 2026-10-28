@@ -252,8 +252,15 @@ void main() {
       seed(s);
       await pumpRoute(tester, s, const SettingsScreen());
       await tester.tap(find.byKey(const Key('export-csv')));
-      await tester.pump();
-      expect(find.text('Exported 9 transactions to /tmp/transactions-2026-10-28.csv'), findsWidgets);
+      await tester.pumpAndSettle();
+      for (final k in ['investments', 'debts', 'budgets']) {
+        await tester.tap(find.byKey(Key('export-$k')));
+        await tester.pump();
+      }
+      expect(find.text('Export'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('export-go')));
+      await tester.pumpAndSettle();
+      expect(find.text('Exported transactions to /tmp/transactions-2026-10-28.csv'), findsWidgets);
       expect(files.saved.single.$2.take(3), [0xEF, 0xBB, 0xBF]);
       expect(utf8.decode(files.saved.single.$2), contains('date,type'));
       await tester.tap(find.byKey(const Key('export-pdf-month')));

@@ -53,6 +53,16 @@ flutter test --coverage && dart run tool/check_coverage.dart
 - **services:** CSV round-trip and bank-statement import, PDF generation, and platform gateways tested with fake plugin implementations.
 - **ui:** widget tests for every screen, including the user flows: add, edit, duplicate and delete with undo, filters, search, budgets, investments, debts, categories, sources, settings, import/export, theme and `main()`.
 
+## Import, export and backup
+
+- **CSV export:** transactions, investments, debts and budgets. Each file is UTF-8 with a BOM, so Excel opens it correctly. Picking several shares them as one zip.
+- **PDF statement import:** text is extracted on the device, in pure Dart (`lib/services/pdf_text.dart`, built on [`dart_pdf_reader`](https://pub.dev/packages/dart_pdf_reader), Apache-2.0). There are line parsers for HDFC, SBI and ICICI, plus a generic "date … description … amount Dr/Cr" fallback (`lib/services/statement_import.dart`). Rows go through the same preview and duplicate check as CSV. Password-protected PDFs are not supported; save an unlocked copy first.
+  - Syncfusion's PDF library was not used. Its community licence has revenue and headcount limits and is not an OSI licence, so it doesn't fit an MIT-licensed public repo.
+- **Full backup (`.ledger`):** a zip of a `VACUUM INTO` database snapshot, a `manifest.json` (format, schema version, app version, date and row counts) and `receipts/`.
+  - **Password (optional):** the file is encrypted with AES-256-GCM. The key comes from PBKDF2-HMAC-SHA256 with 210k rounds, using [`cryptography`](https://pub.dev/packages/cryptography) (Apache-2.0).
+  - **Restore:** checks the manifest, migrates older schemas, then either *replaces* all data or *merges* it. A merge reuses matching categories, sources, investments and debts, and skips transactions already on the phone.
+  - **Reminder:** you can be reminded to back up weekly or monthly. The default is monthly.
+
 ## License
 
 [MIT](LICENSE) © 2026 bhumit070.

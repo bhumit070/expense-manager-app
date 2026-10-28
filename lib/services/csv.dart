@@ -8,27 +8,30 @@ const exportHeader = ['date', 'type', 'amount', 'category', 'source', 'merchant'
 
 String _escape(String v) => v.contains(RegExp(r'[",\n\r]')) ? '"${v.replaceAll('"', '""')}"' : v;
 
-/// Encodes transactions as CSV with a UTF-8 BOM so Excel detects the encoding.
-String encodeCsv(List<TxnView> rows) {
-  final b = StringBuffer('﻿')..writeln(exportHeader.join(','));
+/// Encodes a table as CSV with a UTF-8 BOM so Excel detects the encoding.
+String encodeTable(List<String> header, Iterable<List<String>> rows) {
+  final b = StringBuffer('\uFEFF')..writeln(header.join(','));
   for (final r in rows) {
-    final t = r.txn;
-    b.writeln(
-      [
-        isoDateTime(t.occurredAt),
-        t.type.name,
-        (t.amount / paisePerRupee).toStringAsFixed(2),
-        r.category.name,
-        r.source?.name ?? '',
-        t.merchant,
-        t.note,
-        t.tags.join(' '),
-        t.place ?? '',
-      ].map(_escape).join(','),
-    );
+    b.writeln(r.map(_escape).join(','));
   }
   return b.toString();
 }
+
+/// Encodes transactions as CSV.
+String encodeCsv(List<TxnView> rows) => encodeTable(exportHeader, [
+  for (final r in rows)
+    [
+      isoDateTime(r.txn.occurredAt),
+      r.txn.type.name,
+      (r.txn.amount / paisePerRupee).toStringAsFixed(2),
+      r.category.name,
+      r.source?.name ?? '',
+      r.txn.merchant,
+      r.txn.note,
+      r.txn.tags.join(' '),
+      r.txn.place ?? '',
+    ],
+]);
 
 /// RFC 4180 CSV parser supporting quoted fields, escaped quotes and CRLF.
 List<List<String>> parseCsv(String input) {

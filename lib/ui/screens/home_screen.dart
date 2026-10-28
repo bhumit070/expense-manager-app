@@ -9,6 +9,7 @@ import '../theme/tokens.dart';
 import '../widgets/common.dart';
 import 'budgets_screen.dart';
 import 'categories_screen.dart';
+import 'data_flows.dart';
 import 'settings_screen.dart';
 import 'sources_screen.dart';
 import 'transactions_screen.dart';
@@ -126,6 +127,7 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
         ),
+        const BackupBanner(padding: EdgeInsets.only(top: 16)),
         SectionHeader('Where it went', action: 'Insights', onAction: onOpenInsights),
         AppCard(
           child: cats.isEmpty
