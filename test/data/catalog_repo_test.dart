@@ -1,4 +1,5 @@
 import 'package:expense_manager/data/models.dart';
+import 'package:expense_manager/data/transactions_repo.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
@@ -51,6 +52,19 @@ void main() {
     final extra = s.catalog.addSource(name: 'Wallet', kind: SourceKind.wallet);
     s.catalog.archiveSource(extra);
     expect(s.catalog.defaultSource()!.id, before);
+  });
+
+  test('balances: opening balance + money in − money out', () {
+    final s = makeState();
+    final ids = seed(s);
+    final wallet = s.catalog.addSource(name: 'Paytm', kind: SourceKind.wallet, openingBalance: 250000);
+    expect(s.catalog.sources().firstWhere((x) => x.id == wallet).openingBalance, 250000);
+    final b = s.catalog.balances();
+    expect(b[wallet], 250000);
+    expect(b[ids.hdfc], s.txns.list(TxnFilter(sourceIds: {ids.hdfc})).fold<int>(0, (sum, t) => sum + t.signedAmount));
+    expect(b[ids.card], -31200);
+    s.catalog.setOpeningBalance(ids.card, -100000);
+    expect(s.catalog.balances()[ids.card], -131200);
   });
 
   test('archiving the only source leaves no default', () {

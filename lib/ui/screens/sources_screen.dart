@@ -20,9 +20,21 @@ class SourcesScreen extends StatelessWidget {
   Future<void> _add(BuildContext context, AppState app) async {
     final r = await showDialog<NewSource>(context: context, builder: (_) => const SourceDialog());
     if (r != null) {
-      app.catalog.addSource(name: r.name, kind: r.kind, last4: r.last4, creditLimit: r.creditLimit, makeDefault: r.makeDefault);
+      app.catalog.addSource(name: r.name, kind: r.kind, last4: r.last4, creditLimit: r.creditLimit, openingBalance: r.openingBalance, makeDefault: r.makeDefault);
       app.changed();
     }
+  }
+
+  /// Lets the user correct a source's balance to what their bank shows today.
+  Future<void> _setBalance(BuildContext context, AppState app, PaymentSource s, int current) async {
+    final entered = await showDialog<int>(
+      context: context,
+      builder: (_) => BalanceDialog(source: s, current: current),
+    );
+    if (entered == null) return;
+    final target = s.kind == SourceKind.card ? -entered : entered;
+    app.catalog.setOpeningBalance(s.id, s.openingBalance + target - current);
+    app.changed();
   }
 
   @override
@@ -31,6 +43,7 @@ class SourcesScreen extends StatelessWidget {
     final c = context.colors;
     final sources = app.catalog.sources();
     final spent = app.catalog.spentBySource(Period.of(PeriodKind.month, app.now()));
+    final balances = app.catalog.balances();
     final def = app.catalog.defaultSource();
     return Scaffold(
       appBar: AppBar(
@@ -77,11 +90,22 @@ class SourcesScreen extends StatelessWidget {
                   for (final s in sources) ...[
                     ListTile(
                       key: Key('source-${s.id}'),
+                      onTap: () => _setBalance(context, app, s, balances[s.id]!),
                       leading: IconBadge(sourceIcon(s.kind), color: c.brand, background: c.brandSoft, size: 40),
                       title: Text(s.display, style: ts(14, weight: FontWeight.w600)),
-                      subtitle: Text(
-                        '${sourceKindLabel(s.kind)} · ${formatInr(spent[s.id] ?? 0)} out in ${monthsShort[app.now().month - 1]}${s.creditLimit == null ? '' : ' · limit ${formatInr(s.creditLimit!)}'}',
-                        style: ts(11, color: c.textMuted),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            key: Key('balance-${s.id}'),
+                            balanceLabel(s, balances[s.id]!),
+                            style: ts(12, weight: FontWeight.w600, color: balances[s.id]! < 0 ? c.spend : c.text),
+                          ),
+                          Text(
+                            '${sourceKindLabel(s.kind)} · ${formatInr(spent[s.id] ?? 0)} out in ${monthsShort[app.now().month - 1]}${s.creditLimit == null ? '' : ' · limit ${formatInr(s.creditLimit!)}'}',
+                            style: ts(11, color: c.textMuted),
+                          ),
+                        ],
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -110,7 +134,13 @@ class SourcesScreen extends StatelessWidget {
   }
 }
 
-typedef NewSource = ({String name, SourceKind kind, String? last4, int? creditLimit, bool makeDefault});
+/// "Balance ₹X" for accounts; "₹X outstanding" for cards.
+String balanceLabel(PaymentSource s, int balance) {
+  if (s.kind != SourceKind.card) return 'Balance ${formatInr(balance)}';
+  return balance <= 0 ? '${formatInr(-balance)} outstanding' : '${formatInr(balance)} credit';
+}
+
+typedef NewSource = ({String name, SourceKind kind, String? last4, int? creditLimit, int openingBalance, bool makeDefault});
 
 class SourceDialog extends StatefulWidget {
   const SourceDialog({super.key});
@@ -123,6 +153,7 @@ class _SourceDialogState extends State<SourceDialog> {
   final _name = TextEditingController();
   final _last4 = TextEditingController();
   final _limit = TextEditingController();
+  final _balance = TextEditingController();
   SourceKind _kind = SourceKind.bank;
   bool _makeDefault = false;
 
@@ -131,6 +162,7 @@ class _SourceDialogState extends State<SourceDialog> {
     _name.dispose();
     _last4.dispose();
     _limit.dispose();
+    _balance.dispose();
     super.dispose();
   }
 
@@ -140,11 +172,13 @@ class _SourceDialogState extends State<SourceDialog> {
       return;
     }
     final last4 = _last4.text.trim();
+    final balance = parseInr(_balance.text) ?? 0;
     Navigator.pop<NewSource>(context, (
       name: _name.text,
       kind: _kind,
       last4: last4.isEmpty ? null : last4,
       creditLimit: _kind == SourceKind.card ? parseInr(_limit.text) : null,
+      openingBalance: _kind == SourceKind.card ? -balance : balance,
       makeDefault: _makeDefault,
     ));
   }
@@ -183,6 +217,12 @@ class _SourceDialogState extends State<SourceDialog> {
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: 'Credit limit (₹)'),
               ),
+            TextField(
+              key: const Key('source-balance'),
+              controller: _balance,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+              decoration: InputDecoration(labelText: balanceFieldLabel(_kind), helperText: 'Optional · defaults to ₹0'),
+            ),
             CheckboxListTile(
               key: const Key('source-default'),
               contentPadding: EdgeInsets.zero,
@@ -200,6 +240,54 @@ class _SourceDialogState extends State<SourceDialog> {
           style: FilledButton.styleFrom(minimumSize: const Size(80, 40)),
           onPressed: _submit,
           child: const Text('Add'),
+        ),
+      ],
+    );
+  }
+}
+
+String balanceFieldLabel(SourceKind k) => k == SourceKind.card ? 'Outstanding now (₹)' : 'Current balance (₹)';
+
+/// Asks for what the source holds today; returns paise as the user typed it.
+class BalanceDialog extends StatefulWidget {
+  const BalanceDialog({super.key, required this.source, required this.current});
+
+  final PaymentSource source;
+  final int current;
+
+  @override
+  State<BalanceDialog> createState() => _BalanceDialogState();
+}
+
+class _BalanceDialogState extends State<BalanceDialog> {
+  late final _amount = TextEditingController(text: _plain(widget.source.kind == SourceKind.card ? -widget.current : widget.current));
+
+  static String _plain(int paise) => paise == 0 ? '' : (paise % paisePerRupee == 0 ? '${paise ~/ paisePerRupee}' : (paise / paisePerRupee).toStringAsFixed(2));
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.source.display),
+      content: TextField(
+        key: const Key('balance-amount'),
+        controller: _amount,
+        autofocus: true,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+        decoration: InputDecoration(labelText: balanceFieldLabel(widget.source.kind), helperText: 'Transactions you add will adjust it from here'),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        FilledButton(
+          key: const Key('balance-save'),
+          style: FilledButton.styleFrom(minimumSize: const Size(80, 40)),
+          onPressed: () => Navigator.pop<int>(context, parseInr(_amount.text) ?? 0),
+          child: const Text('Save'),
         ),
       ],
     );

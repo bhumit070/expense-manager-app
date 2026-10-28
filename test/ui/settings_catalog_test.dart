@@ -116,6 +116,72 @@ void main() {
       expect(s.catalog.sources().firstWhere((x) => x.name == 'SBI').last4, isNull);
     });
 
+    testWidgets('opening balance on add, and tap to correct the balance', (tester) async {
+      final s = makeState();
+      await pumpRoute(tester, s, const SourcesScreen());
+      final cash = s.catalog.defaultSource()!;
+      expect(find.text('Balance ₹0'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('add-source')));
+      await tester.pumpAndSettle();
+      expect(find.text('Current balance (₹)'), findsOneWidget);
+      await tester.enterText(find.byKey(const Key('source-name')), 'SBI');
+      await tester.enterText(find.byKey(const Key('source-balance')), '12,500.50');
+      await tester.tap(find.byKey(const Key('source-save')));
+      await tester.pumpAndSettle();
+      final sbi = s.catalog.sources().firstWhere((x) => x.name == 'SBI');
+      expect(sbi.openingBalance, 1250050);
+      expect(find.text('Balance ₹12,500.50'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('add-source')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Credit card'));
+      await tester.pump();
+      expect(find.text('Outstanding now (₹)'), findsOneWidget);
+      await tester.enterText(find.byKey(const Key('source-name')), 'Amex');
+      await tester.enterText(find.byKey(const Key('source-balance')), '8000');
+      await tester.tap(find.byKey(const Key('source-save')));
+      await tester.pumpAndSettle();
+      final amex = s.catalog.sources().firstWhere((x) => x.name == 'Amex');
+      expect(amex.openingBalance, -800000);
+      expect(find.text('₹8,000 outstanding'), findsOneWidget);
+
+      // Correct the cash balance to what's in the wallet today; cancel first.
+      await tester.tap(find.byKey(Key('source-${cash.id}')));
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(find.byKey(const Key('balance-amount'))).controller!.text, '');
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      s.txns.insert(Txn(type: TxnType.spend, amount: 20000, categoryId: s.catalog.defaultCategory().id, sourceId: cash.id, occurredAt: kNow));
+      s.changed();
+      await tester.pump();
+      expect(find.text('Balance −₹200'), findsOneWidget);
+      await tester.tap(find.byKey(Key('source-${cash.id}')));
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(find.byKey(const Key('balance-amount'))).controller!.text, '-200');
+      await tester.enterText(find.byKey(const Key('balance-amount')), '3000');
+      await tester.tap(find.byKey(const Key('balance-save')));
+      await tester.pumpAndSettle();
+      expect(s.catalog.balances()[cash.id], 300000);
+      expect(find.text('Balance ₹3,000'), findsOneWidget);
+
+      // Card: prefilled with outstanding (decimals kept); clearing it means ₹0, overpaying shows credit.
+      await tester.tap(find.byKey(Key('source-${amex.id}')));
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(find.byKey(const Key('balance-amount'))).controller!.text, '8000');
+      await tester.enterText(find.byKey(const Key('balance-amount')), '-50.25');
+      await tester.tap(find.byKey(const Key('balance-save')));
+      await tester.pumpAndSettle();
+      expect(find.text('₹50.25 credit'), findsOneWidget);
+      await tester.tap(find.byKey(Key('source-${amex.id}')));
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(find.byKey(const Key('balance-amount'))).controller!.text, '-50.25');
+      await tester.enterText(find.byKey(const Key('balance-amount')), '');
+      await tester.tap(find.byKey(const Key('balance-save')));
+      await tester.pumpAndSettle();
+      expect(find.text('₹0 outstanding'), findsOneWidget);
+    });
+
     testWidgets('no default source shows None', (tester) async {
       final s = makeState();
       s.catalog.archiveSource(s.catalog.defaultSource()!.id);

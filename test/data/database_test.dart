@@ -25,6 +25,23 @@ void main() {
     dir.deleteSync(recursive: true);
   });
 
+  test('a v1 database upgrades with a zero opening balance', () {
+    final dir = Directory.systemTemp.createTempSync('em');
+    final path = '${dir.path}/v1.db';
+    final old = sqlite3.open(path);
+    old.execute(
+      'CREATE TABLE sources (id INTEGER PRIMARY KEY, name TEXT NOT NULL, kind TEXT NOT NULL, last4 TEXT, credit_limit INTEGER, is_default INTEGER NOT NULL DEFAULT 0, archived INTEGER NOT NULL DEFAULT 0)',
+    );
+    old.execute("INSERT INTO sources(name, kind) VALUES ('Old', 'bank')");
+    old.userVersion = 1;
+    old.close();
+    final db = openAppDatabase(path);
+    expect(db.userVersion, schemaVersion);
+    expect(db.select('SELECT opening_balance FROM sources').single['opening_balance'], 0);
+    db.close();
+    dir.deleteSync(recursive: true);
+  });
+
   test('migrate runs only pending steps in order', () {
     final db = sqlite3.openInMemory();
     final ran = <int>[];

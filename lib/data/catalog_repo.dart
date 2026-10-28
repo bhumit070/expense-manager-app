@@ -61,11 +61,22 @@ class CatalogRepo {
     return r.isEmpty ? null : PaymentSource.fromRow(r.first);
   }
 
-  int addSource({required String name, required SourceKind kind, String? last4, int? creditLimit, bool makeDefault = false}) {
-    db.execute('INSERT INTO sources(name, kind, last4, credit_limit) VALUES (?, ?, ?, ?)', [name.trim(), kind.name, last4, creditLimit]);
+  int addSource({required String name, required SourceKind kind, String? last4, int? creditLimit, int openingBalance = 0, bool makeDefault = false}) {
+    db.execute('INSERT INTO sources(name, kind, last4, credit_limit, opening_balance) VALUES (?, ?, ?, ?, ?)', [name.trim(), kind.name, last4, creditLimit, openingBalance]);
     final id = db.lastInsertRowId;
     if (makeDefault) setDefaultSource(id);
     return id;
+  }
+
+  void setOpeningBalance(int id, int balance) => db.execute('UPDATE sources SET opening_balance = ? WHERE id = ?', [balance, id]);
+
+  /// Current balance of every source: opening balance + money in − money out.
+  Map<int, int> balances() {
+    final r = db.select('''
+SELECT s.id, s.opening_balance + coalesce(sum(CASE WHEN t.inflow = 1 THEN t.amount ELSE -t.amount END), 0) AS balance
+FROM sources s LEFT JOIN transactions t ON t.source_id = s.id AND t.deleted = 0
+GROUP BY s.id''');
+    return {for (final row in r) row['id'] as int: row['balance'] as int};
   }
 
   void setDefaultSource(int id) {

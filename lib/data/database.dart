@@ -1,9 +1,9 @@
 import 'package:sqlite3/sqlite3.dart';
 
 /// Current schema version. Bump and add a step to [_migrations] for changes.
-const schemaVersion = 1;
+const schemaVersion = 2;
 
-final List<void Function(Database)> _migrations = [_v1];
+final List<void Function(Database)> _migrations = [_v1, _v2];
 
 /// Opens (or creates) the app database and runs pending migrations.
 Database openAppDatabase(String? path) {
@@ -157,4 +157,9 @@ void _seed(Database db) {
   }
   stmt.close();
   db.execute("INSERT INTO sources(name, kind, is_default) VALUES ('Cash', 'cash', 1)");
+}
+
+/// v2: opening balance per payment source (paise; negative = card outstanding).
+void _v2(Database db) {
+  db.execute('ALTER TABLE sources ADD COLUMN opening_balance INTEGER NOT NULL DEFAULT 0');
 }

@@ -49,7 +49,7 @@ class Category {
 }
 
 class PaymentSource {
-  const PaymentSource({required this.id, required this.name, required this.kind, this.last4, this.creditLimit, this.isDefault = false, this.archived = false});
+  const PaymentSource({required this.id, required this.name, required this.kind, this.last4, this.creditLimit, this.openingBalance = 0, this.isDefault = false, this.archived = false});
 
   factory PaymentSource.fromRow(Row r) => PaymentSource(
     id: r['id'] as int,
@@ -57,6 +57,7 @@ class PaymentSource {
     kind: enumByName(SourceKind.values, r['kind']),
     last4: r['last4'] as String?,
     creditLimit: r['credit_limit'] as int?,
+    openingBalance: r['opening_balance'] as int,
     isDefault: r['is_default'] == 1,
     archived: r['archived'] == 1,
   );
@@ -66,6 +67,10 @@ class PaymentSource {
   final SourceKind kind;
   final String? last4;
   final int? creditLimit;
+
+  /// Balance before the first tracked transaction. For cards this is the
+  /// outstanding amount, stored negative.
+  final int openingBalance;
   final bool isDefault;
   final bool archived;
 
