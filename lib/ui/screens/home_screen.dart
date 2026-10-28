@@ -9,6 +9,7 @@ import '../theme/tokens.dart';
 import '../widgets/common.dart';
 import 'budgets_screen.dart';
 import 'categories_screen.dart';
+import 'reminders_screen.dart';
 import 'settings_screen.dart';
 import 'sources_screen.dart';
 import 'transactions_screen.dart';
@@ -22,7 +23,7 @@ String initials(String name) {
   return parts.take(2).map((p) => p[0].toUpperCase()).join();
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.onOpenInsights, required this.onOpenInvestments, required this.onOpenDebts});
 
   final VoidCallback onOpenInsights;
@@ -30,14 +31,25 @@ class HomeScreen extends StatelessWidget {
   final VoidCallback onOpenDebts;
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  /// Selected month; null means "the current month" so it follows the clock.
+  Period? _picked;
+
+  @override
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
     final c = context.colors;
     final now = app.now();
-    final month = Period.of(PeriodKind.month, now);
+    final current = Period.of(PeriodKind.month, now);
+    final month = _picked ?? current;
+    final isCurrent = month == current;
     final totals = app.txns.totalsIn(month);
     final cats = app.txns.byCategory(month, TxnType.spend).take(4).toList();
-    final recent = app.txns.list(const TxnFilter(), limit: 5);
+    final recent = app.txns.list(isCurrent ? const TxnFilter() : TxnFilter(from: month.start, to: month.end), limit: 5);
+    final upcoming = app.planning.upcoming(now);
     final invested = app.planning.holdings().fold<int>(0, (a, h) => a + h.invested);
     final debts = app.planning.debtSummary();
     final name = app.userName;
@@ -73,14 +85,41 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             ),
-            Text(
-              month.label,
-              style: ts(13, weight: FontWeight.w600, color: c.textMuted),
+            IconButton(
+              key: const Key('open-reminders'),
+              tooltip: 'Reminders',
+              onPressed: () => push(const RemindersScreen()),
+              icon: Badge(
+                isLabelVisible: upcoming.isNotEmpty,
+                smallSize: 8,
+                backgroundColor: c.spend,
+                child: Icon(Icons.notifications_none, color: c.text),
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 18),
-        _Hero(totals: totals, base: base),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            IconButton(key: const Key('home-prev-month'), tooltip: 'Previous month', onPressed: () => setState(() => _picked = month.previous), icon: const Icon(Icons.chevron_left)),
+            Expanded(
+              child: Text(
+                month.label,
+                key: const Key('home-month'),
+                textAlign: TextAlign.center,
+                style: ts(14, weight: FontWeight.w700),
+              ),
+            ),
+            IconButton(
+              key: const Key('home-next-month'),
+              tooltip: 'Next month',
+              onPressed: isCurrent ? null : () => setState(() => _picked = month.next == current ? null : month.next),
+              icon: const Icon(Icons.chevron_right),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _Hero(totals: totals, base: base, title: isCurrent ? 'Money out this month' : 'Money out in ${monthsShort[month.start.month - 1]}'),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -89,10 +128,10 @@ class HomeScreen extends StatelessWidget {
                 icon: Icons.trending_up,
                 label: 'Invested',
                 value: formatInrCompact(invested),
-                caption: '+${formatInrCompact(totals.invest)} this month',
+                caption: '+${formatInrCompact(totals.invest)} ${isCurrent ? 'this month' : 'in ${monthsShort[month.start.month - 1]}'}',
                 color: c.invest,
                 soft: c.investSoft,
-                onTap: onOpenInvestments,
+                onTap: widget.onOpenInvestments,
               ),
             ),
             const SizedBox(width: 10),
@@ -104,15 +143,31 @@ class HomeScreen extends StatelessWidget {
                 caption: '${formatInrCompact(debts.monthlyEmi)}/mo EMI',
                 color: c.debt,
                 soft: c.debtSoft,
-                onTap: onOpenDebts,
+                onTap: widget.onOpenDebts,
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: StatTile(icon: Icons.people_outline, label: 'Owed to you', value: formatInrCompact(debts.owed), caption: 'to collect', color: c.brand, soft: c.brandSoft, onTap: onOpenDebts),
+              child: StatTile(
+                icon: Icons.people_outline,
+                label: 'Owed to you',
+                value: formatInrCompact(debts.owed),
+                caption: 'to collect',
+                color: c.brand,
+                soft: c.brandSoft,
+                onTap: widget.onOpenDebts,
+              ),
             ),
           ],
         ),
+        if (upcoming.isNotEmpty) ...[
+          SectionHeader('Coming up', action: 'See all', onAction: () => push(const RemindersScreen())),
+          AppCard(
+            key: const Key('coming-up'),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Column(children: [for (final u in upcoming.take(3)) UpcomingTile(u, now: now)]),
+          ),
+        ],
         const SizedBox(height: 12),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -126,10 +181,10 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
         ),
-        SectionHeader('Where it went', action: 'Insights', onAction: onOpenInsights),
+        SectionHeader('Where it went', action: 'Insights', onAction: widget.onOpenInsights),
         AppCard(
           child: cats.isEmpty
-              ? Text('No spending yet this month.', style: ts(13, color: c.textMuted))
+              ? Text(isCurrent ? 'No spending yet this month.' : 'No spending in ${month.label}.', style: ts(13, color: c.textMuted))
               : Column(
                   children: [
                     for (final ct in cats)
@@ -164,8 +219,10 @@ class HomeScreen extends StatelessWidget {
         ),
         SectionHeader('Recent', action: 'View all', onAction: () => push(const TransactionsScreen())),
         if (recent.isEmpty)
-          const AppCard(
-            child: EmptyState(icon: Icons.receipt_long_outlined, title: 'No transactions yet', message: 'Tap + to add your first expense, investment or income.'),
+          AppCard(
+            child: isCurrent
+                ? const EmptyState(icon: Icons.receipt_long_outlined, title: 'No transactions yet', message: 'Tap + to add your first expense, investment or income.')
+                : EmptyState(icon: Icons.receipt_long_outlined, title: 'Nothing in ${month.label}', message: 'No transactions were recorded that month.'),
           )
         else
           AppCard(
@@ -189,10 +246,11 @@ class HomeScreen extends StatelessWidget {
 }
 
 class _Hero extends StatelessWidget {
-  const _Hero({required this.totals, required this.base});
+  const _Hero({required this.totals, required this.base, required this.title});
 
   final Totals totals;
   final int base;
+  final String title;
 
   @override
   Widget build(BuildContext context) {
@@ -237,7 +295,7 @@ class _Hero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Money out this month', style: ts(13, color: const Color(0xFFC7D2FE))),
+          Text(title, style: ts(13, color: const Color(0xFFC7D2FE))),
           const SizedBox(height: 4),
           Text(
             formatInr(totals.moneyOut),

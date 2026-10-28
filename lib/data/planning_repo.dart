@@ -143,4 +143,55 @@ GROUP BY d.id ORDER BY d.id''',
     }
     return (owe: owe, owed: owed, monthlyEmi: emi);
   }
+
+  // ---- Upcoming ------------------------------------------------------------
+
+  /// Dated obligations from [now] (start of today) through [days] ahead,
+  /// soonest first. Each generator contributes one kind; add recurring rules
+  /// or SIPs by appending another generator to the list below.
+  List<Upcoming> upcoming(DateTime now, {int days = 30}) {
+    final from = dayStart(now);
+    final until = from.add(Duration(days: days + 1));
+    final items = [..._debtDues(from), ..._maturities(from)].where((u) => !u.date.isBefore(from) && u.date.isBefore(until)).toList();
+    items.sort((a, b) => a.date.compareTo(b.date));
+    return items;
+  }
+
+  /// Next due date of every unsettled loan/card I owe that has a due day.
+  /// A cycle already paid (a payment dated in that calendar month) is skipped.
+  Iterable<Upcoming> _debtDues(DateTime today) sync* {
+    for (final s in debts(direction: DebtDirection.iOwe)) {
+      final d = s.debt;
+      if (d.dueDay == null || d.kind == DebtKind.personal || s.remaining <= 0) continue;
+      var due = nextDueDate(d.dueDay!, today);
+      if (_paidInMonth(d.id!, due)) due = nextDueDate(d.dueDay!, DateTime(due.year, due.month + 1));
+      yield Upcoming(kind: d.kind == DebtKind.card ? UpcomingKind.cardDue : UpcomingKind.emi, date: due, title: d.name, amount: d.kind == DebtKind.card ? null : (d.emi ?? s.remaining), debtId: d.id);
+    }
+  }
+
+  bool _paidInMonth(int debtId, DateTime d) {
+    final m = Period.of(PeriodKind.month, d);
+    return db.select('SELECT 1 FROM transactions WHERE deleted = 0 AND debt_id = ? AND occurred_at >= ? AND occurred_at < ? LIMIT 1', [
+      debtId,
+      m.start.millisecondsSinceEpoch,
+      m.end.millisecondsSinceEpoch,
+    ]).isNotEmpty;
+  }
+
+  Iterable<Upcoming> _maturities(DateTime today) sync* {
+    for (final h in holdings()) {
+      final m = h.investment.maturityAt;
+      if (m == null) continue;
+      yield Upcoming(kind: UpcomingKind.maturity, date: dayStart(m), title: h.investment.name, amount: h.invested, investmentId: h.investment.id);
+    }
+  }
+}
+
+/// The first date on or after [from] falling on [day] of a month. Short months
+/// clamp to their last day (31 → 30 Nov, 28/29 Feb).
+DateTime nextDueDate(int day, DateTime from) {
+  DateTime inMonth(int y, int m) => DateTime(y, m, day.clamp(1, DateTime(y, m + 1, 0).day));
+  final start = dayStart(from);
+  final here = inMonth(start.year, start.month);
+  return here.isBefore(start) ? inMonth(start.year, start.month + 1) : here;
 }

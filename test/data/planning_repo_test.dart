@@ -1,5 +1,6 @@
 import 'package:expense_manager/core/dates.dart';
 import 'package:expense_manager/data/models.dart';
+import 'package:expense_manager/data/planning_repo.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
@@ -124,5 +125,53 @@ void main() {
 
   test('period kinds used by cycles', () {
     expect(Period.of(PeriodKind.month, kNow).kind, PeriodKind.month);
+  });
+
+  group('upcoming', () {
+    test('nextDueDate clamps short months and rolls into next month/year', () {
+      expect(nextDueDate(5, DateTime(2026, 10, 28)), DateTime(2026, 11, 5));
+      expect(nextDueDate(28, DateTime(2026, 10, 28, 21)), DateTime(2026, 10, 28));
+      expect(nextDueDate(31, DateTime(2026, 11, 2)), DateTime(2026, 11, 30));
+      expect(nextDueDate(31, DateTime(2027, 2, 1)), DateTime(2027, 2, 28));
+      expect(nextDueDate(30, DateTime(2028, 2, 1)), DateTime(2028, 2, 29));
+      expect(nextDueDate(3, DateTime(2026, 12, 20)), DateTime(2027, 1, 3));
+    });
+
+    test('EMIs, card dues and maturities, soonest first, skipping paid cycles', () {
+      final s = makeState();
+      final ids = seed(s);
+      // Paid Oct 5 already, so the car loan shows Nov 5; FD matures Nov 12.
+      var items = s.planning.upcoming(kNow);
+      expect(items.map((u) => (u.kind, u.date, u.title, u.amount)).toList(), [
+        (UpcomingKind.emi, DateTime(2026, 11, 5), 'Car loan', 1240000),
+        (UpcomingKind.maturity, DateTime(2026, 11, 12), 'HDFC FD', 5000000),
+      ]);
+      expect(items.first.debtId, ids.loan);
+      expect(items.last.investmentId, ids.fd);
+
+      final card = s.planning.addDebt(const Debt(direction: DebtDirection.iOwe, kind: DebtKind.card, name: 'ICICI bill', principal: 500000, dueDay: 30));
+      // No EMI amount falls back to what's left; personal debts and debts without a due day are ignored.
+      s.planning.addDebt(const Debt(direction: DebtDirection.iOwe, kind: DebtKind.loan, name: 'Gold loan', principal: 90000, dueDay: 1));
+      s.planning.addDebt(const Debt(direction: DebtDirection.iOwe, kind: DebtKind.personal, name: 'Amit', principal: 100, dueDay: 2));
+      s.planning.addDebt(const Debt(direction: DebtDirection.iOwe, kind: DebtKind.loan, name: 'No date', principal: 100));
+      items = s.planning.upcoming(kNow);
+      expect(items.map((u) => u.title).toList(), ['ICICI bill', 'Gold loan', 'Car loan', 'HDFC FD']);
+      expect(items.first.kind, UpcomingKind.cardDue);
+      expect(items.first.amount, isNull);
+      expect(items.first.debtId, card);
+      expect(items[1].amount, 90000);
+
+      // The window is inclusive of the last day and excludes later items.
+      expect(s.planning.upcoming(kNow, days: 8).map((u) => u.title), ['ICICI bill', 'Gold loan', 'Car loan']);
+
+      // Fully paid or settled debts and matured investments drop out.
+      s.planning.setDebtSettled(ids.loan, true);
+      s.planning.setInvestmentStatus(ids.fd, InvestmentStatus.matured);
+      s.txns.insert(Txn(type: TxnType.debt, amount: 90000, categoryId: s.catalog.defaultCategory().id, sourceId: null, occurredAt: kNow, debtId: items[1].debtId));
+      expect(s.planning.upcoming(kNow).map((u) => u.title), ['ICICI bill']);
+      // Past maturities are not "coming up".
+      s.planning.addInvestment(Investment(kind: InvestmentKind.fd, name: 'Old FD', maturityAt: DateTime(2026, 1, 1)));
+      expect(s.planning.upcoming(kNow).map((u) => u.title), ['ICICI bill']);
+    });
   });
 }

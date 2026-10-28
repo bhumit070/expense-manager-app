@@ -361,3 +361,19 @@ class Bucket {
   final int spend;
   final int invest;
 }
+
+/// What an [Upcoming] item is about. Add new kinds (e.g. recurring rules,
+/// SIPs) here and a matching generator in `PlanningRepo.upcoming`.
+enum UpcomingKind { emi, cardDue, maturity }
+
+/// A dated obligation or event the user should know about.
+class Upcoming {
+  const Upcoming({required this.kind, required this.date, required this.title, this.amount, this.debtId, this.investmentId});
+
+  final UpcomingKind kind;
+  final DateTime date;
+  final String title;
+  final int? amount;
+  final int? debtId;
+  final int? investmentId;
+}
