@@ -101,6 +101,16 @@ class AmountKeypad extends StatelessWidget {
     _ => k,
   };
 
+  /// What a screen reader says for each key.
+  static String keyLabel(String k) => switch (k) {
+    '+' => 'Plus',
+    '−' => 'Minus',
+    '=' => 'Equals',
+    '.' => 'Decimal point',
+    '00' => 'Double zero',
+    _ => k,
+  };
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -128,6 +138,7 @@ class AmountKeypad extends StatelessWidget {
                                 ? Icon(AppIcons.backspace, color: c.textMuted, semanticLabel: 'Backspace')
                                 : Text(
                                     k,
+                                    semanticsLabel: keyLabel(k),
                                     style: ts(22, weight: FontWeight.w600, color: k == '=' || k == '+' || k == '−' ? accent : c.text),
                                   ),
                           ),

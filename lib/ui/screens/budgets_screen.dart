@@ -33,7 +33,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Budgets', style: ts(16, weight: FontWeight.w700)),
-        actions: [IconButton(key: const Key('new-budget'), icon: const Icon(AppIcons.add), onPressed: open)],
+        actions: [IconButton(key: const Key('new-budget'), tooltip: 'New budget', icon: const Icon(AppIcons.add), onPressed: open)],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -211,6 +211,7 @@ class _BudgetFormScreenState extends State<BudgetFormScreen> {
           if (widget.existing != null)
             IconButton(
               key: const Key('delete-budget'),
+              tooltip: 'Delete budget',
               icon: const Icon(AppIcons.delete),
               onPressed: () {
                 app.planning.deleteBudget(widget.existing!.id!);

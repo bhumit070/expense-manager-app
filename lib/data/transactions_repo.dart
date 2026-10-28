@@ -260,6 +260,19 @@ WHERE id = ?''',
     return db.select('$_select WHERE $where ORDER BY $order LIMIT ? OFFSET ?', [...args, limit, offset]).map(TxnView.fromRow).toList();
   }
 
+  /// Net signed amount per local day for every row matching [f], so day
+  /// headers stay exact while the list itself loads page by page.
+  Map<DateTime, int> dayTotals(TxnFilter f) {
+    final (where, args) = _where(f);
+    final out = <DateTime, int>{};
+    for (final r in db.select('SELECT t.occurred_at AS at, CASE WHEN t.inflow = 1 THEN t.amount ELSE -t.amount END AS v FROM transactions t WHERE $where', args)) {
+      final d = DateTime.fromMillisecondsSinceEpoch(r['at'] as int);
+      final day = DateTime(d.year, d.month, d.day);
+      out[day] = (out[day] ?? 0) + (r['v'] as int);
+    }
+    return out;
+  }
+
   Totals totals(TxnFilter f) {
     final (where, args) = _where(f);
     final r = db.select('''

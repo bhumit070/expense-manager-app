@@ -38,18 +38,24 @@ class _HomeShellState extends State<HomeShell> {
         child: InkWell(
           key: Key('tab-$label'),
           onTap: () => _go(i),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 22, color: on ? c.brand : c.textFaint),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  style: ts(11, weight: on ? FontWeight.w700 : FontWeight.w500, color: on ? c.brand : c.textFaint),
-                ),
-              ],
+          // The bar has a fixed height, so its labels stop growing at 1.2× text.
+          child: MediaQuery.withClampedTextScaling(
+            maxScaleFactor: 1.2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 22, color: on ? c.brand : c.textMuted),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: ts(11, weight: on ? FontWeight.w700 : FontWeight.w500, color: on ? c.brand : c.textMuted),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

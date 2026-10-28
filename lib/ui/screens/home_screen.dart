@@ -66,15 +66,19 @@ class _HomeScreenState extends State<HomeScreen> {
             GestureDetector(
               key: const Key('open-settings'),
               onTap: () => push(const SettingsScreen()),
-              child: CircleAvatar(
-                radius: 22,
-                backgroundColor: c.brandSoft,
-                child: name.isEmpty
-                    ? Icon(AppIcons.person, color: c.brand)
-                    : Text(
-                        initials(name),
-                        style: ts(15, weight: FontWeight.w700, color: c.brand),
-                      ),
+              child: Semantics(
+                button: true,
+                label: 'Settings',
+                child: CircleAvatar(
+                  radius: 24,
+                  backgroundColor: c.brandSoft,
+                  child: name.isEmpty
+                      ? Icon(AppIcons.person, color: c.brand)
+                      : Text(
+                          initials(name),
+                          style: ts(15, weight: FontWeight.w700, color: c.brand),
+                        ),
+                ),
               ),
             ),
             const SizedBox(width: 12),

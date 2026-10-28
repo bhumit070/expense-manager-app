@@ -50,7 +50,7 @@ class SourcesScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Payment sources', style: ts(16, weight: FontWeight.w700)),
-        actions: [IconButton(key: const Key('add-source'), icon: const Icon(AppIcons.add), onPressed: () => _add(context, app))],
+        actions: [IconButton(key: const Key('add-source'), tooltip: 'Add payment source', icon: const Icon(AppIcons.add), onPressed: () => _add(context, app))],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -116,6 +116,7 @@ class SourcesScreen extends StatelessWidget {
                           if (sources.length > 1)
                             IconButton(
                               key: Key('archive-source-${s.id}'),
+                              tooltip: 'Archive ${s.display}',
                               icon: const Icon(AppIcons.archive),
                               onPressed: () {
                                 app.catalog.archiveSource(s.id);

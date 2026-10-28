@@ -8,7 +8,7 @@ import 'highlight.dart';
 import '../theme/icons.dart';
 
 TextStyle ts(double size, {FontWeight weight = FontWeight.w500, Color? color, double? height, double? spacing}) =>
-    TextStyle(fontFamily: fontFamily, fontSize: size, fontWeight: weight, color: color, height: height, letterSpacing: spacing);
+    TextStyle(fontFamily: fontFamily, fontFamilyFallback: fontFallback, fontSize: size, fontWeight: weight, color: color, height: height, letterSpacing: spacing);
 
 class AppCard extends StatelessWidget {
   const AppCard({super.key, required this.child, this.padding = const EdgeInsets.all(16), this.color, this.onTap, this.border});
@@ -47,18 +47,25 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 10),
+      padding: EdgeInsets.only(top: action == null ? 8 : 0, bottom: action == null ? 10 : 0),
       child: Row(
         children: [
           Expanded(
             child: Text(title, style: ts(17, weight: FontWeight.w700)),
           ),
           if (action != null)
-            GestureDetector(
+            InkWell(
               onTap: onAction,
-              child: Text(
-                action!,
-                style: ts(13, weight: FontWeight.w600, color: context.colors.brand),
+              borderRadius: BorderRadius.circular(8),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                child: Center(
+                  widthFactor: 1,
+                  child: Text(
+                    action!,
+                    style: ts(13, weight: FontWeight.w600, color: context.colors.brand),
+                  ),
+                ),
               ),
             ),
         ],
@@ -176,25 +183,31 @@ class Segmented<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      height: 42,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(color: c.track, borderRadius: BorderRadius.circular(14)),
       child: Row(
         children: [
           for (final v in values)
             Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => onChanged(v),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(color: v == selected ? (activeColor ?? c.surface) : Colors.transparent, borderRadius: BorderRadius.circular(11)),
-                  child: Text(
-                    label(v),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: ts(13, weight: v == selected ? FontWeight.w700 : FontWeight.w500, color: v == selected ? (activeColor != null ? Colors.white : c.text) : c.textMuted),
+              child: Semantics(
+                button: true,
+                selected: v == selected,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onChanged(v),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    // 48dp minimum touch target; grows with large text.
+                    constraints: const BoxConstraints(minHeight: 48),
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: v == selected ? (activeColor == null ? c.surface : solidForWhite(activeColor!)) : Colors.transparent, borderRadius: BorderRadius.circular(11)),
+                    child: Text(
+                      label(v),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: ts(13, weight: v == selected ? FontWeight.w700 : FontWeight.w500, color: v == selected ? (activeColor != null ? Colors.white : c.text) : c.textMuted),
+                    ),
                   ),
                 ),
               ),
@@ -223,26 +236,34 @@ class Pill extends StatelessWidget {
       child: InkWell(
         customBorder: const StadiumBorder(),
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (selected) ...[Icon(AppIcons.check, size: 14, color: c.brand), const SizedBox(width: 4)],
-              if (icon != null) ...[Icon(icon, size: 14, color: selected ? c.brand : c.textMuted), const SizedBox(width: 6)],
-              if (dot != null) ...[
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+        child: ConstrainedBox(
+          // 48dp minimum touch target.
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (selected) ...[Icon(AppIcons.check, size: 14, color: c.brand), const SizedBox(width: 4)],
+                if (icon != null) ...[Icon(icon, size: 14, color: selected ? c.brand : c.textMuted), const SizedBox(width: 6)],
+                if (dot != null) ...[
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: ts(12, weight: FontWeight.w600, color: selected ? c.brand : c.text),
+                  ),
                 ),
-                const SizedBox(width: 6),
               ],
-              Text(
-                label,
-                style: ts(12, weight: FontWeight.w600, color: selected ? c.brand : c.text),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -364,12 +385,20 @@ class TxnTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Container(
-              padding: highlightAmount ? const EdgeInsets.symmetric(horizontal: 4) : EdgeInsets.zero,
-              color: highlightAmount ? c.brandSoft : null,
-              child: Text(
-                formatInr(view.signedAmount, signed: true),
-                style: ts(14, weight: FontWeight.w700, color: view.inflow ? c.positive : c.text),
+            // Amounts shrink to fit instead of overflowing with large text.
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.4),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Container(
+                  padding: highlightAmount ? const EdgeInsets.symmetric(horizontal: 4) : EdgeInsets.zero,
+                  color: highlightAmount ? c.brandSoft : null,
+                  child: Text(
+                    formatInr(view.signedAmount, signed: true),
+                    style: ts(14, weight: FontWeight.w700, color: view.inflow ? c.positive : c.text),
+                  ),
+                ),
               ),
             ),
           ],
@@ -456,4 +485,18 @@ void showSnack(BuildContext context, String message, {String? action, VoidCallba
         action: action == null ? null : SnackBarAction(label: action, onPressed: onAction!),
       ),
     );
+}
+
+/// A ListTile trailing value that never takes more than a third of the row,
+/// so large text wraps instead of breaking the tile layout.
+class TrailingText extends StatelessWidget {
+  const TrailingText(this.data, {super.key});
+
+  final String data;
+
+  @override
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width / 3),
+    child: Text(data, maxLines: 2, overflow: TextOverflow.ellipsis, textAlign: TextAlign.end),
+  );
 }

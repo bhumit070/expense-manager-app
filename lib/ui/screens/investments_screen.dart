@@ -44,7 +44,7 @@ class InvestmentsScreen extends StatelessWidget {
             ),
             FilledButton.icon(
               key: const Key('add-investment'),
-              style: FilledButton.styleFrom(minimumSize: const Size(0, 40), backgroundColor: c.invest),
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 48), backgroundColor: solidForWhite(c.invest), foregroundColor: Colors.white),
               onPressed: () => open(const InvestmentFormScreen()),
               icon: const Icon(AppIcons.add),
               label: const Text('Add'),
@@ -89,7 +89,13 @@ class InvestmentsScreen extends StatelessWidget {
                             decoration: BoxDecoration(color: _allocationColors[i % _allocationColors.length], shape: BoxShape.circle),
                           ),
                           const SizedBox(width: 5),
-                          Text('${investmentKindLabel(kinds[i])} ${(sum(byKind[kinds[i]]!) * 100 / total).round()}%', style: ts(11, color: const Color(0xFFD1FAE5))),
+                          Flexible(
+                            child: Text(
+                              '${investmentKindLabel(kinds[i])} ${(sum(byKind[kinds[i]]!) * 100 / total).round()}%',
+                              overflow: TextOverflow.ellipsis,
+                              style: ts(11, color: const Color(0xFFD1FAE5)),
+                            ),
+                          ),
                         ],
                       ),
                   ],
@@ -335,7 +341,7 @@ class InvestmentDetailScreen extends StatelessWidget {
           if (inv.status == InvestmentStatus.active) ...[
             FilledButton.icon(
               key: const Key('add-money'),
-              style: FilledButton.styleFrom(backgroundColor: c.invest),
+              style: FilledButton.styleFrom(backgroundColor: solidForWhite(c.invest), foregroundColor: Colors.white),
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) => TxnFormScreen(initialType: TxnType.invest, investmentId: id),

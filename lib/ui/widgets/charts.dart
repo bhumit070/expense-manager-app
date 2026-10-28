@@ -2,26 +2,33 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../core/money.dart';
 import '../../data/models.dart';
 import 'common.dart';
 import '../theme/tokens.dart';
 
 /// Ring chart with a centered label.
 class DonutChart extends StatelessWidget {
-  const DonutChart({super.key, required this.segments, required this.center, this.size = 150, this.stroke = 20});
+  const DonutChart({super.key, required this.segments, required this.center, this.size = 150, this.stroke = 20, this.semanticLabel});
 
   final List<(double, Color)> segments;
+
+  /// What the ring shows, read by screen readers (e.g. "Spent ₹1,200, invested ₹500").
+  final String? semanticLabel;
   final Widget center;
   final double size;
   final double stroke;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: size,
-    height: size,
-    child: CustomPaint(
-      painter: _DonutPainter(segments, stroke, context.colors.line),
-      child: Center(child: center),
+  Widget build(BuildContext context) => Semantics(
+    label: semanticLabel,
+    child: SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(
+        painter: _DonutPainter(segments, stroke, context.colors.line),
+        child: Center(child: center),
+      ),
     ),
   );
 }
@@ -83,20 +90,25 @@ class BucketBars extends StatelessWidget {
         children: [
           for (var i = 0; i < buckets.length; i++)
             Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    child: _Stack(spend: buckets[i].spend, invest: buckets[i].invest, max: max, height: height, spendColor: c.spend, investColor: c.invest, dim: highlight != null && i > highlight!),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    labels[i],
-                    maxLines: 1,
-                    style: ts(10, weight: i == highlight ? FontWeight.w700 : FontWeight.w500, color: i == highlight ? c.text : c.textFaint),
-                  ),
-                ],
+              child: Semantics(
+                // One readable summary per bar instead of unlabeled shapes.
+                label: '${labels[i]}: spent ${formatInr(buckets[i].spend)}, invested ${formatInr(buckets[i].invest)}',
+                excludeSemantics: true,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: _Stack(spend: buckets[i].spend, invest: buckets[i].invest, max: max, height: height, spendColor: c.spend, investColor: c.invest, dim: highlight != null && i > highlight!),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      labels[i],
+                      maxLines: 1,
+                      style: ts(10, weight: i == highlight ? FontWeight.w700 : FontWeight.w500, color: i == highlight ? c.text : c.textMuted),
+                    ),
+                  ],
+                ),
               ),
             ),
         ],
@@ -159,7 +171,14 @@ class LegendDot extends StatelessWidget {
         decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
       ),
       const SizedBox(width: 6),
-      Text(label, style: ts(11, color: context.colors.textMuted)),
+      Flexible(
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: ts(11, color: context.colors.textMuted),
+        ),
+      ),
     ],
   );
 }
