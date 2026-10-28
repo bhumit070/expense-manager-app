@@ -317,7 +317,7 @@ class _FilterSheetState extends State<FilterSheet> {
             runSpacing: 8,
             children: [for (final cat in cats) Pill(cat.name, dot: Color(cat.color), selected: _cats.contains(cat.id), onTap: () => _toggle(_cats, cat.id))],
           ),
-          label('Amount (₹)'),
+          label('Amount ($currencySymbol)'),
           Row(
             children: [
               Expanded(

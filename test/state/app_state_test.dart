@@ -1,3 +1,4 @@
+import 'package:expense_manager/core/money.dart';
 import 'package:expense_manager/data/database.dart';
 import 'package:expense_manager/state/app_state.dart';
 import 'package:flutter/material.dart';
@@ -23,6 +24,23 @@ void main() {
     expect(n, 4);
     expect(s.now(), kNow);
     s.dispose();
+  });
+
+  test('currency is persisted and applied when the state is created', () {
+    addTearDown(() => currentCurrency = inr);
+    final s = makeState();
+    var n = 0;
+    s.addListener(() => n++);
+    expect(s.currency, same(inr));
+    s.currency = currencyByCode('GBP');
+    expect(n, 1);
+    expect(formatInr(100), '£1');
+    currentCurrency = inr;
+    AppState(db: s.db, files: FakeFiles(), location: FakeLocation());
+    expect(currentCurrency.code, 'GBP');
+    // a fresh database resets to INR
+    makeState();
+    expect(currentCurrency, same(inr));
   });
 
   test('default clock is the wall clock', () {

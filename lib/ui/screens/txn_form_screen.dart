@@ -180,7 +180,7 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             style: ts(44, weight: FontWeight.w800, spacing: -1),
             decoration: InputDecoration(
-              prefixText: '₹ ',
+              prefixText: '$currencySymbol ',
               prefixStyle: ts(28, weight: FontWeight.w600, color: c.textFaint),
               hintText: '0',
               filled: false,

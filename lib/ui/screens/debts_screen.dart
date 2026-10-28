@@ -277,7 +277,7 @@ class _DebtFormScreenState extends State<DebtFormScreen> {
           const SizedBox(height: 16),
           field('debt-name', _name, 'Name, e.g. Car loan'),
           field('debt-party', _party, 'Lender / person (optional)'),
-          field('debt-principal', _principal, 'Total amount (₹)', number: true),
+          field('debt-principal', _principal, 'Total amount ($currencySymbol)', number: true),
           field('debt-rate', _rate, 'Interest rate % (optional)', number: true),
           field('debt-emi', _emi, 'EMI / monthly payment (optional)', number: true),
           field('debt-emis', _emis, 'Number of EMIs (optional)', number: true),

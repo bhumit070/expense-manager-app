@@ -7,8 +7,8 @@ import '../core/dates.dart';
 import '../core/money.dart';
 import '../data/models.dart';
 
-/// Built-in PDF fonts have no ₹ glyph, so reports use "Rs".
-String pdfMoney(int paise) => formatInr(paise).replaceAll('₹', 'Rs ');
+/// Built-in PDF fonts have no ₹ glyph, so reports use an ASCII symbol ("Rs").
+String pdfMoney(int paise) => formatInr(paise).replaceAll(currentCurrency.symbol, currentCurrency.asciiSymbol);
 
 /// Builds a shareable PDF report for a period.
 Future<Uint8List> buildPdfReport({required Period period, required Totals totals, required List<CategoryTotal> spendByCategory, required List<TxnView> transactions}) {

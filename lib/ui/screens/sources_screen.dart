@@ -252,13 +252,13 @@ class _SourceDialogState extends State<SourceDialog> {
                 key: const Key('source-limit'),
                 controller: _limit,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Credit limit (₹)'),
+                decoration: InputDecoration(labelText: 'Credit limit ($currencySymbol)'),
               ),
             TextField(
               key: const Key('source-balance'),
               controller: _balance,
               keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-              decoration: InputDecoration(labelText: balanceFieldLabel(_kind), helperText: 'Optional · defaults to ₹0'),
+              decoration: InputDecoration(labelText: balanceFieldLabel(_kind), helperText: 'Optional · defaults to ${formatInr(0)}'),
             ),
             CheckboxListTile(
               key: const Key('source-default'),
@@ -283,7 +283,7 @@ class _SourceDialogState extends State<SourceDialog> {
   }
 }
 
-String balanceFieldLabel(SourceKind k) => k == SourceKind.card ? 'Outstanding now (₹)' : 'Current balance (₹)';
+String balanceFieldLabel(SourceKind k) => k == SourceKind.card ? 'Outstanding now ($currencySymbol)' : 'Current balance ($currencySymbol)';
 
 /// Asks for what the source holds today; returns paise as the user typed it.
 class BalanceDialog extends StatefulWidget {
