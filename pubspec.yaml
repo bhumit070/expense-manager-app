@@ -28,6 +28,7 @@ dev_dependencies:
   file_picker_platform_interface: ^4.2.0
   geolocator_platform_interface: ^4.4.1
   geocoding_platform_interface: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
@@ -44,3 +45,15 @@ flutter:
           weight: 700
         - asset: assets/fonts/PlusJakartaSans-800.ttf
           weight: 800
+
+# App icon designed in Penpot (boards "App icon · …"), exported to assets/icon/.
+# Regenerate with: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  image_path: assets/icon/icon_full.png
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  min_sdk_android: 21
+  adaptive_icon_background: assets/icon/icon_bg.png
+  adaptive_icon_foreground: assets/icon/icon_fg.png
+  adaptive_icon_monochrome: assets/icon/icon_fg.png
