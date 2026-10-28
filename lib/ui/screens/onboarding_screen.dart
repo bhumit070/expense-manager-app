@@ -11,14 +11,14 @@ import 'security_screen.dart';
 /// One page of the first-launch flow. [next] moves on (or finishes).
 typedef OnboardingStep = Widget Function(BuildContext context, VoidCallback next);
 
-/// Pages shown on first launch, in order. Later features (notification
-/// primer, app lock setup) add their steps here.
+/// Pages shown on first launch, in order. Features add their steps here.
 List<OnboardingStep> defaultOnboardingSteps() => [
   (_, next) => WelcomeStep(onNext: next),
   (_, next) => NameStep(onNext: next),
   (_, next) => CurrencyStep(onNext: next),
   (_, next) => SourceStep(onNext: next),
   (_, next) => LocationStep(onNext: next),
+  (_, next) => NotificationsStep(onNext: next),
   (_, next) => AppLockStep(onNext: next),
 ];
 
@@ -378,6 +378,51 @@ class AppLockStep extends StatelessWidget {
       action: 'Set a PIN',
       onAction: () => _enable(context),
       secondary: TextButton(key: const Key('onboarding-lock-skip'), onPressed: onNext, child: const Text('Not now')),
+    );
+  }
+}
+
+/// Offers budget alerts and due-date reminders (asks for permission).
+class NotificationsStep extends StatefulWidget {
+  const NotificationsStep({super.key, required this.onNext});
+
+  final VoidCallback onNext;
+
+  @override
+  State<NotificationsStep> createState() => _NotificationsStepState();
+}
+
+class _NotificationsStepState extends State<NotificationsStep> {
+  bool _denied = false;
+
+  Future<void> _allow() async {
+    final granted = await AppScope.read(context).reminders.enable();
+    if (!mounted) return;
+    if (granted) {
+      widget.onNext();
+    } else {
+      setState(() => _denied = true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return StepLayout(
+      icon: Icons.notifications_outlined,
+      title: 'Get reminders?',
+      body: 'A heads-up when a budget reaches 80% or 100%, the day before an EMI or card bill is due, on SIP dates and before an FD matures. Planned on this phone; nothing is sent anywhere.',
+      action: _denied ? 'Continue without reminders' : 'Turn on reminders',
+      onAction: _denied ? widget.onNext : _allow,
+      secondary: _denied ? null : TextButton(key: const Key('onboarding-notif-skip'), onPressed: widget.onNext, child: const Text('Not now')),
+      children: [
+        if (_denied)
+          Text(
+            'Notifications are blocked. You can turn them on later in Settings › Reminders & alerts.',
+            key: const Key('onboarding-notif-denied'),
+            style: ts(13, color: c.spend),
+          ),
+      ],
     );
   }
 }

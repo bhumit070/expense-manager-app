@@ -10,6 +10,7 @@ import 'package:expense_manager/core/flavor.dart';
 import 'package:expense_manager/data/models.dart';
 import 'package:expense_manager/data/transactions_repo.dart';
 import 'package:expense_manager/main.dart' as app_main;
+import 'package:expense_manager/services/background.dart';
 import 'package:expense_manager/services/app_info.dart';
 import 'package:expense_manager/state/app_state.dart';
 import 'package:expense_manager/ui/screens/categories_screen.dart';
@@ -26,6 +27,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
+import '../fakes/background.dart';
 import '../helpers.dart';
 
 class FakePaths extends PathProviderPlatform with MockPlatformInterfaceMixin {
@@ -444,6 +446,7 @@ void main() {
     final dir = Directory.systemTemp.createTempSync('main');
     PathProviderPlatform.instance = FakePaths(dir.path);
     FlutterSecureStoragePlatform.instance = TestFlutterSecureStoragePlatform({});
+    final wm = useFakeWorkmanager();
     final flutterHandler = FlutterError.onError;
     final platformHandler = PlatformDispatcher.instance.onError;
     await tester.runAsync(app_main.main);
@@ -454,9 +457,13 @@ void main() {
     await tester.pump();
     expect(find.byType(OnboardingScreen), findsOneWidget);
     expect(File('${dir.path}/expense_manager.db').existsSync(), isTrue);
+    expect(wm.periodic.single.$1, dailyTask);
+    // A failure to schedule the background task is logged, not fatal.
+    useFakeWorkmanager(FakeWorkmanager(fail: true));
     final dev = await tester.runAsync(() => app_main.bootstrap(flavor: Flavor.dev));
     expect(File('${dir.path}/expense_manager_dev.db').existsSync(), isTrue);
     expect(dev!.errorLog!.file.path, '${dir.path}/logs/errors.log');
+    expect(dev.errorLog!.file.readAsStringSync(), contains('Could not schedule the daily background task'));
     dev.db.close();
     await tester.pumpWidget(const SizedBox());
     dir.deleteSync(recursive: true);

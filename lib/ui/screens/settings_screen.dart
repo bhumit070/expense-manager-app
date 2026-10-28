@@ -13,6 +13,7 @@ import 'data_flows.dart';
 import 'diagnostics_screen.dart';
 import 'security_screen.dart';
 import 'recurring_screen.dart';
+import 'reminder_settings_screen.dart';
 import 'sources_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -239,6 +240,13 @@ class SettingsScreen extends StatelessWidget {
               title: const Text('App lock & privacy'),
               trailing: Text(app.security.lockEnabled ? 'On' : 'Off'),
               onTap: () => open(const SecurityScreen()),
+            ),
+            ListTile(
+              key: const Key('open-reminders'),
+              leading: const Icon(Icons.notifications_outlined),
+              title: const Text('Reminders & alerts'),
+              trailing: Text(app.reminders.enabled ? 'On' : 'Off'),
+              onTap: () => open(const ReminderSettingsScreen()),
             ),
           ]),
           group('About', [

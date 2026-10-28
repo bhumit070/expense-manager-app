@@ -6,6 +6,7 @@ import '../../data/models.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
+import 'follow_up.dart';
 import 'txn_form_screen.dart';
 
 enum DebtTab { iOwe, owedToMe, settled }
@@ -265,6 +266,7 @@ class _DebtCard extends StatelessWidget {
                   icon: const Icon(Icons.send_outlined, size: 16),
                   label: const Text('Remind'),
                 ),
+              if (!d.settled && d.direction == DebtDirection.owedToMe && s.remaining > 0) FollowUpButton(s),
               if (!d.settled)
                 FilledButton(
                   key: Key('pay-${d.id}'),

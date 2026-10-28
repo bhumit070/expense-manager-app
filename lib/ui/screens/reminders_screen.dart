@@ -30,12 +30,16 @@ String upcomingKindLabel(UpcomingKind k) => switch (k) {
   UpcomingKind.emi => 'EMI due',
   UpcomingKind.cardDue => 'Card bill due',
   UpcomingKind.maturity => 'Matures',
+  UpcomingKind.sip => 'SIP due',
+  UpcomingKind.followUp => 'Follow up',
 };
 
 IconData upcomingIcon(UpcomingKind k) => switch (k) {
   UpcomingKind.emi => Icons.event_repeat,
   UpcomingKind.cardDue => Icons.credit_card,
   UpcomingKind.maturity => Icons.savings_outlined,
+  UpcomingKind.sip => Icons.trending_up,
+  UpcomingKind.followUp => Icons.notifications_active_outlined,
 };
 
 class UpcomingTile extends StatelessWidget {
@@ -47,8 +51,9 @@ class UpcomingTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final color = item.kind == UpcomingKind.maturity ? c.invest : c.debt;
-    final soft = item.kind == UpcomingKind.maturity ? c.investSoft : c.debtSoft;
+    final investing = item.kind == UpcomingKind.maturity || item.kind == UpcomingKind.sip;
+    final color = investing ? c.invest : c.debt;
+    final soft = investing ? c.investSoft : c.debtSoft;
     final soon = dayStart(item.date).difference(dayStart(now)).inDays <= 3;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),

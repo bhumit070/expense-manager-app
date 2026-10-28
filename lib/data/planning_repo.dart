@@ -2,6 +2,7 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../core/dates.dart';
 import 'models.dart';
+import 'recurring_repo.dart' show RecurringRepo;
 import 'transactions_repo.dart';
 
 /// Budgets, investments and debts.
@@ -183,7 +184,7 @@ GROUP BY d.id ORDER BY d.id''',
   List<Upcoming> upcoming(DateTime now, {int days = 30}) {
     final from = dayStart(now);
     final until = from.add(Duration(days: days + 1));
-    final items = [..._debtDues(from), ..._maturities(from)].where((u) => !u.date.isBefore(from) && u.date.isBefore(until)).toList();
+    final items = [..._debtDues(from), ..._maturities(from), ..._sips(), ..._followUps()].where((u) => !u.date.isBefore(from) && u.date.isBefore(until)).toList();
     items.sort((a, b) => a.date.compareTo(b.date));
     return items;
   }
@@ -219,6 +220,45 @@ GROUP BY d.id ORDER BY d.id''',
       final m = h.investment.maturityAt;
       if (m == null) continue;
       yield Upcoming(kind: UpcomingKind.maturity, date: dayStart(m), title: h.investment.name, amount: h.invested, investmentId: h.investment.id);
+    }
+  }
+
+  /// Next date of each active reminder-only SIP (auto-created SIPs simply
+  /// appear as transactions).
+  Iterable<Upcoming> _sips() sync* {
+    final names = {for (final r in db.select('SELECT id, name FROM investments')) r['id'] as int: r['name'] as String};
+    for (final r in RecurringRepo(db).rules()) {
+      final inv = r.template.investmentId;
+      if (r.autoCreate || r.paused || r.ended || inv == null) continue;
+      yield Upcoming(kind: UpcomingKind.sip, date: dayStart(r.nextRun), title: names[inv] ?? r.template.merchant, amount: r.template.amount, investmentId: inv);
+    }
+  }
+
+  // ---- Follow-up reminders on money owed to me ------------------------------
+
+  static const _followUpKey = 'debt_remind:';
+
+  /// The "remind me" date set on debt [id], if any.
+  DateTime? followUpFor(int id) {
+    final r = db.select('SELECT value FROM settings WHERE key = ?', ['$_followUpKey$id']);
+    return r.isEmpty ? null : DateTime.fromMillisecondsSinceEpoch(int.parse(r.first['value'] as String));
+  }
+
+  /// Sets (or with null clears) the day to be reminded about debt [id].
+  void setFollowUp(int id, DateTime? day) {
+    if (day == null) {
+      db.execute('DELETE FROM settings WHERE key = ?', ['$_followUpKey$id']);
+    } else {
+      db.execute('INSERT INTO settings(key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value', ['$_followUpKey$id', '${dayStart(day).millisecondsSinceEpoch}']);
+    }
+  }
+
+  Iterable<Upcoming> _followUps() sync* {
+    for (final s in debts(direction: DebtDirection.owedToMe)) {
+      final at = followUpFor(s.debt.id!);
+      if (at == null || s.remaining <= 0) continue;
+      final who = s.debt.counterparty.isEmpty ? s.debt.name : s.debt.counterparty;
+      yield Upcoming(kind: UpcomingKind.followUp, date: at, title: who, amount: s.remaining, debtId: s.debt.id);
     }
   }
 }
