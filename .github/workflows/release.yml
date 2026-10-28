@@ -181,7 +181,10 @@ jobs:
         run: security delete-keychain "$RUNNER_TEMP/build.keychain-db"
 
   release:
+    # Publish whatever built successfully: one failed platform should not block
+    # the other. The run is still marked failed so the broken build is visible.
     needs: [version, android, ios]
+    if: ${{ !cancelled() && needs.version.result == 'success' && (needs.android.result == 'success' || needs.ios.result == 'success') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -189,10 +192,24 @@ jobs:
           path: dist
           merge-multiple: true
       - run: ls -la dist
+      - name: Note missing platforms
+        id: notes
+        run: |
+          {
+            echo 'body<<EOF'
+            if [ "${{ needs.android.result }}" != "success" ]; then
+              echo "> ⚠️ Android build ${{ needs.android.result }} — no APK in this release. See ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            fi
+            if [ "${{ needs.ios.result }}" != "success" ]; then
+              echo "> ⚠️ iOS build ${{ needs.ios.result }} — no IPA in this release. See ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            fi
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
           name: Expense Manager ${{ needs.version.outputs.name }} (build ${{ needs.version.outputs.build }})
+          body: ${{ steps.notes.outputs.body }}
           generate_release_notes: true
           files: dist/*
