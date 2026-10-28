@@ -52,6 +52,10 @@ void main() {
     final extra = s.catalog.addSource(name: 'Wallet', kind: SourceKind.wallet);
     s.catalog.archiveSource(extra);
     expect(s.catalog.defaultSource()!.id, before);
+    // restoring keeps the existing default
+    s.catalog.restoreSource(extra);
+    expect(s.catalog.defaultSource()!.id, before);
+    expect(s.catalog.sources().any((x) => x.id == extra), isTrue);
   });
 
   test('balances: opening balance + money in − money out', () {
@@ -71,5 +75,10 @@ void main() {
     final s = makeState();
     s.catalog.archiveSource(s.catalog.defaultSource()!.id);
     expect(s.catalog.defaultSource(), isNull);
+    // restoring it makes it the default again
+    final cash = s.catalog.sources(includeArchived: true).single;
+    s.catalog.restoreSource(cash.id);
+    expect(s.catalog.defaultSource()!.id, cash.id);
+    expect(s.catalog.sources().single.archived, isFalse);
   });
 }

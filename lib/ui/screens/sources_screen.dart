@@ -42,6 +42,7 @@ class SourcesScreen extends StatelessWidget {
     final app = AppScope.of(context);
     final c = context.colors;
     final sources = app.catalog.sources();
+    final archived = app.catalog.sources(includeArchived: true).where((s) => s.archived).toList();
     final spent = app.catalog.spentBySource(Period.of(PeriodKind.month, app.now()));
     final balances = app.catalog.balances();
     final def = app.catalog.defaultSource();
@@ -128,6 +129,42 @@ class SourcesScreen extends StatelessWidget {
               ),
             ),
           ),
+          if (archived.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            AppCard(
+              padding: EdgeInsets.zero,
+              child: Theme(
+                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  key: const Key('archived-sources'),
+                  title: Text('Archived (${archived.length})', style: ts(14, weight: FontWeight.w600)),
+                  subtitle: Text('Kept for history; not offered on new transactions', style: ts(11, color: c.textMuted)),
+                  children: [
+                    for (final s in archived)
+                      ListTile(
+                        key: Key('archived-${s.id}'),
+                        leading: IconBadge(sourceIcon(s.kind), color: c.textMuted, background: c.surfaceMuted, size: 40),
+                        title: Text(
+                          s.display,
+                          style: ts(14, weight: FontWeight.w600, color: c.textMuted),
+                        ),
+                        subtitle: Text('${sourceKindLabel(s.kind)} · ${balanceLabel(s, balances[s.id]!)}', style: ts(11, color: c.textMuted)),
+                        trailing: TextButton.icon(
+                          key: Key('restore-source-${s.id}'),
+                          icon: const Icon(Icons.unarchive_outlined, size: 18),
+                          label: const Text('Restore'),
+                          onPressed: () {
+                            app.catalog.restoreSource(s.id);
+                            app.changed();
+                            showSnack(context, '${s.display} restored');
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

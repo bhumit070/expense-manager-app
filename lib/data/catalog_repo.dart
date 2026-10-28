@@ -68,6 +68,12 @@ class CatalogRepo {
     return id;
   }
 
+  /// Brings an archived source back; it does not become the default.
+  void restoreSource(int id) {
+    db.execute('UPDATE sources SET archived = 0 WHERE id = ?', [id]);
+    if (defaultSource() == null) setDefaultSource(id);
+  }
+
   void setOpeningBalance(int id, int balance) => db.execute('UPDATE sources SET opening_balance = ? WHERE id = ?', [balance, id]);
 
   /// Current balance of every source: opening balance + money in − money out.

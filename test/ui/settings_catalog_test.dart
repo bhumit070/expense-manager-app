@@ -182,6 +182,24 @@ void main() {
       expect(find.text('₹0 outstanding'), findsOneWidget);
     });
 
+    testWidgets('archived sources are listed with balance and can be restored', (tester) async {
+      final s = makeState();
+      final sbi = s.catalog.addSource(name: 'SBI', kind: SourceKind.bank, openingBalance: 500000);
+      await pumpRoute(tester, s, const SourcesScreen());
+      expect(find.byKey(const Key('archived-sources')), findsNothing);
+      await tester.tap(find.byKey(Key('archive-source-$sbi')));
+      await tester.pump();
+      expect(find.text('Archived (1)'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('archived-sources')));
+      await tester.pumpAndSettle();
+      expect(find.text('Bank account · Balance ₹5,000'), findsOneWidget);
+      await tester.tap(find.byKey(Key('restore-source-$sbi')));
+      await tester.pumpAndSettle();
+      expect(find.text('SBI restored'), findsOneWidget);
+      expect(find.byKey(const Key('archived-sources')), findsNothing);
+      expect(s.catalog.sources().any((x) => x.id == sbi), isTrue);
+    });
+
     testWidgets('no default source shows None', (tester) async {
       final s = makeState();
       s.catalog.archiveSource(s.catalog.defaultSource()!.id);
