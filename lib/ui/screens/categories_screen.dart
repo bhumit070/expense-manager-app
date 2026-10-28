@@ -4,6 +4,7 @@ import '../../data/models.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
+import '../theme/icons.dart';
 
 const _palette = [0xFFF43F5E, 0xFF8B5CF6, 0xFFEC4899, 0xFFF59E0B, 0xFF10B981, 0xFF0EA5E9, 0xFF6366F1, 0xFF64748B];
 
@@ -60,7 +61,7 @@ class CategoriesScreen extends StatelessWidget {
           children: [
             PopupMenuButton<String>(
               key: Key('cat-menu-${cat.id}'),
-              icon: const Icon(Icons.more_vert),
+              icon: const Icon(AppIcons.more),
               onSelected: (v) => v == 'sub' ? _add(context, app, parent: cat) : _move(context, app, cat),
               itemBuilder: (_) => [
                 if (!cat.isChild) const PopupMenuItem(value: 'sub', child: Text('Add sub-category')),
@@ -70,13 +71,13 @@ class CategoriesScreen extends StatelessWidget {
             if (!cat.isDefault)
               IconButton(
                 key: Key('archive-${cat.id}'),
-                icon: const Icon(Icons.archive_outlined),
+                icon: const Icon(AppIcons.archive),
                 onPressed: () {
                   app.catalog.archiveCategory(cat.id);
                   app.changed();
                 },
               ),
-            ReorderableDragStartListener(index: index, child: const Icon(Icons.drag_handle)),
+            ReorderableDragStartListener(index: index, child: const Icon(AppIcons.dragHandle)),
           ],
         ),
       );
@@ -138,7 +139,7 @@ class CategoriesScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Categories', style: ts(16, weight: FontWeight.w700)),
-        actions: [IconButton(key: const Key('add-category'), icon: const Icon(Icons.add), onPressed: () => _add(context, app))],
+        actions: [IconButton(key: const Key('add-category'), icon: const Icon(AppIcons.add), onPressed: () => _add(context, app))],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
@@ -230,7 +231,7 @@ class _CategoryDialogState extends State<CategoryDialog> {
                     child: CircleAvatar(
                       radius: 12,
                       backgroundColor: Color(p),
-                      child: _color == p ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+                      child: _color == p ? const Icon(AppIcons.check, size: 14, color: Colors.white) : null,
                     ),
                   ),
               ],

@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
+import 'package:expense_manager/ui/theme/icons.dart';
 
 Future<void> _menu(WidgetTester tester, int id, String item) async {
   await tester.tap(find.byKey(Key('cat-menu-$id')));
@@ -76,7 +77,7 @@ void main() {
       final tea = s.catalog.addCategory(name: 'Tea', kind: CategoryKind.spend, icon: 'food', color: 0, parentId: food);
       s.changed();
       await tester.pumpAndSettle();
-      final handle = find.descendant(of: find.byKey(ValueKey(coffee.id)), matching: find.byIcon(Icons.drag_handle));
+      final handle = find.descendant(of: find.byKey(ValueKey(coffee.id)), matching: find.byIcon(AppIcons.dragHandle));
       await tester.drag(handle, const Offset(0, 120));
       await tester.pumpAndSettle();
       expect(s.catalog.children(food).map((c) => c.id), [tea, coffee.id]);

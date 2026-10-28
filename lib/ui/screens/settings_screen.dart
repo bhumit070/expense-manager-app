@@ -14,6 +14,7 @@ import 'diagnostics_screen.dart';
 import 'security_screen.dart';
 import 'recurring_screen.dart';
 import 'sources_screen.dart';
+import '../theme/icons.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -126,7 +127,7 @@ class SettingsScreen extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                Icon(Icons.shield_outlined, color: c.positive),
+                Icon(AppIcons.shield, color: c.positive),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text('Your data never leaves this phone. Stored locally, no server. Export a backup to move devices.', style: ts(12, color: c.positive)),
@@ -138,7 +139,7 @@ class SettingsScreen extends StatelessWidget {
           group('Profile', [
             ListTile(
               key: const Key('edit-name'),
-              leading: const Icon(Icons.person_outline),
+              leading: const Icon(AppIcons.person),
               title: const Text('Name'),
               trailing: Text(app.userName.isEmpty ? 'Not set' : app.userName),
               onTap: () => _editName(context, app),
@@ -162,7 +163,7 @@ class SettingsScreen extends StatelessWidget {
           group('Defaults', [
             ListTile(
               key: const Key('default-source'),
-              leading: const Icon(Icons.check_circle_outline),
+              leading: const Icon(AppIcons.checkCircle),
               title: const Text('Default payment mode'),
               subtitle: const Text('Pre-selected on new transactions'),
               trailing: Text(app.catalog.defaultSource()?.name ?? 'None'),
@@ -170,14 +171,14 @@ class SettingsScreen extends StatelessWidget {
             ),
             ListTile(
               key: const Key('open-sources'),
-              leading: const Icon(Icons.account_balance_wallet_outlined),
+              leading: const Icon(AppIcons.wallet),
               title: const Text('Payment sources'),
               trailing: Text('${app.catalog.sources().length} active'),
               onTap: () => open(const SourcesScreen()),
             ),
             ListTile(
               key: const Key('open-categories'),
-              leading: const Icon(Icons.grid_view),
+              leading: const Icon(AppIcons.grid),
               title: const Text('Categories'),
               subtitle: const Text('Uncategorised entries go to the default'),
               trailing: Text('Default: ${app.catalog.defaultCategory().name}'),
@@ -185,57 +186,57 @@ class SettingsScreen extends StatelessWidget {
             ),
             ListTile(
               key: const Key('currency'),
-              leading: const Icon(Icons.currency_exchange),
+              leading: const Icon(AppIcons.currency),
               title: const Text('Currency'),
               trailing: Text('${app.currency.code} · $currencySymbol'),
               onTap: () => _pickCurrency(context, app),
             ),
             ListTile(
               key: const Key('open-recurring'),
-              leading: const Icon(Icons.repeat),
+              leading: const Icon(AppIcons.repeat),
               title: const Text('Recurring transactions'),
               trailing: Text('${app.recurring.rules().where((r) => !r.paused && !r.ended).length} active'),
               onTap: () => open(const RecurringScreen()),
             ),
-            const ListTile(leading: Icon(Icons.calendar_today_outlined), title: Text('Week starts on'), subtitle: Text('Weekly budgets run Monday → Sunday'), trailing: Text('Monday')),
+            const ListTile(leading: Icon(AppIcons.calendar), title: Text('Week starts on'), subtitle: Text('Weekly budgets run Monday → Sunday'), trailing: Text('Monday')),
           ]),
           group('Data', [
             ListTile(
               key: const Key('export-csv'),
-              leading: const Icon(Icons.table_chart_outlined),
+              leading: const Icon(AppIcons.spreadsheet),
               title: const Text('Export CSV'),
               subtitle: const Text('Transactions, investments, debts, budgets'),
               onTap: () => exportCsvFlow(context, app),
             ),
-            ListTile(key: const Key('export-pdf-month'), leading: const Icon(Icons.picture_as_pdf_outlined), title: const Text('Export this month as PDF'), onTap: () => _exportPdf(context, app)),
+            ListTile(key: const Key('export-pdf-month'), leading: const Icon(AppIcons.pdf), title: const Text('Export this month as PDF'), onTap: () => _exportPdf(context, app)),
             ListTile(
               key: const Key('import-csv'),
-              leading: const Icon(Icons.file_upload_outlined),
+              leading: const Icon(AppIcons.upload),
               title: const Text('Import CSV or PDF statement'),
               subtitle: const Text('HDFC, SBI, ICICI and most bank PDFs, or a CSV export'),
               onTap: () => importFlow(context, app),
             ),
             ListTile(
               key: const Key('backup-now'),
-              leading: const Icon(Icons.backup_outlined),
+              leading: const Icon(AppIcons.backup),
               title: const Text('Back up now'),
               subtitle: const Text('One .ledger file, optional password'),
               onTap: () => backUpFlow(context, app),
             ),
-            ListTile(key: const Key('restore-backup'), leading: const Icon(Icons.settings_backup_restore), title: const Text('Restore from backup'), onTap: () => restoreFlow(context, app)),
+            ListTile(key: const Key('restore-backup'), leading: const Icon(AppIcons.restore), title: const Text('Restore from backup'), onTap: () => restoreFlow(context, app)),
             const BackupIntervalTile(),
           ]),
           group('Privacy & permissions', [
             SwitchListTile(
               key: const Key('location-switch'),
-              secondary: const Icon(Icons.place_outlined),
+              secondary: const Icon(AppIcons.place),
               title: const Text('Location on transactions'),
               value: app.locationEnabled,
               onChanged: (v) => _toggleLocation(context, app, v),
             ),
             ListTile(
               key: const Key('open-security'),
-              leading: const Icon(Icons.lock_outline),
+              leading: const Icon(AppIcons.lock),
               title: const Text('App lock & privacy'),
               trailing: Text(app.security.lockEnabled ? 'On' : 'Off'),
               onTap: () => open(const SecurityScreen()),
@@ -244,20 +245,20 @@ class SettingsScreen extends StatelessWidget {
           group('About', [
             ListTile(
               key: const Key('app-version'),
-              leading: const Icon(Icons.info_outline),
+              leading: const Icon(AppIcons.info),
               title: const Text('Version'),
               trailing: FutureBuilder<String>(future: app.info.version(), builder: (_, snap) => Text(snap.data ?? (snap.hasError ? 'Unknown' : '…'))),
             ),
             ListTile(
               key: const Key('privacy'),
-              leading: const Icon(Icons.privacy_tip_outlined),
+              leading: const Icon(AppIcons.privacy),
               title: const Text('Privacy'),
               subtitle: const Text('No data collected · works offline'),
               onTap: () => _showPrivacy(context),
             ),
             ListTile(
               key: const Key('licenses'),
-              leading: const Icon(Icons.description_outlined),
+              leading: const Icon(AppIcons.document),
               title: const Text('Open-source licenses'),
               onTap: () => showLicensePage(context: context, applicationName: 'Expense Manager'),
             ),
@@ -265,7 +266,7 @@ class SettingsScreen extends StatelessWidget {
           group('Support', [
             ListTile(
               key: const Key('open-diagnostics'),
-              leading: const Icon(Icons.bug_report_outlined),
+              leading: const Icon(AppIcons.bug),
               title: const Text('Diagnostics'),
               subtitle: const Text('Local error log · view, share or clear'),
               onTap: () => open(const DiagnosticsScreen()),

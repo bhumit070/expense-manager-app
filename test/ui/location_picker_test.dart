@@ -8,6 +8,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
+import 'package:expense_manager/ui/theme/icons.dart';
 
 /// Opens the picker from a button and records what it pops with.
 Future<List<Place?>> openPicker(WidgetTester tester, FakeLocation loc, {Place? initial}) async {
@@ -57,7 +58,7 @@ void main() {
       expect(find.text('18.5000, 73.8000'), findsOneWidget);
       await tester.tap(find.byKey(const Key('result-0')));
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.location_on), findsOneWidget);
+      expect(find.byIcon(AppIcons.locationPin), findsOneWidget);
       expect(find.text('12.9750, 77.6060'), findsOneWidget);
       await tester.enterText(find.byKey(const Key('place-name')), '  ');
       await tester.tap(find.byKey(const Key('confirm-place')));

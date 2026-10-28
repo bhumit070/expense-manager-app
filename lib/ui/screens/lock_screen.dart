@@ -6,6 +6,7 @@ import '../../state/app_state.dart';
 import '../../state/security_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
+import '../theme/icons.dart';
 
 /// PIN dots plus a number pad. [onSubmit] gets 4–6 digits.
 class PinPad extends StatefulWidget {
@@ -107,10 +108,10 @@ class _PinPadState extends State<PinPad> {
                     '',
                     key: const Key('pin-bio'),
                     onTap: widget.onBiometrics,
-                    child: Icon(Icons.fingerprint, size: 30, color: c.brand),
+                    child: Icon(AppIcons.fingerprint, size: 30, color: c.brand),
                   ),
             key('0', key: const Key('pin-0'), onTap: () => _tap('0')),
-            key('', key: const Key('pin-back'), onTap: _back, child: const Icon(Icons.backspace_outlined)),
+            key('', key: const Key('pin-back'), onTap: _back, child: const Icon(AppIcons.backspace)),
           ],
         ),
         const SizedBox(height: 16),
@@ -170,7 +171,7 @@ class _LockScreenState extends State<LockScreen> {
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                IconBadge(Icons.lock_outline, color: Colors.white, background: c.hero, size: 64),
+                IconBadge(AppIcons.lock, color: Colors.white, background: c.hero, size: 64),
                 const SizedBox(height: 20),
                 PinPad(
                   title: 'Expense Manager is locked',
@@ -206,7 +207,7 @@ class PrivacyCover extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.account_balance_wallet_outlined, color: Colors.white, size: 48),
+              const Icon(AppIcons.wallet, color: Colors.white, size: 48),
               const SizedBox(height: 12),
               Text(
                 'Expense Manager',

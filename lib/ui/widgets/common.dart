@@ -5,6 +5,7 @@ import '../../core/money.dart';
 import '../../data/models.dart';
 import '../theme/tokens.dart';
 import 'highlight.dart';
+import '../theme/icons.dart';
 
 TextStyle ts(double size, {FontWeight weight = FontWeight.w500, Color? color, double? height, double? spacing}) =>
     TextStyle(fontFamily: fontFamily, fontSize: size, fontWeight: weight, color: color, height: height, letterSpacing: spacing);
@@ -227,7 +228,7 @@ class Pill extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (selected) ...[Icon(Icons.check, size: 14, color: c.brand), const SizedBox(width: 4)],
+              if (selected) ...[Icon(AppIcons.check, size: 14, color: c.brand), const SizedBox(width: 4)],
               if (icon != null) ...[Icon(icon, size: 14, color: selected ? c.brand : c.textMuted), const SizedBox(width: 6)],
               if (dot != null) ...[
                 Container(

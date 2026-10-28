@@ -7,6 +7,7 @@ import '../theme/tokens.dart';
 import '../widgets/common.dart';
 import 'sources_screen.dart';
 import 'security_screen.dart';
+import '../theme/icons.dart';
 
 /// One page of the first-launch flow. [next] moves on (or finishes).
 typedef OnboardingStep = Widget Function(BuildContext context, VoidCallback next);
@@ -156,12 +157,12 @@ class WelcomeStep extends StatelessWidget {
       ),
     );
     return StepLayout(
-      icon: Icons.shield_outlined,
+      icon: AppIcons.shield,
       title: 'Your money, on your phone',
       body: 'Track spending, investments and debts in one place. Your data stays on this phone. There is no account, no server and no tracking.',
       action: 'Get started',
       onAction: onNext,
-      children: [point(Icons.lock_outline, 'Stored only on this device'), point(Icons.wifi_off, 'Works fully offline'), point(Icons.file_download_outlined, 'Export to CSV or PDF any time')],
+      children: [point(AppIcons.lock, 'Stored only on this device'), point(AppIcons.offline, 'Works fully offline'), point(AppIcons.download, 'Export to CSV or PDF any time')],
     );
   }
 }
@@ -191,7 +192,7 @@ class _NameStepState extends State<NameStep> {
 
   @override
   Widget build(BuildContext context) => StepLayout(
-    icon: Icons.waving_hand_outlined,
+    icon: AppIcons.wave,
     title: 'What should we call you?',
     body: 'Used only for the greeting on the home screen. Optional.',
     action: 'Continue',
@@ -217,7 +218,7 @@ class CurrencyStep extends StatelessWidget {
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
     return StepLayout(
-      icon: Icons.currency_exchange,
+      icon: AppIcons.currency,
       title: 'Pick your currency',
       body: 'Amounts are shown in this currency. You can change it later in Settings.',
       action: 'Continue',
@@ -277,7 +278,7 @@ class _SourceStepState extends State<SourceStep> {
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
     return StepLayout(
-      icon: Icons.account_balance_wallet_outlined,
+      icon: AppIcons.wallet,
       title: 'Where do you pay from?',
       body: 'Add your main account. It becomes the default payment mode on new transactions. Leave it empty to start with ${app.catalog.defaultSource()?.name ?? 'Cash'}.',
       action: 'Continue',
@@ -339,7 +340,7 @@ class _LocationStepState extends State<LocationStep> {
   Widget build(BuildContext context) {
     final c = context.colors;
     return StepLayout(
-      icon: Icons.place_outlined,
+      icon: AppIcons.place,
       title: 'Tag places automatically?',
       body: 'With location on, new transactions get the place you are at. It is saved only with your entries on this phone. You can always type a place instead.',
       action: _denied ? 'Continue without location' : 'Allow location',
@@ -372,7 +373,7 @@ class AppLockStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StepLayout(
-      icon: Icons.lock_outline,
+      icon: AppIcons.lock,
       title: 'Lock the app?',
       body: 'Ask for a PIN (or your fingerprint / face) when the app opens, and hide amounts in the app switcher. You can change this anytime in Settings.',
       action: 'Set a PIN',

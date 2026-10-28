@@ -7,6 +7,7 @@ import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/amount_keypad.dart';
 import '../widgets/common.dart';
+import '../theme/icons.dart';
 
 String ruleStatus(RecurringRule r) {
   final state = r.ended ? 'Ended' : (r.paused ? 'Paused' : 'Next ${longDate(r.nextRun)}');
@@ -55,7 +56,7 @@ class RecurringScreen extends StatelessWidget {
         title: Text('Recurring', style: ts(16, weight: FontWeight.w700)),
       ),
       body: rules.isEmpty
-          ? const EmptyState(icon: Icons.repeat, title: 'Nothing recurring yet', message: 'Turn on “Repeat” when adding a transaction, or set up a SIP on an investment.')
+          ? const EmptyState(icon: AppIcons.repeat, title: 'Nothing recurring yet', message: 'Turn on “Repeat” when adding a transaction, or set up a SIP on an investment.')
           : ListView(
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
               children: [
@@ -85,7 +86,7 @@ class RecurringScreen extends StatelessWidget {
                                     app.changed();
                                   },
                                 ),
-                              IconButton(key: Key('delete-rule-${r.id}'), icon: const Icon(Icons.delete_outline), onPressed: () => _delete(context, app, r)),
+                              IconButton(key: Key('delete-rule-${r.id}'), icon: const Icon(AppIcons.delete), onPressed: () => _delete(context, app, r)),
                             ],
                           ),
                         ),

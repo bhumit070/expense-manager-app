@@ -15,6 +15,7 @@ import 'settings_screen.dart';
 import 'sources_screen.dart';
 import 'transactions_screen.dart';
 import 'txn_detail_screen.dart';
+import '../theme/icons.dart';
 
 String greeting(DateTime now) => now.hour < 12 ? 'Good morning' : (now.hour < 17 ? 'Good afternoon' : 'Good evening');
 
@@ -69,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 radius: 22,
                 backgroundColor: c.brandSoft,
                 child: name.isEmpty
-                    ? Icon(Icons.person_outline, color: c.brand)
+                    ? Icon(AppIcons.person, color: c.brand)
                     : Text(
                         initials(name),
                         style: ts(15, weight: FontWeight.w700, color: c.brand),
@@ -94,7 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 isLabelVisible: upcoming.isNotEmpty,
                 smallSize: 8,
                 backgroundColor: c.spend,
-                child: Icon(Icons.notifications_none, color: c.text),
+                child: Icon(AppIcons.notifications, color: c.text),
               ),
             ),
           ],
@@ -102,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 8),
         Row(
           children: [
-            IconButton(key: const Key('home-prev-month'), tooltip: 'Previous month', onPressed: () => setState(() => _picked = month.previous), icon: const Icon(Icons.chevron_left)),
+            IconButton(key: const Key('home-prev-month'), tooltip: 'Previous month', onPressed: () => setState(() => _picked = month.previous), icon: const Icon(AppIcons.chevronLeft)),
             Expanded(
               child: Text(
                 month.label,
@@ -115,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
               key: const Key('home-next-month'),
               tooltip: 'Next month',
               onPressed: isCurrent ? null : () => setState(() => _picked = month.next == current ? null : month.next),
-              icon: const Icon(Icons.chevron_right),
+              icon: const Icon(AppIcons.chevronRight),
             ),
           ],
         ),
@@ -126,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Expanded(
               child: StatTile(
-                icon: Icons.trending_up,
+                icon: AppIcons.trendingUp,
                 label: 'Invested',
                 value: formatInrCompact(invested),
                 caption: '+${formatInrCompact(totals.invest)} ${isCurrent ? 'this month' : 'in ${monthsShort[month.start.month - 1]}'}',
@@ -138,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: StatTile(
-                icon: Icons.credit_card,
+                icon: AppIcons.creditCard,
                 label: 'You owe',
                 value: formatInrCompact(debts.owe),
                 caption: '${formatInrCompact(debts.monthlyEmi)}/mo EMI',
@@ -149,15 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: StatTile(
-                icon: Icons.people_outline,
-                label: 'Owed to you',
-                value: formatInrCompact(debts.owed),
-                caption: 'to collect',
-                color: c.brand,
-                soft: c.brandSoft,
-                onTap: widget.onOpenDebts,
-              ),
+              child: StatTile(icon: AppIcons.people, label: 'Owed to you', value: formatInrCompact(debts.owed), caption: 'to collect', color: c.brand, soft: c.brandSoft, onTap: widget.onOpenDebts),
             ),
           ],
         ),
@@ -174,11 +167,11 @@ class _HomeScreenState extends State<HomeScreen> {
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              Pill('Budgets', icon: Icons.donut_large, onTap: () => push(const BudgetsScreen())),
+              Pill('Budgets', icon: AppIcons.insights, onTap: () => push(const BudgetsScreen())),
               const SizedBox(width: 8),
-              Pill('Categories', icon: Icons.grid_view, onTap: () => push(const CategoriesScreen())),
+              Pill('Categories', icon: AppIcons.grid, onTap: () => push(const CategoriesScreen())),
               const SizedBox(width: 8),
-              Pill('Payment sources', icon: Icons.account_balance_wallet_outlined, onTap: () => push(const SourcesScreen())),
+              Pill('Payment sources', icon: AppIcons.wallet, onTap: () => push(const SourcesScreen())),
             ],
           ),
         ),
@@ -223,8 +216,8 @@ class _HomeScreenState extends State<HomeScreen> {
         if (recent.isEmpty)
           AppCard(
             child: isCurrent
-                ? const EmptyState(icon: Icons.receipt_long_outlined, title: 'No transactions yet', message: 'Tap + to add your first expense, investment or income.')
-                : EmptyState(icon: Icons.receipt_long_outlined, title: 'Nothing in ${month.label}', message: 'No transactions were recorded that month.'),
+                ? const EmptyState(icon: AppIcons.receipt, title: 'No transactions yet', message: 'Tap + to add your first expense, investment or income.')
+                : EmptyState(icon: AppIcons.receipt, title: 'Nothing in ${month.label}', message: 'No transactions were recorded that month.'),
           )
         else
           AppCard(

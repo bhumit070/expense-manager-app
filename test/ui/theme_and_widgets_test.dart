@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
+import 'package:expense_manager/ui/theme/icons.dart';
 
 Future<void> pumpBody(WidgetTester tester, Widget body, {Brightness b = Brightness.light}) async {
   await tester.pumpWidget(
@@ -36,8 +37,8 @@ void main() {
     });
 
     test('icon and label lookups', () {
-      expect(iconFor('food'), Icons.restaurant);
-      expect(iconFor('unknown'), Icons.grid_view);
+      expect(iconFor('food'), AppIcons.food);
+      expect(iconFor('unknown'), AppIcons.grid);
       expect(SourceKind.values.map(sourceIcon).toSet().length, 4);
       expect(InvestmentKind.values.map(investmentKindLabel).toSet().length, InvestmentKind.values.length);
       expect(InvestmentKind.values.map(investmentIcon).toSet().length, InvestmentKind.values.length);
@@ -56,7 +57,7 @@ void main() {
           const CategoryBadge(Category(id: 1, name: 'Food', kind: CategoryKind.spend, icon: 'food', color: 0xFFF43F5E)),
           for (final t in TxnType.values) TypeTag(t),
           const DetailRow(label: 'Bank', value: 'HDFC'),
-          StatTile(icon: Icons.add, label: 'L', value: 'V', caption: 'C', color: Colors.red, soft: Colors.pink, onTap: () => tapped++),
+          StatTile(icon: AppIcons.add, label: 'L', value: 'V', caption: 'C', color: Colors.red, soft: Colors.pink, onTap: () => tapped++),
         ],
       ),
       b: Brightness.dark,
@@ -78,10 +79,10 @@ void main() {
         children: [
           Segmented<String>(values: const ['a', 'b'], selected: 'a', label: (v) => v.toUpperCase(), onChanged: (v) => picked = v),
           Segmented<String>(values: const ['x', 'y'], selected: 'x', label: (v) => v, activeColor: Colors.red, onChanged: (_) {}),
-          Pill('sel', selected: true, dot: Colors.red, icon: Icons.add, onTap: () => pills++),
+          Pill('sel', selected: true, dot: Colors.red, icon: AppIcons.add, onTap: () => pills++),
           const Pill('plain'),
-          EmptyState(icon: Icons.add, title: 'Empty', message: 'msg', action: 'Do it', onAction: () => action++),
-          const EmptyState(icon: Icons.add, title: 'No action', message: 'msg'),
+          EmptyState(icon: AppIcons.add, title: 'Empty', message: 'msg', action: 'Do it', onAction: () => action++),
+          const EmptyState(icon: AppIcons.add, title: 'No action', message: 'msg'),
         ],
       ),
     );

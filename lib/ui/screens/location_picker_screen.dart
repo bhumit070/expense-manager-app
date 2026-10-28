@@ -7,6 +7,7 @@ import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
 import '../widgets/map_tiles.dart';
+import '../theme/icons.dart';
 
 /// Manual location picker: search an address, tap the map or use the
 /// current position. Pops with the chosen [Place].
@@ -102,7 +103,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               onSubmitted: (_) => _search(app),
               decoration: InputDecoration(
                 hintText: 'Search a place or address',
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: const Icon(AppIcons.search),
                 suffixIcon: _busy
                     ? const Padding(
                         padding: EdgeInsets.all(12),
@@ -121,7 +122,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   for (final (i, p) in _results.indexed)
                     ListTile(
                       key: Key('result-$i'),
-                      leading: const Icon(Icons.place_outlined),
+                      leading: const Icon(AppIcons.place),
                       title: Text(p.name, maxLines: 2, overflow: TextOverflow.ellipsis),
                       subtitle: Text(coordinates(p.lat, p.lng), style: ts(11, color: c.textMuted)),
                       onTap: () => _select(p),
@@ -148,7 +149,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                         width: 40,
                         height: 40,
                         alignment: Alignment.topCenter,
-                        child: Icon(Icons.location_on, color: c.spend, size: 40),
+                        child: Icon(AppIcons.locationPin, color: c.spend, size: 40),
                       ),
                     ],
                   ),
@@ -176,7 +177,12 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                     decoration: InputDecoration(labelText: 'Place name', helperText: _point == null ? 'Tap the map to drop a pin' : coordinates(_point!.latitude, _point!.longitude)),
                   ),
                   const SizedBox(height: 8),
-                  OutlinedButton.icon(key: const Key('use-current'), onPressed: _busy ? null : () => _useCurrent(app), icon: const Icon(Icons.my_location), label: const Text('Use current location')),
+                  OutlinedButton.icon(
+                    key: const Key('use-current'),
+                    onPressed: _busy ? null : () => _useCurrent(app),
+                    icon: const Icon(AppIcons.myLocation),
+                    label: const Text('Use current location'),
+                  ),
                 ],
               ),
             ),

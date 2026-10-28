@@ -10,6 +10,7 @@ import '../theme/tokens.dart';
 import '../widgets/amount_keypad.dart';
 import '../widgets/common.dart';
 import 'txn_form_screen.dart';
+import '../theme/icons.dart';
 
 /// SIPs run on a day 1–28 so every month has it.
 const sipDays = 28;
@@ -102,7 +103,7 @@ class SipCard extends StatelessWidget {
     final sip = app.recurring.forInvestment(investment.id!);
     if (sip == null) {
       if (investment.status != InvestmentStatus.active) return const SizedBox.shrink();
-      return OutlinedButton.icon(key: const Key('setup-sip'), onPressed: () => _edit(context, app, null), icon: const Icon(Icons.event_repeat), label: const Text('Set up a monthly SIP'));
+      return OutlinedButton.icon(key: const Key('setup-sip'), onPressed: () => _edit(context, app, null), icon: const Icon(AppIcons.eventRepeat), label: const Text('Set up a monthly SIP'));
     }
     final source = sip.template.sourceId == null ? null : app.catalog.sources(includeArchived: true).where((s) => s.id == sip.template.sourceId).firstOrNull;
     return AppCard(
@@ -112,7 +113,7 @@ class SipCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              IconBadge(Icons.event_repeat, color: c.invest, background: c.investSoft, size: 40),
+              IconBadge(AppIcons.eventRepeat, color: c.invest, background: c.investSoft, size: 40),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

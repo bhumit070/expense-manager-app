@@ -6,6 +6,7 @@ import '../../services/csv.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
+import '../theme/icons.dart';
 
 /// Preview of a CSV or statement import with duplicate detection and per-row selection.
 class ImportScreen extends StatefulWidget {
@@ -98,7 +99,7 @@ class _ImportScreenState extends State<ImportScreen> {
                 final r = rows[i];
                 if (r.txn == null) {
                   return ListTile(
-                    leading: Icon(Icons.error_outline, color: c.spend),
+                    leading: Icon(AppIcons.error, color: c.spend),
                     title: Text('Line ${r.line}'),
                     subtitle: Text(r.error!),
                   );

@@ -6,6 +6,7 @@ import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/category_picker.dart';
 import '../widgets/common.dart';
+import '../theme/icons.dart';
 
 class BudgetsScreen extends StatefulWidget {
   const BudgetsScreen({super.key});
@@ -32,7 +33,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Budgets', style: ts(16, weight: FontWeight.w700)),
-        actions: [IconButton(key: const Key('new-budget'), icon: const Icon(Icons.add), onPressed: open)],
+        actions: [IconButton(key: const Key('new-budget'), icon: const Icon(AppIcons.add), onPressed: open)],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -53,7 +54,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                 padding: const EdgeInsets.all(14),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: c.spend),
+                    Icon(AppIcons.info, color: c.spend),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -66,7 +67,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
               ),
             ),
           if (items.isEmpty)
-            EmptyState(icon: Icons.donut_large, title: 'No ${_period.name} budgets', message: 'Set a limit for any category and track it every cycle.', action: 'Create budget', onAction: open),
+            EmptyState(icon: AppIcons.insights, title: 'No ${_period.name} budgets', message: 'Set a limit for any category and track it every cycle.', action: 'Create budget', onAction: open),
           for (final p in items) ...[_BudgetCard(p, onTap: () => open(p.budget)), const SizedBox(height: 10)],
         ],
       ),
@@ -96,7 +97,7 @@ class _BudgetCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              IconBadge(p.budget.isGoal ? Icons.trending_up : Icons.donut_large, color: color, background: color.withValues(alpha: 0.14)),
+              IconBadge(p.budget.isGoal ? AppIcons.trendingUp : AppIcons.insights, color: color, background: color.withValues(alpha: 0.14)),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -210,7 +211,7 @@ class _BudgetFormScreenState extends State<BudgetFormScreen> {
           if (widget.existing != null)
             IconButton(
               key: const Key('delete-budget'),
-              icon: const Icon(Icons.delete_outline),
+              icon: const Icon(AppIcons.delete),
               onPressed: () {
                 app.planning.deleteBudget(widget.existing!.id!);
                 app.changed();

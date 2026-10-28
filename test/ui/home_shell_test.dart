@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
+import 'package:expense_manager/ui/theme/icons.dart';
 
 void main() {
   test('greeting and initials', () {
@@ -31,7 +32,7 @@ void main() {
     final s = makeState();
     await pumpScreen(tester, s, const HomeShell());
     expect(find.text('Welcome'), findsOneWidget);
-    expect(find.byIcon(Icons.person_outline), findsWidgets);
+    expect(find.byIcon(AppIcons.person), findsWidgets);
     expect(find.text('No spending yet this month.'), findsOneWidget);
     expect(find.text('No transactions yet'), findsOneWidget);
     expect(find.text('₹0'), findsWidgets);

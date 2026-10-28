@@ -27,6 +27,7 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import '../helpers.dart';
+import 'package:expense_manager/ui/theme/icons.dart';
 
 class FakePaths extends PathProviderPlatform with MockPlatformInterfaceMixin {
   FakePaths(this.dir);
@@ -82,7 +83,7 @@ void main() {
       await tester.pump();
       expect(find.text('Rent'), findsNothing);
       final first = s.catalog.categories(kind: CategoryKind.invest).first.id;
-      final handle = find.descendant(of: find.byKey(ValueKey(first)), matching: find.byIcon(Icons.drag_handle));
+      final handle = find.descendant(of: find.byKey(ValueKey(first)), matching: find.byIcon(AppIcons.dragHandle));
       await tester.drag(handle, const Offset(0, 140));
       await tester.pumpAndSettle();
       expect(s.catalog.categories(kind: CategoryKind.invest).first.id, isNot(first));

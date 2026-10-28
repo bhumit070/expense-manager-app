@@ -8,6 +8,7 @@ import 'home_screen.dart';
 import 'insights_screen.dart';
 import 'investments_screen.dart';
 import 'txn_form_screen.dart';
+import '../theme/icons.dart';
 
 /// Root scaffold with bottom navigation and the central add button.
 class HomeShell extends StatefulWidget {
@@ -66,18 +67,18 @@ class _HomeShellState extends State<HomeShell> {
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const TxnFormScreen())),
-        child: const Icon(Icons.add, size: 28),
+        child: const Icon(AppIcons.add, size: 28),
       ),
       bottomNavigationBar: BottomAppBar(
         color: c.surface,
         padding: EdgeInsets.zero,
         child: Row(
           children: [
-            tab(0, Icons.home_outlined, l10n.navHome),
-            tab(1, Icons.pie_chart_outline, l10n.navInsights),
+            tab(0, AppIcons.home, l10n.navHome),
+            tab(1, AppIcons.pieChart, l10n.navInsights),
             const SizedBox(width: 72),
-            tab(2, Icons.trending_up, l10n.navInvest),
-            tab(3, Icons.people_outline, l10n.navDebts),
+            tab(2, AppIcons.trendingUp, l10n.navInvest),
+            tab(3, AppIcons.people, l10n.navDebts),
           ],
         ),
       ),
