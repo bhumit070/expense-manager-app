@@ -28,6 +28,7 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import '../fakes/background.dart';
+import '../fakes/maps.dart';
 import '../helpers.dart';
 import 'package:expense_manager/ui/theme/icons.dart';
 
@@ -296,6 +297,7 @@ void main() {
     });
 
     testWidgets('about: version, privacy and licenses', (tester) async {
+      final maps = useFakeMaps(addTearDown);
       PackageInfo.setMockInitialValues(appName: 'Expense Manager', packageName: 'x', version: '0.1.0', buildNumber: '5', buildSignature: '');
       final s = makeState();
       await pumpRoute(tester, s, const SettingsScreen());
@@ -306,6 +308,8 @@ void main() {
       await tester.tap(find.byKey(const Key('privacy')));
       await tester.pumpAndSettle();
       expect(find.textContaining('no account, server or analytics'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('privacy-policy')));
+      expect(maps.links.single, Uri.parse(privacyPolicyUrl));
       await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.byKey(const Key('licenses')));

@@ -53,4 +53,4 @@ expense,budget,money,spending,tracker,offline,investment,debt,emi,finance,rupee,
 
 ## Contact
 - Website / support: https://github.com/bhumit070/expense-manager-app
-- Privacy policy: [`docs/privacy-policy.md`](privacy-policy.md) (publish its rendered URL)
+- Privacy policy: https://bhumit070.github.io/expense-manager-app/privacy-policy/ (source: [`docs/privacy-policy.md`](privacy-policy.md))

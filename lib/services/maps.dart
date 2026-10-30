@@ -20,12 +20,17 @@ class MapServices {
     final native = defaultTargetPlatform == TargetPlatform.iOS ? Uri.parse('https://maps.apple.com/?ll=$lat,$lng&q=$name') : Uri.parse('geo:$lat,$lng?q=$lat,$lng($name)');
     final web = Uri.parse('https://www.openstreetmap.org/?mlat=$lat&mlon=$lng#map=17/$lat/$lng');
     for (final uri in [native, web]) {
-      try {
-        if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return true;
-      } on Exception {
-        // No handler for this scheme; try the next one.
-      }
+      if (await openExternal(uri)) return true;
     }
     return false;
+  }
+
+  /// Opens [uri] in another app (browser, maps). Returns whether it opened.
+  Future<bool> openExternal(Uri uri) async {
+    try {
+      return await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } on Exception {
+      return false; // No handler for this scheme.
+    }
   }
 }
