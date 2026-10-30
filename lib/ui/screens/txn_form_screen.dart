@@ -18,7 +18,7 @@ import '../theme/icons.dart';
 /// Add or edit a transaction. Defaults: now, default source, "Others"
 /// category, current location when permitted.
 class TxnFormScreen extends StatefulWidget {
-  const TxnFormScreen({super.key, this.existing, this.initialType = TxnType.spend, this.investmentId, this.debtId, this.duplicate = false});
+  const TxnFormScreen({super.key, this.existing, this.initialType = TxnType.spend, this.investmentId, this.debtId, this.duplicate = false, this.prefill, this.onSaved});
 
   final TxnView? existing;
   final TxnType initialType;
@@ -27,6 +27,13 @@ class TxnFormScreen extends StatefulWidget {
 
   /// When true, [existing] is copied into a new transaction.
   final bool duplicate;
+
+  /// Values for a new transaction, including its time (e.g. read from an SMS).
+  final Txn? prefill;
+
+  /// Called with the new transaction's id once it is saved (null when it
+  /// became a recurring rule).
+  final void Function(int? id)? onSaved;
 
   @override
   State<TxnFormScreen> createState() => _TxnFormScreenState();
@@ -69,9 +76,9 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
     _initialized = true;
     final app = AppScope.read(context);
     _receipts = app.receipts;
-    final e = widget.existing?.txn;
+    final e = widget.existing?.txn ?? widget.prefill;
     _type = e?.type ?? widget.initialType;
-    _at = _editing ? e!.occurredAt : app.now();
+    _at = _editing ? e!.occurredAt : widget.prefill?.occurredAt ?? app.now();
     _sourceId = e?.sourceId ?? app.catalog.defaultSource()?.id;
     _categoryId = e?.categoryId;
     _investmentId = e?.investmentId ?? widget.investmentId;
@@ -241,13 +248,15 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
       receipt: _receipt,
       recurringId: _editing ? widget.existing!.txn.recurringId : null,
     );
+    int? id;
     if (_editing) {
       app.txns.update(txn);
     } else if (_repeat) {
       app.recurring.createFrom(txn, _frequency, endAt: _repeatEnd, now: app.now());
     } else {
-      app.txns.insert(txn, now: app.now());
+      id = app.txns.insert(txn, now: app.now());
     }
+    widget.onSaved?.call(id);
     _saved = true;
     _discardPicked(keep: _receipt);
     if (_originalReceipt != null && _originalReceipt != _receipt) app.receipts.delete(_originalReceipt!);

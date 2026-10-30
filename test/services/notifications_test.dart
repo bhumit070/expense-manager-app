@@ -96,4 +96,62 @@ void main() {
     await PlatformNotificationService(localTimezone: () async => 'Nowhere/Zone').init();
     expect(tz.local.name, 'Etc/UTC');
   });
+
+  test('Android: prompts carry a payload and buttons; taps reach the listener', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    FlutterLocalNotificationsPlatform.instance = AndroidFlutterLocalNotificationsPlugin();
+    final calls = _mockPlugin();
+    final n = PlatformNotificationService(localTimezone: () async => 'UTC');
+    final taps = <NotificationTap>[];
+    n.listen(taps.add);
+    await n.prompt(5, 'New expense', 'Add it?', payload: 'sms:1', actions: const [NotificationActionSpec('add', 'Add'), NotificationActionSpec('edit', 'Edit', opensApp: true)]);
+    final shown = calls.last.arguments as Map;
+    expect([shown['id'], shown['payload']], [5, 'sms:1']);
+    final android = shown['platformSpecifics'] as Map;
+    expect(android['channelId'], smsChannelId);
+    expect(
+      [
+        for (final a in android['actions'] as List) [(a as Map)['id'], a['title'], a['showsUserInterface']],
+      ],
+      [
+        ['add', 'Add', false],
+        ['edit', 'Edit', true],
+      ],
+    );
+    expect((calls.first.arguments as Map)['dispatcher_handle'], isNotNull, reason: 'background taps have a handler');
+
+    await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.handlePlatformMessage(
+      _channel.name,
+      _channel.codec.encodeMethodCall(const MethodCall('didReceiveNotificationResponse', {'notificationId': 5, 'actionId': 'add', 'payload': 'sms:1', 'notificationResponseType': 1})),
+      (_) {},
+    );
+    await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.handlePlatformMessage(
+      _channel.name,
+      _channel.codec.encodeMethodCall(const MethodCall('didReceiveNotificationResponse', {'notificationId': 6, 'notificationResponseType': 0})),
+      (_) {},
+    );
+    expect([for (final t in taps) (t.payload, t.action)], [('sms:1', 'add'), ('', null)]);
+  });
+
+  test('launchTap: the notification that opened the app, if any', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    FlutterLocalNotificationsPlatform.instance = AndroidFlutterLocalNotificationsPlugin();
+    Object? launch;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(_channel, (call) async => call.method == 'getNotificationAppLaunchDetails' ? launch : true);
+    final n = PlatformNotificationService(localTimezone: () async => 'UTC');
+    expect(await n.launchTap(), isNull);
+    launch = {'notificationLaunchedApp': false};
+    expect(await n.launchTap(), isNull);
+    launch = {
+      'notificationLaunchedApp': true,
+      'notificationResponse': {'notificationId': 5, 'actionId': 'edit', 'payload': 'sms:3', 'notificationResponseType': 1},
+    };
+    final tap = await n.launchTap();
+    expect([tap!.payload, tap.action], ['sms:3', 'edit']);
+    launch = {
+      'notificationLaunchedApp': true,
+      'notificationResponse': {'notificationId': 5, 'notificationResponseType': 0},
+    };
+    expect((await n.launchTap())!.payload, '');
+  });
 }

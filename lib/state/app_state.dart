@@ -14,8 +14,10 @@ import '../services/file_gateway.dart';
 import '../services/location.dart';
 import '../services/notifications.dart';
 import '../services/security_platform.dart';
+import '../services/sms_capture.dart';
 import 'reminders.dart';
 import 'security_state.dart';
+import 'sms_inbox.dart';
 import '../services/receipts.dart';
 
 /// App-wide state. Repositories are synchronous (SQLite via FFI) and fast;
@@ -31,6 +33,7 @@ class AppState extends ChangeNotifier {
     AppInfo? info,
     DateTime Function()? clock,
     SecurityPlatform? security,
+    this.smsPlatform = const SmsPlatform(),
   }) : clock = clock ?? DateTime.now,
        info = info ?? PlatformAppInfo(),
        receipts = receipts ?? PlatformReceiptStore(),
@@ -43,7 +46,10 @@ class AppState extends ChangeNotifier {
     currentCurrency = currencyByCode(settings.get('currency'));
     // Installs from before onboarding existed already have data: skip it.
     if (settings.get('onboarded') == null && db.select('SELECT 1 FROM transactions LIMIT 1').isNotEmpty) settings.set('onboarded', '1');
-    reminders = Reminders(db: db, service: notifications ?? NotificationService.none, clock: this.clock);
+    final service = notifications ?? NotificationService.none;
+    reminders = Reminders(db: db, service: service, clock: this.clock);
+    sms = SmsInbox(db: db, service: service, clock: this.clock);
+    service.listen(handleNotificationTap);
     this.security = SecurityState(db: db, settings: settings, platform: security ?? SecurityPlatform(), clock: this.clock);
   }
 
@@ -69,14 +75,37 @@ class AppState extends ChangeNotifier {
   /// App lock, app-switcher privacy and database encryption.
   late final SecurityState security;
 
+  /// Bank SMS waiting to be added (Android).
+  late final SmsInbox sms;
+  final SmsPlatform smsPlatform;
+
+  /// An SMS capture to open in the add form, set when its notification is
+  /// tapped; the UI opens it and clears this.
+  final smsToOpen = ValueNotifier<SmsCapture?>(null);
+
+  /// Handles a notification tap (or button) while the app runs.
+  Future<void> handleNotificationTap(NotificationTap tap) async {
+    final open = await sms.handleTap(tap);
+    if (open != null) smsToOpen.value = open;
+    changed();
+  }
+
   DateTime now() => clock();
 
   /// Work done once when the app opens: create due recurring transactions
   /// and drop rows deleted in the last session (with their receipt files).
   Future<void> startup() async {
     recurring.run(now());
+    sms.prune();
     await purgeDeleted();
     await reminders.refresh();
+    NotificationTap? tap;
+    try {
+      tap = await reminders.service.launchTap();
+    } catch (e, st) {
+      errorLog?.record('Could not read the notification that opened the app: $e', st);
+    }
+    if (tap != null) await handleNotificationTap(tap);
   }
 
   Future<void> purgeDeleted() async {
@@ -139,6 +168,7 @@ class AppState extends ChangeNotifier {
   @override
   void dispose() {
     security.dispose();
+    smsToOpen.dispose();
     db.close();
     super.dispose();
   }

@@ -13,6 +13,7 @@ import 'categories_screen.dart';
 import 'data_flows.dart';
 import 'diagnostics_screen.dart';
 import 'security_screen.dart';
+import 'sms_screen.dart';
 import 'recurring_screen.dart';
 import 'reminder_settings_screen.dart';
 import 'sources_screen.dart';
@@ -73,7 +74,7 @@ class SettingsScreen extends StatelessWidget {
       title: const Text('Privacy'),
       content: const Text(
         'Expense Manager has no account, server or analytics. Everything you enter is stored in a database on this phone and only leaves it when you export or share a file yourself.\n\n'
-        'Location is read only when you allow it, and only to label your own transactions. Map tiles are loaded from OpenStreetMap when you open a map.',
+        'Location is read only when you allow it, and only to label your own transactions. Map tiles are loaded from OpenStreetMap when you open a map. Bank SMS are read, on this phone only, if you turn on Expenses from SMS.',
       ),
       actions: [
         TextButton(key: const Key('privacy-policy'), onPressed: () => MapServices.instance.openExternal(Uri.parse(privacyPolicyUrl)), child: const Text('Read full policy')),
@@ -249,6 +250,14 @@ class SettingsScreen extends StatelessWidget {
               trailing: TrailingText(app.security.lockEnabled ? 'On' : 'Off'),
               onTap: () => open(const SecurityScreen()),
             ),
+            if (app.smsPlatform.supported)
+              ListTile(
+                key: const Key('open-sms'),
+                leading: const Icon(AppIcons.sms),
+                title: const Text('Expenses from SMS'),
+                trailing: TrailingText(app.sms.enabled ? 'On' : 'Off'),
+                onTap: () => open(const SmsScreen()),
+              ),
             ListTile(
               key: const Key('open-reminders'),
               leading: const Icon(AppIcons.notifications),

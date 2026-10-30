@@ -84,6 +84,7 @@ abstract final class AppIcons {
   static const IconData share = LucideIcons.share;
   static const IconData shield = LucideIcons.shield;
   static const IconData shopping = LucideIcons.shoppingBag;
+  static const IconData sms = LucideIcons.messageSquareText;
   static const IconData sort = LucideIcons.arrowUpDown;
   static const IconData spreadsheet = LucideIcons.sheet;
   static const IconData time = LucideIcons.clock;
@@ -173,6 +174,7 @@ abstract final class AppIcons {
     share,
     shield,
     shopping,
+    sms,
     sort,
     spreadsheet,
     time,
