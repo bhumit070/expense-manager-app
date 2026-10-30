@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../data/models.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
@@ -7,9 +8,9 @@ import '../widgets/common.dart';
 import '../theme/icons.dart';
 
 String categoryKindLabel(CategoryKind k) => switch (k) {
-  CategoryKind.spend => 'Spend',
-  CategoryKind.invest => 'Investment',
-  CategoryKind.income => 'Income',
+  CategoryKind.spend => currentL10n.typeSpend,
+  CategoryKind.invest => currentL10n.catKindInvestment,
+  CategoryKind.income => currentL10n.typeIncome,
 };
 
 const _palette = [0xFFF43F5E, 0xFF8B5CF6, 0xFFEC4899, 0xFFF59E0B, 0xFF10B981, 0xFF0EA5E9, 0xFF6366F1, 0xFF64748B];
@@ -35,10 +36,10 @@ class CategoriesScreen extends StatelessWidget {
     final picked = await showDialog<int>(
       context: context,
       builder: (_) => SimpleDialog(
-        title: Text('Move ${cat.name}'),
+        title: Text(context.l10n.catMove(cat.name)),
         children: [
-          if (cat.isChild) SimpleDialogOption(key: const Key('move-top'), onPressed: () => Navigator.pop(context, 0), child: const Text('Top level')),
-          for (final p in targets) SimpleDialogOption(key: Key('move-to-${p.id}'), onPressed: () => Navigator.pop(context, p.id), child: Text('Under ${p.name}')),
+          if (cat.isChild) SimpleDialogOption(key: const Key('move-top'), onPressed: () => Navigator.pop(context, 0), child: Text(context.l10n.catTopLevel)),
+          for (final p in targets) SimpleDialogOption(key: Key('move-to-${p.id}'), onPressed: () => Navigator.pop(context, p.id), child: Text(context.l10n.catUnder(p.name))),
         ],
       ),
     );
@@ -46,7 +47,7 @@ class CategoriesScreen extends StatelessWidget {
     if (app.catalog.setParent(cat.id, picked == 0 ? null : picked)) {
       app.changed();
     } else {
-      showSnack(context, 'Only categories without sub-categories can be moved under another');
+      showSnack(context, context.l10n.catMoveOnlyLeaf);
     }
   }
 
@@ -62,7 +63,7 @@ class CategoriesScreen extends StatelessWidget {
         contentPadding: EdgeInsets.only(left: cat.isChild ? 40 : 16, right: 8),
         leading: CategoryBadge(cat, size: cat.isChild ? 32 : 38),
         title: Text(cat.name, style: ts(cat.isChild ? 13 : 14, weight: FontWeight.w600)),
-        subtitle: cat.isDefault ? Text('Default — used when nothing is picked', style: ts(11, color: c.textMuted)) : null,
+        subtitle: cat.isDefault ? Text(context.l10n.catDefaultHelp, style: ts(11, color: c.textMuted)) : null,
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -71,22 +72,22 @@ class CategoriesScreen extends StatelessWidget {
               icon: const Icon(AppIcons.more),
               onSelected: (v) => v == 'sub' ? _add(context, app, parent: cat) : _move(context, app, cat),
               itemBuilder: (_) => [
-                if (!cat.isChild) const PopupMenuItem(value: 'sub', child: Text('Add sub-category')),
-                if (canMove) PopupMenuItem(value: 'move', child: Text(cat.isChild ? 'Move…' : 'Move under…')),
+                if (!cat.isChild) PopupMenuItem(value: 'sub', child: Text(context.l10n.catAddSub)),
+                if (canMove) PopupMenuItem(value: 'move', child: Text(cat.isChild ? context.l10n.catMoveMenu : context.l10n.catMoveUnderMenu)),
               ],
             ),
             if (!cat.isDefault)
               IconButton(
                 key: Key('archive-${cat.id}'),
-                tooltip: 'Archive ${cat.name}',
+                tooltip: context.l10n.catArchive(cat.name),
                 icon: const Icon(AppIcons.archive),
                 onPressed: () {
                   final ids = app.catalog.archiveCategoryIds(cat.id);
                   app.changed();
                   showSnack(
                     context,
-                    '${cat.name} archived',
-                    action: 'Undo',
+                    context.l10n.catArchived(cat.name),
+                    action: context.l10n.undo,
                     onAction: () {
                       app.catalog.restoreCategories(ids);
                       app.changed();
@@ -155,15 +156,15 @@ class CategoriesScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Categories', style: ts(16, weight: FontWeight.w700)),
-        actions: [IconButton(key: const Key('add-category'), tooltip: 'Add category', icon: const Icon(AppIcons.add), onPressed: () => _add(context, app))],
+        title: Text(context.l10n.settingsCategories, style: ts(16, weight: FontWeight.w700)),
+        actions: [IconButton(key: const Key('add-category'), tooltip: context.l10n.catAdd, icon: const Icon(AppIcons.add), onPressed: () => _add(context, app))],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
         children: [
-          section(CategoryKind.spend, 'Spend', 'Money that’s gone — food, rent, bills. Tap ⋮ to add sub-categories.'),
-          section(CategoryKind.invest, 'Investment', 'Money out that still grows your net worth.'),
-          section(CategoryKind.income, 'Income', 'Money coming in.'),
+          section(CategoryKind.spend, context.l10n.typeSpend, context.l10n.catSpendHelp),
+          section(CategoryKind.invest, context.l10n.catKindInvestment, context.l10n.catInvestHelp),
+          section(CategoryKind.income, context.l10n.typeIncome, context.l10n.catIncomeHelp),
           if (archived.isNotEmpty) ...[
             const SizedBox(height: 18),
             AppCard(
@@ -172,8 +173,8 @@ class CategoriesScreen extends StatelessWidget {
                 data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                 child: ExpansionTile(
                   key: const Key('archived-categories'),
-                  title: Text('Archived (${archived.length})', style: ts(14, weight: FontWeight.w600)),
-                  subtitle: Text('Kept for history; not offered on new transactions', style: ts(11, color: c.textMuted)),
+                  title: Text(context.l10n.catArchivedCount(archived.length), style: ts(14, weight: FontWeight.w600)),
+                  subtitle: Text(context.l10n.catArchivedHelp, style: ts(11, color: c.textMuted)),
                   children: [
                     for (final cat in archived)
                       ListTile(
@@ -184,17 +185,17 @@ class CategoriesScreen extends StatelessWidget {
                           style: ts(14, weight: FontWeight.w600, color: c.textMuted),
                         ),
                         subtitle: Text(
-                          cat.parentId == null ? categoryKindLabel(cat.kind) : '${categoryKindLabel(cat.kind)} · under ${app.catalog.category(cat.parentId!).name}',
+                          cat.parentId == null ? categoryKindLabel(cat.kind) : context.l10n.catKindUnder(categoryKindLabel(cat.kind), app.catalog.category(cat.parentId!).name),
                           style: ts(11, color: c.textMuted),
                         ),
                         trailing: TextButton.icon(
                           key: Key('restore-cat-${cat.id}'),
                           icon: const Icon(AppIcons.unarchive, size: 18),
-                          label: const Text('Restore'),
+                          label: Text(context.l10n.restore),
                           onPressed: () {
                             app.catalog.restoreCategories([cat.id]);
                             app.changed();
-                            showSnack(context, '${cat.name} restored');
+                            showSnack(context, context.l10n.catRestored(cat.name));
                           },
                         ),
                       ),
@@ -237,7 +238,7 @@ class _CategoryDialogState extends State<CategoryDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.parent == null ? 'New category' : 'New sub-category in ${widget.parent!.name}'),
+      title: Text(widget.parent == null ? context.l10n.catNew : context.l10n.catNewSub(widget.parent!.name)),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -246,7 +247,7 @@ class _CategoryDialogState extends State<CategoryDialog> {
               key: const Key('cat-name'),
               controller: _name,
               autofocus: true,
-              decoration: const InputDecoration(labelText: 'Name'),
+              decoration: InputDecoration(labelText: context.l10n.settingsName),
             ),
             if (widget.parent == null) ...[
               const SizedBox(height: 12),
@@ -254,9 +255,9 @@ class _CategoryDialogState extends State<CategoryDialog> {
                 values: CategoryKind.values,
                 selected: _kind,
                 label: (k) => switch (k) {
-                  CategoryKind.spend => 'Spend',
-                  CategoryKind.invest => 'Invest',
-                  CategoryKind.income => 'Income',
+                  CategoryKind.spend => context.l10n.typeSpend,
+                  CategoryKind.invest => context.l10n.typeInvest,
+                  CategoryKind.income => context.l10n.typeIncome,
                 },
                 onChanged: (k) => setState(() => _kind = k),
               ),
@@ -297,12 +298,12 @@ class _CategoryDialogState extends State<CategoryDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.cancel)),
         FilledButton(
           key: const Key('cat-save'),
           style: FilledButton.styleFrom(minimumSize: const Size(80, 40)),
           onPressed: () => Navigator.pop<NewCategory>(context, _name.text.trim().isEmpty ? null : (name: _name.text, kind: _kind, icon: _icon, color: _color)),
-          child: const Text('Add'),
+          child: Text(context.l10n.add),
         ),
       ],
     );

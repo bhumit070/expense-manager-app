@@ -30,6 +30,7 @@ abstract final class AppIcons {
   static const IconData copy = LucideIcons.copy;
   static const IconData creditCard = LucideIcons.creditCard;
   static const IconData currency = LucideIcons.coins;
+  static const IconData language = LucideIcons.languages;
   static const IconData delete = LucideIcons.trash2;
   static const IconData document = LucideIcons.fileText;
   static const IconData download = LucideIcons.download;
@@ -124,6 +125,7 @@ abstract final class AppIcons {
     copy,
     creditCard,
     currency,
+    language,
     delete,
     document,
     download,

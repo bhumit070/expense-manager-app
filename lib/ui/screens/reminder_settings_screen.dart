@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
+import '../../l10n/l10n.dart';
 import '../../state/app_state.dart';
 import '../../state/reminders.dart';
 import '../theme/tokens.dart';
@@ -10,9 +12,8 @@ import '../theme/icons.dart';
 const maturityLeadChoices = [0, 1, 3, 7, 14];
 
 String leadDaysLabel(int days) => switch (days) {
-  0 => 'On the day',
-  1 => '1 day before',
-  _ => '$days days before',
+  0 => currentL10n.onTheDay,
+  _ => currentL10n.daysBefore(days),
 };
 
 /// Settings › Reminders & alerts.
@@ -22,7 +23,7 @@ class ReminderSettingsScreen extends StatelessWidget {
   Future<void> _toggle(BuildContext context, AppState app, bool on) async {
     if (on) {
       final granted = await app.reminders.enable();
-      if (!granted && context.mounted) showSnack(context, 'Notifications are blocked. Allow them for Expense Manager in system settings.');
+      if (!granted && context.mounted) showSnack(context, context.l10n.notificationsBlocked);
     } else {
       await app.reminders.disable();
     }
@@ -31,7 +32,7 @@ class ReminderSettingsScreen extends StatelessWidget {
 
   Future<void> _test(BuildContext context, AppState app) async {
     await app.reminders.sendTest();
-    if (context.mounted) showSnack(context, 'Test notification sent');
+    if (context.mounted) showSnack(context, context.l10n.testSent);
   }
 
   @override
@@ -42,7 +43,7 @@ class ReminderSettingsScreen extends StatelessWidget {
     final on = r.enabled;
     return Scaffold(
       appBar: AppBar(
-        title: Text('Reminders & alerts', style: ts(16, weight: FontWeight.w700)),
+        title: Text(context.l10n.remindersTitle, style: ts(16, weight: FontWeight.w700)),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -52,8 +53,8 @@ class ReminderSettingsScreen extends StatelessWidget {
             child: SwitchListTile(
               key: const Key('notif-master'),
               secondary: const Icon(AppIcons.notifications),
-              title: const Text('Notifications'),
-              subtitle: const Text('Planned on this phone · nothing is sent to a server'),
+              title: Text(context.l10n.notifications),
+              subtitle: Text(context.l10n.notificationsHelp),
               value: on,
               onChanged: (v) => _toggle(context, app, v),
             ),
@@ -84,7 +85,7 @@ class ReminderSettingsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Remind me before an FD matures', style: ts(14, weight: FontWeight.w600)),
+                Text(context.l10n.fdLeadTitle, style: ts(14, weight: FontWeight.w600)),
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 6,
@@ -106,12 +107,9 @@ class ReminderSettingsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Text(
-            'Reminders arrive around $reminderHour AM: due dates the day before and on the day, SIPs on their date, and budget alerts once per budget when it reaches 80% and 100%.',
-            style: ts(12, color: c.textMuted),
-          ),
+          Text(context.l10n.remindersInfo(DateFormat.j().format(DateTime(2000, 1, 1, reminderHour))), style: ts(12, color: c.textMuted)),
           const SizedBox(height: 16),
-          OutlinedButton.icon(key: const Key('notif-test'), onPressed: on ? () => _test(context, app) : null, icon: const Icon(AppIcons.send, size: 18), label: const Text('Send a test notification')),
+          OutlinedButton.icon(key: const Key('notif-test'), onPressed: on ? () => _test(context, app) : null, icon: const Icon(AppIcons.send, size: 18), label: Text(context.l10n.sendTest)),
         ],
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../data/models.dart';
 import 'icons.dart';
 
@@ -194,19 +195,19 @@ IconData sourceIcon(SourceKind k) => switch (k) {
 };
 
 String typeLabel(TxnType t) => switch (t) {
-  TxnType.spend => 'Spend',
-  TxnType.invest => 'Invest',
-  TxnType.income => 'Income',
-  TxnType.debt => 'Debt',
+  TxnType.spend => currentL10n.typeSpend,
+  TxnType.invest => currentL10n.typeInvest,
+  TxnType.income => currentL10n.typeIncome,
+  TxnType.debt => currentL10n.typeDebt,
 };
 
 String investmentKindLabel(InvestmentKind k) => switch (k) {
-  InvestmentKind.fd => 'Fixed deposits',
-  InvestmentKind.mutualFund => 'Mutual funds',
-  InvestmentKind.stock => 'Stocks',
-  InvestmentKind.gold => 'Gold',
-  InvestmentKind.retirement => 'Retirement (PPF/EPF/NPS)',
-  InvestmentKind.other => 'Other',
+  InvestmentKind.fd => currentL10n.investKindFd,
+  InvestmentKind.mutualFund => currentL10n.investKindMf,
+  InvestmentKind.stock => currentL10n.investKindStock,
+  InvestmentKind.gold => currentL10n.investKindGold,
+  InvestmentKind.retirement => currentL10n.investKindRetirement,
+  InvestmentKind.other => currentL10n.investKindOther,
 };
 
 IconData investmentIcon(InvestmentKind k) => switch (k) {

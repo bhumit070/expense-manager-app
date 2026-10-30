@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../core/dates.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
@@ -9,10 +10,10 @@ import '../widgets/common.dart';
 import '../theme/icons.dart';
 
 String sourceKindLabel(SourceKind k) => switch (k) {
-  SourceKind.bank => 'Bank account',
-  SourceKind.card => 'Credit card',
-  SourceKind.cash => 'Cash',
-  SourceKind.wallet => 'UPI / wallet',
+  SourceKind.bank => currentL10n.sourceKindBank,
+  SourceKind.card => currentL10n.debtKindCard,
+  SourceKind.cash => currentL10n.sourceKindCash,
+  SourceKind.wallet => currentL10n.sourceKindWallet,
 };
 
 class SourcesScreen extends StatelessWidget {
@@ -49,8 +50,8 @@ class SourcesScreen extends StatelessWidget {
     final def = app.catalog.defaultSource();
     return Scaffold(
       appBar: AppBar(
-        title: Text('Payment sources', style: ts(16, weight: FontWeight.w700)),
-        actions: [IconButton(key: const Key('add-source'), tooltip: 'Add payment source', icon: const Icon(AppIcons.add), onPressed: () => _add(context, app))],
+        title: Text(context.l10n.settingsSources, style: ts(16, weight: FontWeight.w700)),
+        actions: [IconButton(key: const Key('add-source'), tooltip: context.l10n.sourceAdd, icon: const Icon(AppIcons.add), onPressed: () => _add(context, app))],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -66,12 +67,12 @@ class SourcesScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Default payment mode', style: ts(11, color: const Color(0xFFA5B4FC))),
+                      Text(context.l10n.settingsDefaultSource, style: ts(11, color: const Color(0xFFA5B4FC))),
                       Text(
-                        def?.display ?? 'None',
+                        def?.display ?? context.l10n.none,
                         style: ts(16, weight: FontWeight.w700, color: Colors.white),
                       ),
-                      Text('Pre-selected on every new transaction', style: ts(11, color: const Color(0xFFC7D2FE))),
+                      Text(context.l10n.sourceDefaultHelp, style: ts(11, color: const Color(0xFFC7D2FE))),
                     ],
                   ),
                 ),
@@ -104,7 +105,10 @@ class SourcesScreen extends StatelessWidget {
                             style: ts(12, weight: FontWeight.w600, color: balances[s.id]! < 0 ? c.spend : c.text),
                           ),
                           Text(
-                            '${sourceKindLabel(s.kind)} · ${formatInr(spent[s.id] ?? 0)} out in ${monthsShort[app.now().month - 1]}${s.creditLimit == null ? '' : ' · limit ${formatInr(s.creditLimit!)}'}',
+                            [
+                              context.l10n.sourceOutIn(sourceKindLabel(s.kind), formatInr(spent[s.id] ?? 0), monthsShort[app.now().month - 1]),
+                              if (s.creditLimit != null) context.l10n.sourceLimit(formatInr(s.creditLimit!)),
+                            ].join(' · '),
                             style: ts(11, color: c.textMuted),
                           ),
                         ],
@@ -116,7 +120,7 @@ class SourcesScreen extends StatelessWidget {
                           if (sources.length > 1)
                             IconButton(
                               key: Key('archive-source-${s.id}'),
-                              tooltip: 'Archive ${s.display}',
+                              tooltip: context.l10n.catArchive(s.display),
                               icon: const Icon(AppIcons.archive),
                               onPressed: () {
                                 app.catalog.archiveSource(s.id);
@@ -139,8 +143,8 @@ class SourcesScreen extends StatelessWidget {
                 data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                 child: ExpansionTile(
                   key: const Key('archived-sources'),
-                  title: Text('Archived (${archived.length})', style: ts(14, weight: FontWeight.w600)),
-                  subtitle: Text('Kept for history; not offered on new transactions', style: ts(11, color: c.textMuted)),
+                  title: Text(context.l10n.catArchivedCount(archived.length), style: ts(14, weight: FontWeight.w600)),
+                  subtitle: Text(context.l10n.catArchivedHelp, style: ts(11, color: c.textMuted)),
                   children: [
                     for (final s in archived)
                       ListTile(
@@ -154,11 +158,11 @@ class SourcesScreen extends StatelessWidget {
                         trailing: TextButton.icon(
                           key: Key('restore-source-${s.id}'),
                           icon: const Icon(AppIcons.unarchive, size: 18),
-                          label: const Text('Restore'),
+                          label: Text(context.l10n.restore),
                           onPressed: () {
                             app.catalog.restoreSource(s.id);
                             app.changed();
-                            showSnack(context, '${s.display} restored');
+                            showSnack(context, context.l10n.catRestored(s.display));
                           },
                         ),
                       ),
@@ -175,8 +179,8 @@ class SourcesScreen extends StatelessWidget {
 
 /// "Balance ₹X" for accounts; "₹X outstanding" for cards.
 String balanceLabel(PaymentSource s, int balance) {
-  if (s.kind != SourceKind.card) return 'Balance ${formatInr(balance)}';
-  return balance <= 0 ? '${formatInr(-balance)} outstanding' : '${formatInr(balance)} credit';
+  if (s.kind != SourceKind.card) return currentL10n.sourceBalance(formatInr(balance));
+  return balance <= 0 ? currentL10n.sourceOutstanding(formatInr(-balance)) : currentL10n.sourceCredit(formatInr(balance));
 }
 
 typedef NewSource = ({String name, SourceKind kind, String? last4, int? creditLimit, int openingBalance, bool makeDefault});
@@ -225,7 +229,7 @@ class _SourceDialogState extends State<SourceDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('New payment source'),
+      title: Text(context.l10n.sourceNew),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -239,7 +243,7 @@ class _SourceDialogState extends State<SourceDialog> {
             TextField(
               key: const Key('source-name'),
               controller: _name,
-              decoration: const InputDecoration(labelText: 'Name, e.g. HDFC Savings'),
+              decoration: InputDecoration(labelText: context.l10n.sourceNameField),
             ),
             const SizedBox(height: 10),
             TextField(
@@ -247,25 +251,25 @@ class _SourceDialogState extends State<SourceDialog> {
               controller: _last4,
               maxLength: 4,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Last 4 digits (optional)'),
+              decoration: InputDecoration(labelText: context.l10n.sourceLast4),
             ),
             if (_kind == SourceKind.card)
               TextField(
                 key: const Key('source-limit'),
                 controller: _limit,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Credit limit ($currencySymbol)'),
+                decoration: InputDecoration(labelText: context.l10n.sourceCreditLimit(currencySymbol)),
               ),
             TextField(
               key: const Key('source-balance'),
               controller: _balance,
               keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-              decoration: InputDecoration(labelText: balanceFieldLabel(_kind), helperText: 'Optional · defaults to ${formatInr(0)}'),
+              decoration: InputDecoration(labelText: balanceFieldLabel(_kind), helperText: context.l10n.sourceBalanceHelp(formatInr(0))),
             ),
             CheckboxListTile(
               key: const Key('source-default'),
               contentPadding: EdgeInsets.zero,
-              title: const Text('Make default'),
+              title: Text(context.l10n.makeDefault),
               value: _makeDefault,
               onChanged: (v) => setState(() => _makeDefault = v!),
             ),
@@ -273,19 +277,19 @@ class _SourceDialogState extends State<SourceDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.cancel)),
         FilledButton(
           key: const Key('source-save'),
           style: FilledButton.styleFrom(minimumSize: const Size(80, 40)),
           onPressed: _submit,
-          child: const Text('Add'),
+          child: Text(context.l10n.add),
         ),
       ],
     );
   }
 }
 
-String balanceFieldLabel(SourceKind k) => k == SourceKind.card ? 'Outstanding now ($currencySymbol)' : 'Current balance ($currencySymbol)';
+String balanceFieldLabel(SourceKind k) => k == SourceKind.card ? currentL10n.sourceOutstandingField(currencySymbol) : currentL10n.sourceBalanceField(currencySymbol);
 
 /// Asks for what the source holds today; returns paise as the user typed it.
 class BalanceDialog extends StatefulWidget {
@@ -318,15 +322,15 @@ class _BalanceDialogState extends State<BalanceDialog> {
         controller: _amount,
         autofocus: true,
         keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-        decoration: InputDecoration(labelText: balanceFieldLabel(widget.source.kind), helperText: 'Transactions you add will adjust it from here'),
+        decoration: InputDecoration(labelText: balanceFieldLabel(widget.source.kind), helperText: context.l10n.sourceAdjustHelp),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.cancel)),
         FilledButton(
           key: const Key('balance-save'),
           style: FilledButton.styleFrom(minimumSize: const Size(80, 40)),
           onPressed: () => Navigator.pop<int>(context, parseInr(_amount.text) ?? 0),
-          child: const Text('Save'),
+          child: Text(context.l10n.save),
         ),
       ],
     );

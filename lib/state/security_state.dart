@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import '../l10n/l10n.dart';
 import '../data/settings_repo.dart';
 import '../services/security_platform.dart';
 
@@ -135,7 +136,7 @@ class SecurityState extends ChangeNotifier {
   /// Unlocks with fingerprint / face when the user turned that on.
   Future<bool> unlockWithBiometrics() async {
     if (!lockEnabled || !biometricsOn) return false;
-    final ok = await platform.biometrics.authenticate('Unlock Expense Manager');
+    final ok = await platform.biometrics.authenticate(currentL10n.unlockPrompt);
     if (ok) {
       _resetAttempts();
       _locked = false;

@@ -453,7 +453,7 @@ void main() {
     expect(find.text('Income'), findsNothing);
     await tester.tap(find.byKey(const Key('import-1')));
     await tester.pump();
-    expect(find.text('Import 1 transactions'), findsOneWidget);
+    expect(find.text('Import 1 transaction'), findsOneWidget);
     await tester.tap(find.byKey(const Key('import-0')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('import-0')));
@@ -466,7 +466,7 @@ void main() {
     await tester.tap(find.byKey(const Key('do-import')));
     await tester.pumpAndSettle();
     expect(s.txns.list(const TxnFilter()).length, before + 1);
-    expect(find.text('Imported 1 transactions'), findsWidgets);
+    expect(find.text('Imported 1 transaction'), findsWidgets);
   });
 
   testWidgets('ExpenseApp follows the saved theme mode', (tester) async {

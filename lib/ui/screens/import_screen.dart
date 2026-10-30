@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/dates.dart';
 import '../../core/money.dart';
+import '../../l10n/l10n.dart';
 import '../../services/csv.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
@@ -10,14 +11,14 @@ import '../theme/icons.dart';
 
 /// Preview of a CSV or statement import with duplicate detection and per-row selection.
 class ImportScreen extends StatefulWidget {
-  const ImportScreen({super.key, this.csvText = '', this.rows, this.title = 'Import preview'});
+  const ImportScreen({super.key, this.csvText = '', this.rows, this.title});
 
   /// Raw CSV text, used when [rows] is null.
   final String csvText;
 
   /// Already-split rows with a header (e.g. from a PDF statement).
   final List<List<String>>? rows;
-  final String title;
+  final String? title;
 
   @override
   State<ImportScreen> createState() => _ImportScreenState();
@@ -42,7 +43,7 @@ class _ImportScreenState extends State<ImportScreen> {
     final app = AppScope.read(context);
     final n = app.txns.insertAll(resolveImport([for (final i in _selected) _rows![i]], app.catalog));
     app.changed();
-    showSnack(context, 'Imported $n transactions');
+    showSnack(context, context.l10n.importedN(n));
     Navigator.of(context).pop();
   }
 
@@ -73,7 +74,7 @@ class _ImportScreenState extends State<ImportScreen> {
     );
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title, style: ts(16, weight: FontWeight.w700)),
+        title: Text(widget.title ?? context.l10n.importPreview, style: ts(16, weight: FontWeight.w700)),
       ),
       body: Column(
         children: [
@@ -100,7 +101,7 @@ class _ImportScreenState extends State<ImportScreen> {
                 if (r.txn == null) {
                   return ListTile(
                     leading: Icon(AppIcons.error, color: c.spend),
-                    title: Text('Line ${r.line}'),
+                    title: Text(context.l10n.importLine(r.line)),
                     subtitle: Text(r.error!),
                   );
                 }
@@ -114,9 +115,9 @@ class _ImportScreenState extends State<ImportScreen> {
                     [
                       shortDate(t.occurredAt),
                       typeLabel(t.type),
-                      if (r.duplicate) 'Duplicate',
-                      if (r.needsReview) 'Category → Others',
-                      if (r.newSubcategory != null) 'New sub-category: ${r.newSubcategory}',
+                      if (r.duplicate) context.l10n.importDuplicate,
+                      if (r.needsReview) context.l10n.importToDefault(AppScope.read(context).catalog.defaultCategory().name),
+                      if (r.newSubcategory != null) context.l10n.importNewSub(r.newSubcategory!),
                     ].join(' · '),
                     style: ts(11, color: r.duplicate ? c.textFaint : (r.needsReview ? c.debt : c.textMuted)),
                   ),
@@ -127,7 +128,7 @@ class _ImportScreenState extends State<ImportScreen> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-            child: FilledButton(key: const Key('do-import'), onPressed: _selected.isEmpty ? null : _import, child: Text('Import ${_selected.length} transactions')),
+            child: FilledButton(key: const Key('do-import'), onPressed: _selected.isEmpty ? null : _import, child: Text(context.l10n.importN(_selected.length))),
           ),
         ],
       ),

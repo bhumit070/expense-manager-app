@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
 import '../../state/app_state.dart';
@@ -79,7 +80,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ],
                   ),
                   const Spacer(),
-                  TextButton(key: const Key('onboarding-skip'), onPressed: _next, child: Text(_index == _steps.length - 1 ? 'Finish' : 'Skip')),
+                  TextButton(key: const Key('onboarding-skip'), onPressed: _next, child: Text(_index == _steps.length - 1 ? context.l10n.finish : context.l10n.skip)),
                 ],
               ),
             ),
@@ -142,6 +143,8 @@ class WelcomeStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final l = context.l10n;
+    final app = AppScope.of(context);
     Widget point(IconData icon, String text) => Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -159,11 +162,25 @@ class WelcomeStep extends StatelessWidget {
     );
     return StepLayout(
       icon: AppIcons.shield,
-      title: 'Your money, on your phone',
-      body: 'Track spending, investments and debts in one place. Your data stays on this phone. There is no account, no server and no tracking.',
-      action: 'Get started',
+      title: l.onbWelcomeTitle,
+      body: l.onbWelcomeBody,
+      action: l.onbGetStarted,
       onAction: onNext,
-      children: [point(AppIcons.lock, 'Stored only on this device'), point(AppIcons.offline, 'Works fully offline'), point(AppIcons.download, 'Export to CSV or PDF any time')],
+      children: [
+        point(AppIcons.lock, l.onbPointLocal),
+        point(AppIcons.offline, l.onbPointOffline),
+        point(AppIcons.download, l.onbPointExport),
+        const SizedBox(height: 8),
+        Wrap(
+          key: const Key('onboarding-languages'),
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final lang in appLanguages)
+              Pill(lang.name, key: Key('onboarding-language-${lang.code}'), icon: AppIcons.language, selected: app.locale.languageCode == lang.code, onTap: () => app.language = lang.code),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -194,16 +211,16 @@ class _NameStepState extends State<NameStep> {
   @override
   Widget build(BuildContext context) => StepLayout(
     icon: AppIcons.wave,
-    title: 'What should we call you?',
-    body: 'Used only for the greeting on the home screen. Optional.',
-    action: 'Continue',
+    title: context.l10n.onbNameTitle,
+    body: context.l10n.onbNameBody,
+    action: context.l10n.continue_,
     onAction: _save,
     children: [
       TextField(
         key: const Key('onboarding-name'),
         controller: _name,
         textCapitalization: TextCapitalization.words,
-        decoration: const InputDecoration(labelText: 'Your name'),
+        decoration: InputDecoration(labelText: context.l10n.settingsYourName),
         onSubmitted: (_) => _save(),
       ),
     ],
@@ -220,9 +237,9 @@ class CurrencyStep extends StatelessWidget {
     final app = AppScope.of(context);
     return StepLayout(
       icon: AppIcons.currency,
-      title: 'Pick your currency',
-      body: 'Amounts are shown in this currency. You can change it later in Settings.',
-      action: 'Continue',
+      title: context.l10n.onbCurrencyTitle,
+      body: context.l10n.onbCurrencyBody,
+      action: context.l10n.continue_,
       onAction: onNext,
       children: [
         Wrap(
@@ -235,7 +252,7 @@ class CurrencyStep extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          '${app.currency.name} · e.g. ${formatInr(12345600)}',
+          context.l10n.onbCurrencySample(app.currency.localName, formatInr(12345600)),
           key: const Key('onboarding-currency-sample'),
           style: ts(13, color: context.colors.textMuted),
         ),
@@ -280,9 +297,9 @@ class _SourceStepState extends State<SourceStep> {
     final app = AppScope.of(context);
     return StepLayout(
       icon: AppIcons.wallet,
-      title: 'Where do you pay from?',
-      body: 'Add your main account. It becomes the default payment mode on new transactions. Leave it empty to start with ${app.catalog.defaultSource()?.name ?? 'Cash'}.',
-      action: 'Continue',
+      title: context.l10n.onbSourceTitle,
+      body: context.l10n.onbSourceBody(app.catalog.defaultSource()?.name ?? context.l10n.sourceKindCash),
+      action: context.l10n.continue_,
       onAction: _save,
       children: [
         Wrap(
@@ -294,14 +311,14 @@ class _SourceStepState extends State<SourceStep> {
         TextField(
           key: const Key('onboarding-source-name'),
           controller: _name,
-          decoration: const InputDecoration(labelText: 'Name, e.g. HDFC Savings'),
+          decoration: InputDecoration(labelText: context.l10n.sourceNameField),
         ),
         const SizedBox(height: 10),
         TextField(
           key: const Key('onboarding-source-balance'),
           controller: _balance,
           keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-          decoration: InputDecoration(labelText: balanceFieldLabel(_kind), helperText: 'Optional'),
+          decoration: InputDecoration(labelText: balanceFieldLabel(_kind), helperText: context.l10n.optional),
         ),
       ],
     );
@@ -342,15 +359,15 @@ class _LocationStepState extends State<LocationStep> {
     final c = context.colors;
     return StepLayout(
       icon: AppIcons.place,
-      title: 'Tag places automatically?',
-      body: 'With location on, new transactions get the place you are at. It is saved only with your entries on this phone. You can always type a place instead.',
-      action: _denied ? 'Continue without location' : 'Allow location',
+      title: context.l10n.onbLocationTitle,
+      body: context.l10n.onbLocationBody,
+      action: _denied ? context.l10n.onbLocationContinue : context.l10n.onbLocationAllow,
       onAction: _denied ? widget.onNext : _allow,
-      secondary: _denied ? null : TextButton(key: const Key('onboarding-location-skip'), onPressed: _skip, child: const Text('Not now')),
+      secondary: _denied ? null : TextButton(key: const Key('onboarding-location-skip'), onPressed: _skip, child: Text(context.l10n.notNow)),
       children: [
         if (_denied)
           Text(
-            'Permission was not granted. You can turn it on later in Settings.',
+            context.l10n.onbLocationDenied,
             key: const Key('onboarding-location-denied'),
             style: ts(13, color: c.spend),
           ),
@@ -387,17 +404,15 @@ class _SmsStepState extends State<SmsStep> {
     final c = context.colors;
     return StepLayout(
       icon: AppIcons.sms,
-      title: 'Add expenses from bank SMS?',
-      body: AppScope.of(context).smsPlatform.viaShortcuts
-          ? 'A Shortcuts automation can hand each bank, card or UPI SMS to us; we read it on this phone and ask whether to add it — one tap from the notification. Settings › Expenses from SMS shows how to set it up.'
-          : 'When a bank, card or UPI SMS arrives, we read it on this phone and ask whether to add it — one tap from the notification. OTPs and offers are skipped, and nothing is uploaded.',
-      action: _denied ? 'Continue without SMS' : (AppScope.of(context).smsPlatform.viaShortcuts ? 'Turn on' : 'Allow SMS'),
+      title: context.l10n.onbSmsTitle,
+      body: AppScope.of(context).smsPlatform.viaShortcuts ? context.l10n.onbSmsBodyShortcuts : context.l10n.onbSmsBody,
+      action: _denied ? context.l10n.onbSmsContinue : (AppScope.of(context).smsPlatform.viaShortcuts ? context.l10n.turnOn : context.l10n.onbSmsAllow),
       onAction: _denied ? widget.onNext : _allow,
-      secondary: _denied ? null : TextButton(key: const Key('onboarding-sms-skip'), onPressed: widget.onNext, child: const Text('Not now')),
+      secondary: _denied ? null : TextButton(key: const Key('onboarding-sms-skip'), onPressed: widget.onNext, child: Text(context.l10n.notNow)),
       children: [
         if (_denied)
           Text(
-            'SMS permission was not granted. You can turn this on later in Settings › Expenses from SMS.',
+            context.l10n.onbSmsDenied,
             key: const Key('onboarding-sms-denied'),
             style: ts(13, color: c.spend),
           ),
@@ -422,11 +437,11 @@ class AppLockStep extends StatelessWidget {
   Widget build(BuildContext context) {
     return StepLayout(
       icon: AppIcons.lock,
-      title: 'Lock the app?',
-      body: 'Ask for a PIN (or your fingerprint / face) when the app opens, and hide amounts in the app switcher. You can change this anytime in Settings.',
-      action: 'Set a PIN',
+      title: context.l10n.onbLockTitle,
+      body: context.l10n.onbLockBody,
+      action: context.l10n.onbLockAction,
       onAction: () => _enable(context),
-      secondary: TextButton(key: const Key('onboarding-lock-skip'), onPressed: onNext, child: const Text('Not now')),
+      secondary: TextButton(key: const Key('onboarding-lock-skip'), onPressed: onNext, child: Text(context.l10n.notNow)),
     );
   }
 }
@@ -459,15 +474,15 @@ class _NotificationsStepState extends State<NotificationsStep> {
     final c = context.colors;
     return StepLayout(
       icon: AppIcons.notifications,
-      title: 'Get reminders?',
-      body: 'A heads-up when a budget reaches 80% or 100%, the day before an EMI or card bill is due, on SIP dates and before an FD matures. Planned on this phone; nothing is sent anywhere.',
-      action: _denied ? 'Continue without reminders' : 'Turn on reminders',
+      title: context.l10n.onbRemindersTitle,
+      body: context.l10n.onbRemindersBody,
+      action: _denied ? context.l10n.onbRemindersContinue : context.l10n.onbRemindersAllow,
       onAction: _denied ? widget.onNext : _allow,
-      secondary: _denied ? null : TextButton(key: const Key('onboarding-notif-skip'), onPressed: widget.onNext, child: const Text('Not now')),
+      secondary: _denied ? null : TextButton(key: const Key('onboarding-notif-skip'), onPressed: widget.onNext, child: Text(context.l10n.notNow)),
       children: [
         if (_denied)
           Text(
-            'Notifications are blocked. You can turn them on later in Settings › Reminders & alerts.',
+            context.l10n.onbRemindersDenied,
             key: const Key('onboarding-notif-denied'),
             style: ts(13, color: c.spend),
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/models.dart';
+import '../../l10n/l10n.dart';
 import '../theme/tokens.dart';
 import 'common.dart';
 
@@ -71,7 +72,7 @@ class CategoryPicker extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                Pill('All ${categories.firstWhere((x) => x.id == activeParent).name}', selected: selectedId == activeParent, onTap: () => onChanged(activeParent!)),
+                Pill(context.l10n.allOf(categories.firstWhere((x) => x.id == activeParent).name), selected: selectedId == activeParent, onTap: () => onChanged(activeParent!)),
                 for (final s in subs) Pill(s.name, key: Key('sub-${s.id}'), dot: Color(s.color), selected: selectedId == s.id, onTap: () => onChanged(s.id)),
               ],
             ),

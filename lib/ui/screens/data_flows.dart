@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../../l10n/l10n.dart';
 import '../../core/dates.dart';
 import '../../services/backup.dart';
 import '../../services/csv.dart';
@@ -23,7 +24,7 @@ Future<void> exportCsvFlow(BuildContext context, AppState app) async {
   if (kinds == null || kinds.isEmpty) return;
   final out = buildExport(app, kinds);
   final path = await app.files.saveAndShare(out.name, out.bytes, out.mime);
-  if (context.mounted) showSnack(context, 'Exported ${kinds.length == 1 ? exportKindLabel(kinds.single).toLowerCase() : '${kinds.length} files'} to $path');
+  if (context.mounted) showSnack(context, kinds.length == 1 ? context.l10n.exportedOne(exportKindLabel(kinds.single).toLowerCase(), path) : context.l10n.exportedMany(kinds.length, path));
 }
 
 class ExportSheet extends StatefulWidget {
@@ -46,8 +47,8 @@ class _ExportSheetState extends State<ExportSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Export CSV', style: ts(18, weight: FontWeight.w800)),
-            Text('UTF-8 files that open in Excel or Sheets. Several files are shared as one zip.', style: ts(12, color: c.textMuted)),
+            Text(context.l10n.settingsExportCsv, style: ts(18, weight: FontWeight.w800)),
+            Text(context.l10n.exportHelp, style: ts(12, color: c.textMuted)),
             const SizedBox(height: 8),
             for (final k in ExportKind.values)
               CheckboxListTile(
@@ -61,7 +62,7 @@ class _ExportSheetState extends State<ExportSheet> {
             FilledButton(
               key: const Key('export-go'),
               onPressed: _picked.isEmpty ? null : () => Navigator.pop(context, _picked),
-              child: Text(_picked.length > 1 ? 'Export ${_picked.length} files (zip)' : 'Export'),
+              child: Text(_picked.length > 1 ? context.l10n.exportZip(_picked.length) : context.l10n.export),
             ),
           ],
         ),
@@ -75,18 +76,19 @@ Future<void> importFlow(BuildContext context, AppState app) async {
   final file = await app.files.pickFile(extensions: const ['csv', 'pdf']);
   if (file == null || !context.mounted) return;
   List<List<String>> rows;
-  var title = 'Import preview';
+  final l = context.l10n;
+  var title = l.importPreview;
   if (file.extension == 'pdf') {
     try {
       final lines = await extractPdfLines(file.bytes);
       final bank = detectBank(lines);
       final found = parseStatement(lines, bank: bank);
       if (found.isEmpty) {
-        if (context.mounted) showSnack(context, 'No transactions found in this PDF. Try the CSV/Excel export from net banking.');
+        if (context.mounted) showSnack(context, context.l10n.importPdfEmpty);
         return;
       }
       rows = statementToRows(found);
-      title = '${bankLabel(bank)} · ${found.length} found';
+      title = l.importFound(bankLabel(bank), found.length);
     } on Exception catch (e) {
       if (context.mounted) showSnack(context, '$e');
       return;
@@ -134,13 +136,13 @@ Future<T> _busy<T>(BuildContext context, String label, Future<T> Function() work
 Future<void> backUpFlow(BuildContext context, AppState app) async {
   final password = await showDialog<String>(context: context, builder: (_) => const BackupPasswordDialog());
   if (password == null || !context.mounted) return;
-  final path = await _busy(context, password.isEmpty ? 'Creating backup…' : 'Encrypting backup…', () async {
+  final path = await _busy(context, password.isEmpty ? context.l10n.backupCreating : context.l10n.backupEncrypting, () async {
     final zip = buildLedgerZip(app, docs: await getApplicationDocumentsDirectory(), temp: await getTemporaryDirectory());
     final bytes = password.isEmpty ? zip : await encryptLedger(zip, password);
     return app.files.saveAndShare('expense-manager-${isoDateTime(app.now()).substring(0, 10)}.$ledgerExtension', bytes, 'application/octet-stream');
   });
   app.markBackedUp();
-  if (context.mounted) showSnack(context, 'Backup saved to $path');
+  if (context.mounted) showSnack(context, context.l10n.backupSaved(path));
 }
 
 /// Restores a `.ledger` backup: password if needed, then Replace or Merge.
@@ -170,11 +172,13 @@ Future<void> restoreFlow(BuildContext context, AppState app) async {
     builder: (_) => RestoreDialog(manifest: found.manifest),
   );
   if (mode == null || !context.mounted) return;
-  final result = await _busy(context, 'Restoring…', () async => restoreLedger(app, found, mode, docs: await getApplicationDocumentsDirectory(), temp: await getTemporaryDirectory()));
+  final result = await _busy(context, context.l10n.restoring, () async => restoreLedger(app, found, mode, docs: await getApplicationDocumentsDirectory(), temp: await getTemporaryDirectory()));
   if (!context.mounted) return;
   showSnack(
     context,
-    mode == RestoreMode.replace ? 'Restored ${result.transactions} transactions' : 'Added ${result.transactions} transactions${result.skipped == 0 ? '' : ' · ${result.skipped} already here'}',
+    mode == RestoreMode.replace
+        ? context.l10n.restoredN(result.transactions)
+        : (result.skipped == 0 ? context.l10n.addedN(result.transactions) : context.l10n.addedNSkipped(result.transactions, result.skipped)),
   );
 }
 
@@ -204,27 +208,21 @@ class _BackupPasswordDialogState extends State<BackupPasswordDialog> {
   Widget build(BuildContext context) {
     final c = context.colors;
     return AlertDialog(
-      title: const Text('Back up now'),
+      title: Text(context.l10n.settingsBackUp),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('One .ledger file with all your data and receipts. Save it to Drive, Files or a computer.', style: ts(13, color: c.textMuted)),
-            SwitchListTile(
-              key: const Key('backup-protect'),
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Protect with a password'),
-              value: _protect,
-              onChanged: (v) => setState(() => _protect = v),
-            ),
+            Text(context.l10n.backupHelp, style: ts(13, color: c.textMuted)),
+            SwitchListTile(key: const Key('backup-protect'), contentPadding: EdgeInsets.zero, title: Text(context.l10n.backupProtect), value: _protect, onChanged: (v) => setState(() => _protect = v)),
             if (_protect) ...[
               TextField(
                 key: const Key('backup-password'),
                 controller: _pw,
                 obscureText: true,
                 onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(labelText: 'Password (6+ characters)'),
+                decoration: InputDecoration(labelText: context.l10n.backupPasswordField),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -232,21 +230,21 @@ class _BackupPasswordDialogState extends State<BackupPasswordDialog> {
                 controller: _confirm,
                 obscureText: true,
                 onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(labelText: 'Confirm password'),
+                decoration: InputDecoration(labelText: context.l10n.confirmPassword),
               ),
               const SizedBox(height: 8),
-              Text('There is no way to recover a forgotten password.', style: ts(11, color: c.debt)),
+              Text(context.l10n.backupNoRecovery, style: ts(11, color: c.debt)),
             ],
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.cancel)),
         FilledButton(
           key: const Key('backup-go'),
           style: FilledButton.styleFrom(minimumSize: const Size(80, 40)),
           onPressed: _valid ? () => Navigator.pop(context, _protect ? _pw.text : '') : null,
-          child: const Text('Back up'),
+          child: Text(context.l10n.backUp),
         ),
       ],
     );
@@ -272,21 +270,21 @@ class _UnlockDialogState extends State<UnlockDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Backup password'),
+    title: Text(context.l10n.backupPassword),
     content: TextField(
       key: const Key('unlock-password'),
       controller: _pw,
       obscureText: true,
       autofocus: true,
-      decoration: const InputDecoration(labelText: 'Password'),
+      decoration: InputDecoration(labelText: context.l10n.password),
     ),
     actions: [
-      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+      TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.cancel)),
       FilledButton(
         key: const Key('unlock-go'),
         style: FilledButton.styleFrom(minimumSize: const Size(80, 40)),
         onPressed: () => Navigator.pop(context, _pw.text),
-        child: const Text('Unlock'),
+        child: Text(context.l10n.unlock),
       ),
     ],
   );
@@ -312,37 +310,32 @@ class _RestoreDialogState extends State<RestoreDialog> {
     final m = widget.manifest;
     String n(String k) => '${m.counts[k] ?? 0}';
     return AlertDialog(
-      title: const Text('Restore backup'),
+      title: Text(context.l10n.restoreBackup),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Made ${longDate(m.createdAt)} · app ${m.appVersion}', style: ts(13, weight: FontWeight.w600)),
+            Text(context.l10n.backupMade(longDate(m.createdAt), m.appVersion), style: ts(13, weight: FontWeight.w600)),
             const SizedBox(height: 4),
             Text('${n('transactions')} transactions · ${n('investments')} investments · ${n('debts')} debts · ${n('budgets')} budgets', style: ts(12, color: c.textMuted)),
             const SizedBox(height: 12),
             Segmented<RestoreMode>(
               values: RestoreMode.values,
               selected: _mode,
-              label: (m) => m == RestoreMode.merge ? 'Merge' : 'Replace',
+              label: (m) => m == RestoreMode.merge ? context.l10n.merge : context.l10n.replace,
               onChanged: (m) => setState(() {
                 _mode = m;
                 _confirmed = false;
               }),
             ),
             const SizedBox(height: 10),
-            Text(
-              _mode == RestoreMode.merge
-                  ? 'Adds what is missing on this phone. Matching categories, sources and accounts are reused; transactions already here are skipped.'
-                  : 'Deletes everything on this phone and uses the backup instead.',
-              style: ts(12, color: _mode == RestoreMode.replace ? c.spend : c.textMuted),
-            ),
+            Text(_mode == RestoreMode.merge ? context.l10n.restoreMergeHelp : context.l10n.restoreReplaceHelp, style: ts(12, color: _mode == RestoreMode.replace ? c.spend : c.textMuted)),
             if (_mode == RestoreMode.replace)
               CheckboxListTile(
                 key: const Key('restore-confirm'),
                 contentPadding: EdgeInsets.zero,
-                title: const Text('I understand my current data will be erased'),
+                title: Text(context.l10n.restoreConfirm),
                 value: _confirmed,
                 onChanged: (v) => setState(() => _confirmed = v!),
               ),
@@ -350,7 +343,7 @@ class _RestoreDialogState extends State<RestoreDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.cancel)),
         FilledButton(
           key: const Key('restore-go'),
           style: FilledButton.styleFrom(
@@ -359,7 +352,7 @@ class _RestoreDialogState extends State<RestoreDialog> {
             foregroundColor: _mode == RestoreMode.replace ? Colors.white : null,
           ),
           onPressed: _mode == RestoreMode.replace && !_confirmed ? null : () => Navigator.pop(context, _mode),
-          child: Text(_mode == RestoreMode.merge ? 'Merge' : 'Replace'),
+          child: Text(_mode == RestoreMode.merge ? context.l10n.merge : context.l10n.replace),
         ),
       ],
     );
@@ -375,7 +368,7 @@ class BackupIntervalTile extends StatelessWidget {
     final app = AppScope.of(context);
     return ListTile(
       leading: const Icon(AppIcons.alarm),
-      title: const Text('Backup reminder'),
+      title: Text(context.l10n.backupReminder),
       subtitle: Text(app.lastBackupLabel),
       trailing: DropdownButton<BackupInterval>(
         key: const Key('backup-interval'),
@@ -411,12 +404,12 @@ class BackupBanner extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                app.lastBackupAt == null ? 'Your data lives only on this phone. Make a backup.' : 'Time for a backup · ${app.lastBackupLabel.toLowerCase()}',
+                app.lastBackupAt == null ? context.l10n.backupBannerNever : context.l10n.backupBannerDue(app.lastBackupLabel.toLowerCase()),
                 style: ts(12, weight: FontWeight.w600, color: c.text),
               ),
             ),
-            TextButton(key: const Key('backup-banner-go'), onPressed: () => backUpFlow(context, app), child: const Text('Back up')),
-            IconButton(key: const Key('backup-banner-dismiss'), icon: const Icon(AppIcons.close, size: 18), tooltip: 'Remind me later', onPressed: app.snoozeBackupReminder),
+            TextButton(key: const Key('backup-banner-go'), onPressed: () => backUpFlow(context, app), child: Text(context.l10n.backUp)),
+            IconButton(key: const Key('backup-banner-dismiss'), icon: const Icon(AppIcons.close, size: 18), tooltip: context.l10n.remindLater, onPressed: app.snoozeBackupReminder),
           ],
         ),
       ),

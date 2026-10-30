@@ -95,7 +95,7 @@ void main() {
       await settle(tester);
       expect(files.lastExtensions, ['csv', 'pdf']);
       expect(find.text('SBI · 1 found'), findsOneWidget);
-      expect(find.text('Import 1 transactions'), findsOneWidget);
+      expect(find.text('Import 1 transaction'), findsOneWidget);
       expect(tester.widget<ImportScreen>(find.byType(ImportScreen)).rows, isNotNull);
     });
 
@@ -249,7 +249,7 @@ void main() {
       await settle(tester);
       await tester.tap(find.byKey(const Key('restore-go')));
       await settle(tester);
-      expect(find.text('Added 1 transactions · 9 already here'), findsWidgets);
+      expect(find.text('Added 1 transaction · 9 already here'), findsWidgets);
     });
 
     testWidgets('reminder interval and banner on Home: snooze and back up', (tester) async {

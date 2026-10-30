@@ -1,5 +1,7 @@
 import 'package:sqlite3/sqlite3.dart';
 
+import '../l10n/l10n.dart';
+
 /// Current schema version. Bump and add a step to [_migrations] for changes.
 const schemaVersion = 6;
 
@@ -123,42 +125,44 @@ CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
   _seed(db);
 }
 
+/// Starter categories as (name, kind, icon, color, is default), named in [l].
+List<(String, String, String, int, int)> _seedCategories(AppLocalizations l) => [
+  (l.seedFood, 'spend', 'food', 0xFFF43F5E, 0),
+  (l.seedRent, 'spend', 'home', 0xFF8B5CF6, 0),
+  (l.seedShopping, 'spend', 'bag', 0xFFEC4899, 0),
+  (l.seedTransport, 'spend', 'car', 0xFFF59E0B, 0),
+  (l.seedBills, 'spend', 'bolt', 0xFFF97316, 0),
+  (l.seedHealth, 'spend', 'heart', 0xFFEF4444, 0),
+  (l.seedEntertainment, 'spend', 'play', 0xFF6366F1, 0),
+  (l.seedTravel, 'spend', 'plane', 0xFF0EA5E9, 0),
+  (l.seedOthers, 'spend', 'grid', 0xFF64748B, 1),
+  (l.seedFd, 'invest', 'bank', 0xFF10B981, 0),
+  (l.seedMutualFunds, 'invest', 'coins', 0xFF14B8A6, 0),
+  (l.investKindStock, 'invest', 'trend', 0xFF65A30D, 0),
+  (l.investKindGold, 'invest', 'gem', 0xFFCA8A04, 0),
+  (l.seedRetirement, 'invest', 'shield', 0xFF4D7C0F, 0),
+  (l.seedSalary, 'income', 'wallet', 0xFF0EA5E9, 0),
+  (l.seedOtherIncome, 'income', 'gift', 0xFF0284C7, 0),
+];
+
+/// Seeds the starter categories and the Cash source in the device's language.
 void _seed(Database db) {
-  const spend = [
-    ['Food & dining', 'food', 0xFFF43F5E],
-    ['Rent', 'home', 0xFF8B5CF6],
-    ['Shopping', 'bag', 0xFFEC4899],
-    ['Transport', 'car', 0xFFF59E0B],
-    ['Bills & utilities', 'bolt', 0xFFF97316],
-    ['Health', 'heart', 0xFFEF4444],
-    ['Entertainment', 'play', 0xFF6366F1],
-    ['Travel', 'plane', 0xFF0EA5E9],
-  ];
-  const invest = [
-    ['Fixed deposit', 'bank', 0xFF10B981],
-    ['Mutual funds / SIP', 'coins', 0xFF14B8A6],
-    ['Stocks', 'trend', 0xFF65A30D],
-    ['Gold', 'gem', 0xFFCA8A04],
-    ['PPF / EPF / NPS', 'shield', 0xFF4D7C0F],
-  ];
-  const income = [
-    ['Salary', 'wallet', 0xFF0EA5E9],
-    ['Other income', 'gift', 0xFF0284C7],
-  ];
+  final l = lookupAppLocalizations(resolveLocale(null));
   final stmt = db.prepare('INSERT INTO categories(name, kind, icon, color, sort_order, is_default) VALUES (?, ?, ?, ?, ?, ?)');
-  var order = 0;
-  for (final c in spend) {
-    stmt.execute([c[0], 'spend', c[1], c[2], order++, 0]);
-  }
-  stmt.execute(['Others', 'spend', 'grid', 0xFF64748B, order++, 1]);
-  for (final c in invest) {
-    stmt.execute([c[0], 'invest', c[1], c[2], order++, 0]);
-  }
-  for (final c in income) {
-    stmt.execute([c[0], 'income', c[1], c[2], order++, 0]);
+  for (final (i, (name, kind, icon, color, isDefault)) in _seedCategories(l).indexed) {
+    stmt.execute([name, kind, icon, color, i, isDefault]);
   }
   stmt.close();
-  db.execute("INSERT INTO sources(name, kind, is_default) VALUES ('Cash', 'cash', 1)");
+  db.execute('INSERT INTO sources(name, kind, is_default) VALUES (?, ?, 1)', [l.sourceKindCash, 'cash']);
+}
+
+/// Renames starter categories and the Cash source still named as in [from]
+/// to their names in [to] (the language was changed before setup finished).
+void relabelSeed(Database db, AppLocalizations from, AppLocalizations to) {
+  final pairs = [for (final (i, c) in _seedCategories(from).indexed) (c.$1, _seedCategories(to)[i].$1, 'categories'), (from.sourceKindCash, to.sourceKindCash, 'sources')];
+  for (final (old, renamed, table) in pairs) {
+    db.execute('UPDATE $table SET name = ? WHERE name = ?', [renamed, old]);
+  }
 }
 
 /// v2: opening balance per payment source (paise; negative = card outstanding).

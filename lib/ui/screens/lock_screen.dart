@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../state/app_state.dart';
 import '../../state/security_state.dart';
 import '../theme/tokens.dart';
@@ -10,12 +11,12 @@ import '../theme/icons.dart';
 
 /// PIN dots plus a number pad. [onSubmit] gets 4–6 digits.
 class PinPad extends StatefulWidget {
-  const PinPad({super.key, required this.title, required this.onSubmit, this.message, this.messageIsError = false, this.onBiometrics, this.submitLabel = 'Continue'});
+  const PinPad({super.key, required this.title, required this.onSubmit, this.message, this.messageIsError = false, this.onBiometrics, this.submitLabel});
 
   final String title;
   final String? message;
   final bool messageIsError;
-  final String submitLabel;
+  final String? submitLabel;
   final void Function(String pin) onSubmit;
   final VoidCallback? onBiometrics;
 
@@ -66,7 +67,7 @@ class _PinPadState extends State<PinPad> {
           height: 34,
           child: Text(
             key: const Key('pin-message'),
-            widget.message ?? 'Enter 4–6 digits',
+            widget.message ?? context.l10n.pinDigits,
             textAlign: TextAlign.center,
             style: ts(12, color: widget.messageIsError ? c.spend : c.textMuted),
           ),
@@ -119,7 +120,7 @@ class _PinPadState extends State<PinPad> {
           key: const Key('pin-ok'),
           style: FilledButton.styleFrom(minimumSize: const Size(220, 48)),
           onPressed: SecurityState.validPin(_pin) ? _submit : null,
-          child: Text(widget.submitLabel),
+          child: Text(widget.submitLabel ?? context.l10n.continue_),
         ),
       ],
     );
@@ -151,9 +152,9 @@ class _LockScreenState extends State<LockScreen> {
     setState(
       () => _error = switch (result) {
         PinResult.ok => null,
-        PinResult.wrong when sec.cooldownLeft > Duration.zero => 'Too many attempts. Try again in ${sec.cooldownLeft.inSeconds} s',
-        PinResult.wrong => 'Wrong PIN · ${SecurityState.maxAttempts - sec.failedAttempts} attempts left',
-        PinResult.coolingDown => 'Too many attempts. Try again in ${sec.cooldownLeft.inSeconds} s',
+        PinResult.wrong when sec.cooldownLeft > Duration.zero => context.l10n.pinCooldown(sec.cooldownLeft.inSeconds),
+        PinResult.wrong => context.l10n.pinWrongLeft(SecurityState.maxAttempts - sec.failedAttempts),
+        PinResult.coolingDown => context.l10n.pinCooldown(sec.cooldownLeft.inSeconds),
       },
     );
   }
@@ -174,10 +175,10 @@ class _LockScreenState extends State<LockScreen> {
                 IconBadge(AppIcons.lock, color: Colors.white, background: c.hero, size: 64),
                 const SizedBox(height: 20),
                 PinPad(
-                  title: 'Expense Manager is locked',
+                  title: context.l10n.appLocked,
                   message: _error,
                   messageIsError: _error != null,
-                  submitLabel: 'Unlock',
+                  submitLabel: context.l10n.unlock,
                   onSubmit: (pin) => _submit(sec, pin),
                   onBiometrics: sec.biometricsOn ? sec.unlockWithBiometrics : null,
                 ),
@@ -210,7 +211,7 @@ class PrivacyCover extends StatelessWidget {
               const Icon(AppIcons.wallet, color: Colors.white, size: 48),
               const SizedBox(height: 12),
               Text(
-                'Expense Manager',
+                context.l10n.appTitle,
                 style: ts(18, weight: FontWeight.w800, color: Colors.white),
               ),
             ],

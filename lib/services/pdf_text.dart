@@ -3,12 +3,14 @@ import 'dart:typed_data';
 
 import 'package:dart_pdf_reader/dart_pdf_reader.dart';
 
+import '../l10n/l10n.dart';
+
 /// The PDF is password-protected; the user must save an unlocked copy.
 class PdfLockedException implements Exception {
   const PdfLockedException();
 
   @override
-  String toString() => 'This PDF is password-protected. Save an unlocked copy (Print → Save as PDF) and import that.';
+  String toString() => currentL10n.pdfLocked;
 }
 
 /// The bytes are not a PDF we can read.
@@ -18,7 +20,7 @@ class PdfUnreadableException implements Exception {
   final Object cause;
 
   @override
-  String toString() => 'Could not read this PDF ($cause)';
+  String toString() => currentL10n.pdfUnreadable('$cause');
 }
 
 /// Extracts the visible text of a PDF as lines, top to bottom, page by page.

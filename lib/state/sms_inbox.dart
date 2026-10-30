@@ -1,5 +1,6 @@
 import 'package:sqlite3/sqlite3.dart';
 
+import '../l10n/l10n.dart';
 import '../core/money.dart';
 import '../data/catalog_repo.dart';
 import '../data/models.dart';
@@ -43,8 +44,12 @@ const smsActionIgnore = 'sms_ignore';
 const smsActionUndo = 'sms_undo';
 
 /// Buttons on the "add this?" prompt and on the "added" confirmation.
-const smsPromptActions = [NotificationActionSpec(smsActionAdd, 'Add'), NotificationActionSpec(smsActionEdit, 'Add details', opensApp: true), NotificationActionSpec(smsActionIgnore, 'Ignore')];
-const smsAddedActions = [NotificationActionSpec(smsActionUndo, 'Undo')];
+List<NotificationActionSpec> get smsPromptActions => [
+  NotificationActionSpec(smsActionAdd, currentL10n.add),
+  NotificationActionSpec(smsActionEdit, currentL10n.smsAddDetails, opensApp: true),
+  NotificationActionSpec(smsActionIgnore, currentL10n.smsIgnore),
+];
+List<NotificationActionSpec> get smsAddedActions => [NotificationActionSpec(smsActionUndo, currentL10n.undo)];
 
 /// Payload prefix on SMS notifications: `sms:<capture id>`.
 const _payloadPrefix = 'sms:';
@@ -126,8 +131,9 @@ class SmsInbox {
   /// "₹250 at Swiggy" / "₹5,000 from Rahul" / "₹60 from HDFC ••1234".
   String headline(SmsCapture c) {
     final amount = formatInr(c.sms.amount);
-    if (c.sms.merchant.isNotEmpty) return '$amount ${c.sms.credit ? 'from' : 'at'} ${c.sms.merchant}';
-    return c.sms.last4 == null ? amount : '$amount ${c.sms.credit ? 'into' : 'from'} ••${c.sms.last4}';
+    final l = currentL10n;
+    if (c.sms.merchant.isNotEmpty) return c.sms.credit ? l.smsAmountFrom(amount, c.sms.merchant) : l.smsAmountAt(amount, c.sms.merchant);
+    return c.sms.last4 == null ? amount : (c.sms.credit ? l.smsAmountInto(amount, '••${c.sms.last4}') : l.smsAmountFrom(amount, '••${c.sms.last4}'));
   }
 
   /// "Food · HDFC ••1234": where it will be filed.
@@ -138,8 +144,8 @@ class SmsInbox {
 
   Future<void> _prompt(SmsCapture c) => service.prompt(
     smsNotificationBase + c.id,
-    c.sms.credit ? 'Money received: ${headline(c)}' : 'New expense: ${headline(c)}',
-    'Add to ${filing(draft(c))}?',
+    c.sms.credit ? currentL10n.smsMoneyReceived(headline(c)) : currentL10n.smsNewExpense(headline(c)),
+    currentL10n.smsAddTo(filing(draft(c))),
     payload: '$_payloadPrefix${c.id}',
     actions: smsPromptActions,
   );
@@ -154,7 +160,7 @@ class SmsInbox {
     markAdded(id, txnId);
     await service.prompt(
       smsNotificationBase + id,
-      c.sms.credit ? 'Income added: ${headline(c)}' : 'Expense added: ${headline(c)}',
+      c.sms.credit ? currentL10n.smsIncomeAdded(headline(c)) : currentL10n.smsExpenseAdded(headline(c)),
       filing(txn),
       payload: '$_payloadPrefix$id',
       actions: smsAddedActions,

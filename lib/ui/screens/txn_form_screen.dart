@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/dates.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
+import '../../l10n/l10n.dart';
 import '../../data/recurring_repo.dart';
 import '../../data/templates_repo.dart';
 import '../../services/location.dart';
@@ -162,7 +163,7 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
   Future<void> _saveTemplate(AppState app) async {
     final amount = _amount.value;
     if (amount == null || amount <= 0) {
-      showSnack(context, 'Enter an amount greater than zero');
+      showSnack(context, context.l10n.txnNeedAmount);
       return;
     }
     final categoryId = _categoryId ?? app.catalog.firstOf(_kind).id;
@@ -174,18 +175,18 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
     if (name == null || name.trim().isEmpty || !mounted) return;
     app.templates.add(TxnTemplate(name: name, type: _type, amount: amount, categoryId: categoryId, sourceId: _sourceId, merchant: _merchant.text, note: _note.text, tags: _parseTags(_tags.text)));
     app.changed();
-    showSnack(context, 'Saved “${name.trim()}” as a template');
+    showSnack(context, context.l10n.txnTemplateSaved(name.trim()));
   }
 
   Future<void> _deleteTemplate(AppState app, TxnTemplate t) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Delete “${t.name}”?'),
-        content: const Text('The template is removed. Transactions made from it stay.'),
+        title: Text(context.l10n.deleteNamed(t.name)),
+        content: Text(context.l10n.txnTemplateDeleteBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(key: const Key('confirm-delete-template'), onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.l10n.cancel)),
+          FilledButton(key: const Key('confirm-delete-template'), onPressed: () => Navigator.pop(ctx, true), child: Text(context.l10n.delete)),
         ],
       ),
     );
@@ -222,11 +223,11 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
     final app = AppScope.read(context);
     final amount = _amount.value;
     if (amount == null || amount <= 0) {
-      showSnack(context, 'Enter an amount greater than zero');
+      showSnack(context, context.l10n.txnNeedAmount);
       return;
     }
     if (_type == TxnType.debt && _debtId == null) {
-      showSnack(context, 'Pick which debt this payment belongs to');
+      showSnack(context, context.l10n.txnNeedDebt);
       return;
     }
     final categoryId = _categoryId ?? app.catalog.firstOf(_kind).id;
@@ -278,8 +279,8 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
     );
     return Scaffold(
       appBar: AppBar(
-        title: Text(_editing ? 'Edit transaction' : 'New transaction', style: ts(16, weight: FontWeight.w700)),
-        actions: [IconButton(key: const Key('save-template'), tooltip: 'Save as template', icon: const Icon(AppIcons.bookmarkAdd), onPressed: () => _saveTemplate(app))],
+        title: Text(_editing ? context.l10n.txnEditTitle : context.l10n.txnNewTitle, style: ts(16, weight: FontWeight.w700)),
+        actions: [IconButton(key: const Key('save-template'), tooltip: context.l10n.txnSaveTemplate, icon: const Icon(AppIcons.bookmarkAdd), onPressed: () => _saveTemplate(app))],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -328,7 +329,7 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
           const SizedBox(height: 8),
           AmountKeypad(accent: accent, onKey: (k) => setState(() => _amount.press(k))),
           if (sources.isNotEmpty) ...[
-            label(_type == TxnType.income ? 'Received in' : 'Paid from'),
+            label(_type == TxnType.income ? context.l10n.txnReceivedIn : context.l10n.txnPaidFrom),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -336,22 +337,22 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
             ),
           ],
           if (_type != TxnType.debt) ...[
-            label('Category'),
+            label(context.l10n.category),
             CategoryPicker(categories: cats, selectedId: selectedCat, onChanged: (id) => setState(() => _categoryId = id)),
             if (_kind == CategoryKind.spend)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: Text('Not sure? It goes to “Others” by default.', style: ts(12, color: c.textFaint)),
+                child: Text(context.l10n.txnCategoryHint(app.catalog.defaultCategory().name), style: ts(12, color: c.textFaint)),
               ),
           ],
           if (_type == TxnType.invest) ...[
-            label('Holding (optional)'),
+            label(context.l10n.txnHolding),
             DropdownButtonFormField<int?>(
               key: const Key('holding'),
               isExpanded: true,
               initialValue: _investmentId,
               items: [
-                const DropdownMenuItem<int?>(value: null, child: Text('Not linked')),
+                DropdownMenuItem<int?>(value: null, child: Text(context.l10n.txnNotLinked)),
                 for (final h in app.planning.holdings())
                   DropdownMenuItem<int?>(
                     value: h.investment.id,
@@ -362,23 +363,23 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
             ),
           ],
           if (_type == TxnType.debt) ...[
-            label('Debt'),
+            label(context.l10n.txnDebt),
             DropdownButtonFormField<int?>(
               key: const Key('debt'),
               isExpanded: true,
               initialValue: _debtId,
-              hint: const Text('Choose a debt'),
+              hint: Text(context.l10n.txnChooseDebt),
               items: [
                 for (final d in app.planning.debts())
                   DropdownMenuItem<int?>(
                     value: d.debt.id,
-                    child: Text('${d.debt.name} · ${d.debt.direction == DebtDirection.iOwe ? 'you pay' : 'you receive'}', overflow: TextOverflow.ellipsis),
+                    child: Text(d.debt.direction == DebtDirection.iOwe ? context.l10n.txnDebtYouPay(d.debt.name) : context.l10n.txnDebtYouReceive(d.debt.name), overflow: TextOverflow.ellipsis),
                   ),
               ],
               onChanged: (v) => setState(() => _debtId = v),
             ),
           ],
-          label('Details'),
+          label(context.l10n.details),
           AppCard(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Column(
@@ -388,7 +389,7 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(AppIcons.calendar),
                   title: Text(longDate(_at), style: ts(14, weight: FontWeight.w600)),
-                  subtitle: Text('Date', style: ts(11, color: c.textMuted)),
+                  subtitle: Text(context.l10n.date, style: ts(11, color: c.textMuted)),
                   onTap: _pickDate,
                 ),
                 const Divider(),
@@ -397,35 +398,35 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(AppIcons.time),
                   title: Text(timeOfDay(_at), style: ts(14, weight: FontWeight.w600)),
-                  subtitle: Text('Time', style: ts(11, color: c.textMuted)),
+                  subtitle: Text(context.l10n.time, style: ts(11, color: c.textMuted)),
                   onTap: _pickTime,
                 ),
                 const Divider(),
                 TextField(
                   key: const Key('merchant'),
                   controller: _merchant,
-                  decoration: const InputDecoration(labelText: 'Merchant / payee', filled: false, border: InputBorder.none, enabledBorder: InputBorder.none),
+                  decoration: InputDecoration(labelText: context.l10n.txnMerchant, filled: false, border: InputBorder.none, enabledBorder: InputBorder.none),
                 ),
                 const Divider(),
                 TextField(
                   key: const Key('place'),
                   controller: _place,
                   decoration: InputDecoration(
-                    labelText: 'Location · optional',
+                    labelText: context.l10n.txnLocation,
                     filled: false,
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     suffixIcon: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        IconButton(key: const Key('pick-location'), tooltip: 'Pick on map', icon: const Icon(AppIcons.map), onPressed: _pickLocation),
+                        IconButton(key: const Key('pick-location'), tooltip: context.l10n.pickOnMap, icon: const Icon(AppIcons.map), onPressed: _pickLocation),
                         if (_locating)
                           const Padding(
                             padding: EdgeInsets.all(12),
                             child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
                           )
                         else
-                          IconButton(key: const Key('locate'), tooltip: 'Use current location', icon: const Icon(AppIcons.myLocation), onPressed: () => _locate(app)),
+                          IconButton(key: const Key('locate'), tooltip: context.l10n.useCurrentLocation, icon: const Icon(AppIcons.myLocation), onPressed: () => _locate(app)),
                       ],
                     ),
                   ),
@@ -435,27 +436,27 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
                   key: const Key('note'),
                   controller: _note,
                   maxLines: null,
-                  decoration: const InputDecoration(labelText: 'Why? Add a note (searchable)', filled: false, border: InputBorder.none, enabledBorder: InputBorder.none),
+                  decoration: InputDecoration(labelText: context.l10n.txnNote, filled: false, border: InputBorder.none, enabledBorder: InputBorder.none),
                 ),
                 const Divider(),
                 TextField(
                   key: const Key('tags'),
                   controller: _tags,
-                  decoration: const InputDecoration(labelText: 'Tags, e.g. #work #split', filled: false, border: InputBorder.none, enabledBorder: InputBorder.none),
+                  decoration: InputDecoration(labelText: context.l10n.txnTags, filled: false, border: InputBorder.none, enabledBorder: InputBorder.none),
                 ),
               ],
             ),
           ),
-          label('Receipt'),
+          label(context.l10n.receipt),
           AppCard(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: _receipt == null
                 ? Row(
                     children: [
-                      for (final (src, icon, text) in const [
-                        (ReceiptSource.camera, AppIcons.camera, 'Camera'),
-                        (ReceiptSource.gallery, AppIcons.gallery, 'Gallery'),
-                        (ReceiptSource.pdf, AppIcons.pdf, 'PDF'),
+                      for (final (src, icon, text) in [
+                        (ReceiptSource.camera, AppIcons.camera, context.l10n.receiptCamera),
+                        (ReceiptSource.gallery, AppIcons.gallery, context.l10n.receiptGallery),
+                        (ReceiptSource.pdf, AppIcons.pdf, context.l10n.receiptPdf),
                       ])
                         Expanded(
                           child: TextButton.icon(key: Key('receipt-${src.name}'), onPressed: () => _pickReceipt(app, src), icon: Icon(icon, size: 18), label: Text(text)),
@@ -465,17 +466,17 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
                 : ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: Icon(isPdf(_receipt!) ? AppIcons.pdf : AppIcons.image, color: c.brand),
-                    title: Text(isPdf(_receipt!) ? 'PDF receipt attached' : 'Photo receipt attached', style: ts(14, weight: FontWeight.w600)),
-                    trailing: IconButton(key: const Key('receipt-clear'), tooltip: 'Remove receipt', icon: const Icon(AppIcons.close), onPressed: () => setState(() => _receipt = null)),
+                    title: Text(isPdf(_receipt!) ? context.l10n.receiptPdfAttached : context.l10n.receiptPhotoAttached, style: ts(14, weight: FontWeight.w600)),
+                    trailing: IconButton(key: const Key('receipt-clear'), tooltip: context.l10n.receiptRemove, icon: const Icon(AppIcons.close), onPressed: () => setState(() => _receipt = null)),
                   ),
           ),
           if (_editing && widget.existing!.txn.recurringId != null)
             Padding(
               padding: const EdgeInsets.only(top: 14),
-              child: Text('Part of a recurring series. Changes apply to this one only; manage the series in Settings › Recurring.', style: ts(12, color: c.textMuted)),
+              child: Text(context.l10n.txnRecurringNote, style: ts(12, color: c.textMuted)),
             )
           else if (!_editing) ...[
-            label('Repeat'),
+            label(context.l10n.repeat),
             AppCard(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               child: Column(
@@ -483,9 +484,9 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
                   SwitchListTile(
                     key: const Key('repeat'),
                     contentPadding: EdgeInsets.zero,
-                    title: Text('Repeat this transaction', style: ts(14, weight: FontWeight.w600)),
+                    title: Text(context.l10n.txnRepeat, style: ts(14, weight: FontWeight.w600)),
                     subtitle: Text(
-                      _repeat ? '${frequencyLabel(_frequency)} · next ${longDate(occurrence(_at, _frequency, 1))}' : 'Adds it automatically on schedule',
+                      _repeat ? context.l10n.txnRepeatNext(frequencyLabel(_frequency), longDate(occurrence(_at, _frequency, 1))) : context.l10n.txnRepeatHelp,
                       style: ts(11, color: c.textMuted),
                     ),
                     value: _repeat,
@@ -497,10 +498,10 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
                       key: const Key('repeat-end'),
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(AppIcons.eventBusy),
-                      title: Text(_repeatEnd == null ? 'Never ends' : 'Ends ${longDate(_repeatEnd!)}', style: ts(14, weight: FontWeight.w600)),
+                      title: Text(_repeatEnd == null ? context.l10n.neverEnds : context.l10n.endsOn(longDate(_repeatEnd!)), style: ts(14, weight: FontWeight.w600)),
                       trailing: _repeatEnd == null
                           ? null
-                          : IconButton(key: const Key('repeat-end-clear'), tooltip: 'Clear end date', icon: const Icon(AppIcons.close), onPressed: () => setState(() => _repeatEnd = null)),
+                          : IconButton(key: const Key('repeat-end-clear'), tooltip: context.l10n.clearEndDate, icon: const Icon(AppIcons.close), onPressed: () => setState(() => _repeatEnd = null)),
                       onTap: _pickRepeatEnd,
                     ),
                   ],
@@ -509,7 +510,7 @@ class _TxnFormScreenState extends State<TxnFormScreen> {
             ),
           ],
           const SizedBox(height: 20),
-          FilledButton.icon(key: const Key('save-txn'), onPressed: _save, icon: const Icon(AppIcons.check), label: Text(_editing ? 'Save changes' : 'Save transaction')),
+          FilledButton.icon(key: const Key('save-txn'), onPressed: _save, icon: const Icon(AppIcons.check), label: Text(_editing ? context.l10n.saveChanges : context.l10n.txnSave)),
         ],
       ),
     );
@@ -535,7 +536,7 @@ class _QuickAdd extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Quick add',
+            context.l10n.quickAdd,
             style: ts(12, weight: FontWeight.w700, color: c.textMuted, spacing: 0.4),
           ),
           const SizedBox(height: 8),
@@ -587,16 +588,16 @@ class _TemplateNameDialogState extends State<TemplateNameDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Save as template'),
+    title: Text(context.l10n.txnSaveTemplate),
     content: TextField(
       key: const Key('template-name'),
       controller: _ctrl,
       autofocus: true,
-      decoration: const InputDecoration(labelText: 'Name'),
+      decoration: InputDecoration(labelText: context.l10n.settingsName),
     ),
     actions: [
-      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-      FilledButton(key: const Key('template-save'), onPressed: () => Navigator.pop(context, _ctrl.text), child: const Text('Save')),
+      TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.cancel)),
+      FilledButton(key: const Key('template-save'), onPressed: () => Navigator.pop(context, _ctrl.text), child: Text(context.l10n.save)),
     ],
   );
 }

@@ -1,15 +1,1911 @@
 {
   "@@locale": "en",
   "appTitle": "Expense Manager",
-  "@appTitle": {"description": "App name shown in the task switcher and title bar"},
+  "@appTitle": {
+    "description": "App name shown in the task switcher and title bar"
+  },
   "navHome": "Home",
-  "@navHome": {"description": "Bottom navigation: home tab"},
+  "@navHome": {
+    "description": "Bottom navigation: home tab"
+  },
   "navInsights": "Insights",
-  "@navInsights": {"description": "Bottom navigation: insights tab"},
+  "@navInsights": {
+    "description": "Bottom navigation: insights tab"
+  },
   "navInvest": "Invest",
-  "@navInvest": {"description": "Bottom navigation: investments tab"},
+  "@navInvest": {
+    "description": "Bottom navigation: investments tab"
+  },
   "navDebts": "Debts",
-  "@navDebts": {"description": "Bottom navigation: debts tab"},
+  "@navDebts": {
+    "description": "Bottom navigation: debts tab"
+  },
   "addTransaction": "Add transaction",
-  "@addTransaction": {"description": "Tooltip of the centre add button"}
+  "@addTransaction": {
+    "description": "Tooltip of the centre add button"
+  },
+  "ok": "OK",
+  "save": "Save",
+  "cancel": "Cancel",
+  "none": "None",
+  "notSet": "Not set",
+  "on": "On",
+  "off": "Off",
+  "unknown": "Unknown",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "nActive": "{count} active",
+  "@nActive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "locationDenied": "Location permission denied — you can still type a place.",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "themeSystem": "System",
+  "settingsTitle": "Settings",
+  "settingsLocalOnly": "Your data never leaves this phone. Stored locally, no server. Export a backup to move devices.",
+  "settingsProfile": "Profile",
+  "settingsName": "Name",
+  "settingsYourName": "Your name",
+  "settingsAppearance": "Appearance",
+  "settingsLanguage": "Language",
+  "settingsLanguageDevice": "Device language",
+  "settingsDefaults": "Defaults",
+  "settingsDefaultSource": "Default payment mode",
+  "settingsDefaultSourceHelp": "Pre-selected on new transactions",
+  "settingsSources": "Payment sources",
+  "settingsCategories": "Categories",
+  "settingsCategoriesHelp": "Uncategorised entries go to the default",
+  "settingsDefaultCategory": "Default: {name}",
+  "@settingsDefaultCategory": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsCurrency": "Currency",
+  "settingsCurrencyHelp": "Changes how amounts are shown. Nothing is converted.",
+  "settingsRecurring": "Recurring transactions",
+  "settingsWeekStart": "Week starts on",
+  "settingsWeekStartHelp": "Weekly budgets and the week view in Insights follow this.",
+  "settingsWeekSpan": "Weekly budgets and insights run {span}",
+  "@settingsWeekSpan": {
+    "placeholders": {
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsData": "Data",
+  "settingsExportCsv": "Export CSV",
+  "settingsExportCsvHelp": "Transactions, investments, debts, budgets",
+  "settingsExportPdf": "Export this month as PDF",
+  "settingsImport": "Import CSV or PDF statement",
+  "settingsImportHelp": "HDFC, SBI, ICICI and most bank PDFs, or a CSV export",
+  "settingsBackUp": "Back up now",
+  "settingsBackUpHelp": "One .ledger file, optional password",
+  "settingsRestore": "Restore from backup",
+  "settingsPrivacyGroup": "Privacy & permissions",
+  "settingsLocation": "Location on transactions",
+  "settingsAppLock": "App lock & privacy",
+  "smsTitle": "Expenses from SMS",
+  "remindersTitle": "Reminders & alerts",
+  "settingsAbout": "About",
+  "settingsVersion": "Version",
+  "settingsPrivacy": "Privacy",
+  "settingsPrivacyHelp": "No data collected · works offline",
+  "settingsPrivacyBody": "Expense Manager has no account, server or analytics. Everything you enter is stored in a database on this phone and only leaves it when you export or share a file yourself.\n\nLocation is read only when you allow it, and only to label your own transactions. Map tiles are loaded from OpenStreetMap when you open a map. Bank SMS are read, on this phone only, if you turn on Expenses from SMS.",
+  "settingsReadPolicy": "Read full policy",
+  "settingsSourceCode": "Source code on GitHub",
+  "settingsLicenses": "Open-source licenses",
+  "settingsSupport": "Support",
+  "diagnosticsTitle": "Diagnostics",
+  "settingsDiagnosticsHelp": "Local error log · view, share or clear",
+  "settingsReportIssue": "Report a problem",
+  "settingsReportIssueHelp": "Opens a GitHub issue · needs a GitHub account",
+  "settingsNoBrowser": "No browser found to open {url}",
+  "@settingsNoBrowser": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "add": "Add",
+  "edit": "Edit",
+  "clear": "Clear",
+  "nothingHere": "Nothing here",
+  "dueToday": "Due today",
+  "dueTomorrow": "Due tomorrow",
+  "dueInDays": "Due in {n} days",
+  "@dueInDays": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "overdueByDays": "{n, plural, =1{Overdue by 1 day} other{Overdue by {n} days}}",
+  "@overdueByDays": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "debtRemindMessage": "Hi {person}, just a friendly reminder about the {amount}. Whenever it suits you is fine. Thanks!",
+  "@debtRemindMessage": {
+    "placeholders": {
+      "person": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "debtRemindMessageFor": "Hi {person}, just a friendly reminder about the {amount} for {reason}. Whenever it suits you is fine. Thanks!",
+  "@debtRemindMessageFor": {
+    "placeholders": {
+      "person": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "debtRemindSubject": "Friendly reminder",
+  "debtYouOwe": "You owe",
+  "debtOwedToYou": "Owed to you",
+  "debtMonthlyEmi": "{amount}/mo in EMIs",
+  "@debtMonthlyEmi": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "debtToCollect": "to collect",
+  "debtIOwe": "I owe",
+  "debtOwedToMe": "Owed to me",
+  "debtSettled": "Settled",
+  "debtEmpty": "Loans, credit cards and money lent or borrowed show up here.",
+  "debtFooter": "EMIs and card payments recorded here count as Debt, not Spend — so your monthly spend stays honest.",
+  "debtPayTitle": "Pay {name}?",
+  "@debtPayTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "debtPayBody": "Records a {amount} card payment. It counts as Debt, not Spend.",
+  "@debtPayBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "debtPayBodyFrom": "Records a {amount} card payment from {source}. It counts as Debt, not Spend.",
+  "@debtPayBodyFrom": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "debtPayAmount": "Pay {amount}",
+  "@debtPayAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "debtBillMerchant": "{name} bill",
+  "@debtBillMerchant": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "debtPaymentRecorded": "Card payment of {amount} recorded",
+  "@debtPaymentRecorded": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "debtEmi": "EMI {amount}",
+  "@debtEmi": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "debtDueOn": "due on {day}",
+  "@debtDueOn": {
+    "placeholders": {
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "debtLeftOf": "left of {amount}",
+  "@debtLeftOf": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "debtStatement": "Statement {amount}",
+  "@debtStatement": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "debtStatementDue": "Statement {amount} · due {date}",
+  "@debtStatementDue": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "debtPaid": "Paid",
+  "debtUnpaid": "Unpaid {amount}",
+  "@debtUnpaid": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "debtEmisPaid": "{paid} of {total} EMIs paid",
+  "@debtEmisPaid": {
+    "placeholders": {
+      "paid": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "debtPaymentsRecorded": "{n, plural, =1{1 payment recorded} other{{n} payments recorded}}",
+  "@debtPaymentsRecorded": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "debtReopen": "Reopen",
+  "debtSettle": "Settle",
+  "debtRemind": "Remind",
+  "debtRecordPayment": "Record payment",
+  "debtRecordRepayment": "Record repayment",
+  "debtPayNow": "Pay now · {amount}",
+  "@debtPayNow": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "debtNeedNameAmount": "Add a name and the amount",
+  "debtAddTitle": "Add debt",
+  "debtEditTitle": "Edit debt",
+  "debtKindLoan": "Loan",
+  "debtKindCard": "Credit card",
+  "debtKindPersonal": "Personal",
+  "debtFieldName": "Name, e.g. Car loan",
+  "debtFieldParty": "Lender / person (optional)",
+  "debtFieldPrincipal": "Total amount ({symbol})",
+  "@debtFieldPrincipal": {
+    "placeholders": {
+      "symbol": {
+        "type": "String"
+      }
+    }
+  },
+  "debtFieldRate": "Interest rate % (optional)",
+  "debtFieldEmi": "EMI / monthly payment (optional)",
+  "debtFieldEmis": "Number of EMIs (optional)",
+  "debtFieldDueDay": "Due day of month (optional)",
+  "debtFieldStatement": "Latest statement total ({symbol}, optional)",
+  "@debtFieldStatement": {
+    "placeholders": {
+      "symbol": {
+        "type": "String"
+      }
+    }
+  },
+  "debtStatementDueDate": "Statement due date",
+  "debtDueDate": "Due {date}",
+  "@debtDueDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "debtSave": "Save debt",
+  "all": "All",
+  "amount": "Amount",
+  "delete": "Delete",
+  "type": "Type",
+  "min": "Min",
+  "max": "Max",
+  "searchScopeNotes": "Notes",
+  "searchScopeMerchant": "Merchant",
+  "searchScopePlace": "Place",
+  "sortNewest": "Newest first",
+  "sortOldest": "Oldest first",
+  "sortAmountDesc": "Amount: high to low",
+  "sortAmountAsc": "Amount: low to high",
+  "transactionsTitle": "Transactions",
+  "sort": "Sort",
+  "searchHintAll": "Search merchant, note, #tag, amount…",
+  "searchHintNotes": "Search notes and #tags",
+  "searchHintMerchant": "Search merchants",
+  "searchHintAmount": "Exact amount, e.g. 450 or {symbol}1,200",
+  "@searchHintAmount": {
+    "placeholders": {
+      "symbol": {
+        "type": "String"
+      }
+    }
+  },
+  "searchHintPlace": "Search places",
+  "clearSearch": "Clear search",
+  "filters": "Filters",
+  "allCategories": "All categories",
+  "previousMonth": "Previous month",
+  "nextMonth": "Next month",
+  "allTime": "All time",
+  "nTransactions": "{n, plural, =1{1 transaction} other{{n} transactions}}",
+  "@nTransactions": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "moneyOut": "Out {amount}",
+  "@moneyOut": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "moneyIn": "In {amount}",
+  "@moneyIn": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "noTxnMatch": "No transactions match \"{query}\".",
+  "@noTxnMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "noTxnInPeriod": "No transactions in this period.",
+  "recentSearches": "Recent searches",
+  "removeRecentSearch": "Remove from recent searches",
+  "resetAll": "Reset all",
+  "searchCategories": "Search categories",
+  "amountIn": "Amount ({symbol})",
+  "@amountIn": {
+    "placeholders": {
+      "symbol": {
+        "type": "String"
+      }
+    }
+  },
+  "paidVia": "Paid via",
+  "applyFilters": "Apply filters",
+  "txnNeedAmount": "Enter an amount greater than zero",
+  "txnTemplateSaved": "Saved “{name}” as a template",
+  "@txnTemplateSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteNamed": "Delete “{name}”?",
+  "@deleteNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "txnTemplateDeleteBody": "The template is removed. Transactions made from it stay.",
+  "txnNeedDebt": "Pick which debt this payment belongs to",
+  "txnEditTitle": "Edit transaction",
+  "txnNewTitle": "New transaction",
+  "txnSaveTemplate": "Save as template",
+  "txnReceivedIn": "Received in",
+  "txnPaidFrom": "Paid from",
+  "category": "Category",
+  "txnCategoryHint": "Not sure? It goes to “{name}” by default.",
+  "@txnCategoryHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "txnHolding": "Holding (optional)",
+  "txnNotLinked": "Not linked",
+  "txnDebt": "Debt",
+  "txnChooseDebt": "Choose a debt",
+  "txnDebtYouPay": "{name} · you pay",
+  "@txnDebtYouPay": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "txnDebtYouReceive": "{name} · you receive",
+  "@txnDebtYouReceive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "details": "Details",
+  "date": "Date",
+  "time": "Time",
+  "txnMerchant": "Merchant / payee",
+  "txnLocation": "Location · optional",
+  "pickOnMap": "Pick on map",
+  "useCurrentLocation": "Use current location",
+  "txnNote": "Why? Add a note (searchable)",
+  "txnTags": "Tags, e.g. #work #split",
+  "receipt": "Receipt",
+  "receiptCamera": "Camera",
+  "receiptGallery": "Gallery",
+  "receiptPdf": "PDF",
+  "receiptPdfAttached": "PDF receipt attached",
+  "receiptPhotoAttached": "Photo receipt attached",
+  "receiptRemove": "Remove receipt",
+  "txnRecurringNote": "Part of a recurring series. Changes apply to this one only; manage the series in Settings › Recurring.",
+  "repeat": "Repeat",
+  "txnRepeat": "Repeat this transaction",
+  "txnRepeatNext": "{frequency} · next {date}",
+  "@txnRepeatNext": {
+    "placeholders": {
+      "frequency": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "txnRepeatHelp": "Adds it automatically on schedule",
+  "neverEnds": "Never ends",
+  "endsOn": "Ends {date}",
+  "@endsOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clearEndDate": "Clear end date",
+  "saveChanges": "Save changes",
+  "txnSave": "Save transaction",
+  "quickAdd": "Quick add",
+  "continue_": "Continue",
+  "done": "Done",
+  "notNow": "Not now",
+  "remove": "Remove",
+  "typeSpend": "Spend",
+  "typeInvest": "Invest",
+  "typeIncome": "Income",
+  "typeDebt": "Debt",
+  "investKindFd": "Fixed deposits",
+  "investKindMf": "Mutual funds",
+  "investKindStock": "Stocks",
+  "investKindGold": "Gold",
+  "investKindRetirement": "Retirement (PPF/EPF/NPS)",
+  "investKindOther": "Other",
+  "reminderTypeBudget": "Budget alerts (80% and 100%)",
+  "reminderTypeDues": "EMI and card due dates",
+  "reminderTypeSip": "SIP reminders",
+  "reminderTypeMaturity": "FD maturity",
+  "reminderTypeFollowUp": "Follow-ups on money owed to me",
+  "reminderEmiTomorrow": "EMI due tomorrow",
+  "reminderCardTomorrow": "Card bill due tomorrow",
+  "reminderEmiToday": "EMI due today",
+  "reminderCardToday": "Card bill due today",
+  "reminderSipToday": "SIP due today",
+  "reminderSipBody": "{title}: invest {amount} today.",
+  "@reminderSipBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderFdMatures": "{n, plural, =0{FD matures today} =1{FD matures tomorrow} other{FD matures in {n} days}}",
+  "@reminderFdMatures": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "reminderFdBody": "{title} ({amount} invested) matures on {date}.",
+  "@reminderFdBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderFollowUp": "Follow up with {name}",
+  "@reminderFollowUp": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderFollowUpBody": "{name} still owes you {amount}.",
+  "@reminderFollowUpBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetAlertFull": "{name} budget used up",
+  "@budgetAlertFull": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetAlert80": "80% of {name} budget used",
+  "@budgetAlert80": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetAlertBody": "{used} of {limit} spent · {left}",
+  "@budgetAlertBody": {
+    "placeholders": {
+      "used": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      },
+      "left": {
+        "type": "String"
+      }
+    }
+  },
+  "daysLeft": "{n, plural, =1{1 day left} other{{n} days left}}",
+  "@daysLeft": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "reminderTestTitle": "Reminders are on",
+  "reminderTestBody": "You will hear about budgets, due dates, SIPs and maturities here. Nothing leaves your phone.",
+  "smsAddDetails": "Add details",
+  "smsIgnore": "Ignore",
+  "undo": "Undo",
+  "smsAmountFrom": "{amount} from {name}",
+  "@smsAmountFrom": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "smsAmountAt": "{amount} at {name}",
+  "@smsAmountAt": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "smsAmountInto": "{amount} into {name}",
+  "@smsAmountInto": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "smsMoneyReceived": "Money received: {what}",
+  "@smsMoneyReceived": {
+    "placeholders": {
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "smsNewExpense": "New expense: {what}",
+  "@smsNewExpense": {
+    "placeholders": {
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "smsAddTo": "Add to {where}?",
+  "@smsAddTo": {
+    "placeholders": {
+      "where": {
+        "type": "String"
+      }
+    }
+  },
+  "smsIncomeAdded": "Income added: {what}",
+  "@smsIncomeAdded": {
+    "placeholders": {
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "smsExpenseAdded": "Expense added: {what}",
+  "@smsExpenseAdded": {
+    "placeholders": {
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderChannelHelp": "Budget alerts, due dates, SIPs and maturity reminders",
+  "smsChannelHelp": "Asks before adding a bank or UPI transaction read from an SMS",
+  "unlockPrompt": "Unlock Expense Manager",
+  "daily": "Daily",
+  "weekly": "Weekly",
+  "monthly": "Monthly",
+  "yearly": "Yearly",
+  "backupNeedsPassword": "This backup is password-protected",
+  "backupWrongPassword": "Wrong password",
+  "backupInvalid": "Not an Expense Manager backup",
+  "backupDamaged": "Backup file is damaged",
+  "backupTooNew": "This backup was made by a newer version of the app. Update the app first.",
+  "backupNever": "Never backed up",
+  "backupLast": "Last backup {date}",
+  "@backupLast": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "importNeedColumns": "Need a date column and an amount (or debit/credit) column",
+  "importInvalidDate": "Invalid date \"{value}\"",
+  "@importInvalidDate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "importInvalidAmount": "Invalid amount",
+  "investmentsTitle": "Investments",
+  "budgetsTitle": "Budgets",
+  "pdfLocked": "This PDF is password-protected. Save an unlocked copy (Print → Save as PDF) and import that.",
+  "pdfUnreadable": "Could not read this PDF ({cause})",
+  "@pdfUnreadable": {
+    "placeholders": {
+      "cause": {
+        "type": "String"
+      }
+    }
+  },
+  "bankStatement": "Bank statement",
+  "emi": "EMI",
+  "cardBill": "Card bill",
+  "reminderDueTomorrowBody": "{title}: {what} is due tomorrow.",
+  "@reminderDueTomorrowBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderDueTomorrowAmountBody": "{title}: {what} of {amount} is due tomorrow.",
+  "@reminderDueTomorrowAmountBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "what": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderDueTodayBody": "{title}: {what} is due today.",
+  "@reminderDueTodayBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderDueTodayAmountBody": "{title}: {what} of {amount} is due today.",
+  "@reminderDueTodayAmountBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "what": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "exportedOne": "Exported {what} to {path}",
+  "@exportedOne": {
+    "placeholders": {
+      "what": {
+        "type": "String"
+      },
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "exportedMany": "Exported {n} files to {path}",
+  "@exportedMany": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "exportHelp": "UTF-8 files that open in Excel or Sheets. Several files are shared as one zip.",
+  "exportZip": "Export {n} files (zip)",
+  "@exportZip": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "export": "Export",
+  "importPreview": "Import preview",
+  "importPdfEmpty": "No transactions found in this PDF. Try the CSV/Excel export from net banking.",
+  "importFound": "{bank} · {n} found",
+  "@importFound": {
+    "placeholders": {
+      "bank": {
+        "type": "String"
+      },
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "backupCreating": "Creating backup…",
+  "backupEncrypting": "Encrypting backup…",
+  "backupSaved": "Backup saved to {path}",
+  "@backupSaved": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "restoring": "Restoring…",
+  "restoredN": "{n, plural, =1{Restored 1 transaction} other{Restored {n} transactions}}",
+  "@restoredN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "addedN": "{n, plural, =1{Added 1 transaction} other{Added {n} transactions}}",
+  "@addedN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "addedNSkipped": "{n, plural, =1{Added 1 transaction} other{Added {n} transactions}} · {skipped} already here",
+  "@addedNSkipped": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "backupHelp": "One .ledger file with all your data and receipts. Save it to Drive, Files or a computer.",
+  "backupProtect": "Protect with a password",
+  "backupPasswordField": "Password (6+ characters)",
+  "confirmPassword": "Confirm password",
+  "backupNoRecovery": "There is no way to recover a forgotten password.",
+  "backUp": "Back up",
+  "backupPassword": "Backup password",
+  "password": "Password",
+  "unlock": "Unlock",
+  "restoreBackup": "Restore backup",
+  "backupMade": "Made {date} · app {version}",
+  "@backupMade": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "merge": "Merge",
+  "replace": "Replace",
+  "restoreMergeHelp": "Adds what is missing on this phone. Matching categories, sources and accounts are reused; transactions already here are skipped.",
+  "restoreReplaceHelp": "Deletes everything on this phone and uses the backup instead.",
+  "restoreConfirm": "I understand my current data will be erased",
+  "backupReminder": "Backup reminder",
+  "backupBannerNever": "Your data lives only on this phone. Make a backup.",
+  "backupBannerDue": "Time for a backup · {last}",
+  "@backupBannerDue": {
+    "placeholders": {
+      "last": {
+        "type": "String"
+      }
+    }
+  },
+  "remindLater": "Remind me later",
+  "importedN": "{n, plural, =1{Imported 1 transaction} other{Imported {n} transactions}}",
+  "@importedN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "importLine": "Line {n}",
+  "@importLine": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "importDuplicate": "Duplicate",
+  "importToDefault": "Category → {name}",
+  "@importToDefault": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "importNewSub": "New sub-category: {name}",
+  "@importNewSub": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "importN": "{n, plural, =1{Import 1 transaction} other{Import {n} transactions}}",
+  "@importN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "finish": "Finish",
+  "skip": "Skip",
+  "onbWelcomeTitle": "Your money, on your phone",
+  "onbWelcomeBody": "Track spending, investments and debts in one place. Your data stays on this phone. There is no account, no server and no tracking.",
+  "onbGetStarted": "Get started",
+  "onbPointLocal": "Stored only on this device",
+  "onbPointOffline": "Works fully offline",
+  "onbPointExport": "Export to CSV or PDF any time",
+  "onbNameTitle": "What should we call you?",
+  "onbNameBody": "Used only for the greeting on the home screen. Optional.",
+  "onbCurrencyTitle": "Pick your currency",
+  "onbCurrencyBody": "Amounts are shown in this currency. You can change it later in Settings.",
+  "onbCurrencySample": "{currency} · e.g. {amount}",
+  "@onbCurrencySample": {
+    "placeholders": {
+      "currency": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "onbSourceTitle": "Where do you pay from?",
+  "onbSourceBody": "Add your main account. It becomes the default payment mode on new transactions. Leave it empty to start with {name}.",
+  "@onbSourceBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sourceKindCash": "Cash",
+  "sourceNameField": "Name, e.g. HDFC Savings",
+  "optional": "Optional",
+  "onbLocationTitle": "Tag places automatically?",
+  "onbLocationBody": "With location on, new transactions get the place you are at. It is saved only with your entries on this phone. You can always type a place instead.",
+  "onbLocationContinue": "Continue without location",
+  "onbLocationAllow": "Allow location",
+  "onbLocationDenied": "Permission was not granted. You can turn it on later in Settings.",
+  "onbSmsTitle": "Add expenses from bank SMS?",
+  "onbSmsBodyShortcuts": "A Shortcuts automation can hand each bank, card or UPI SMS to us; we read it on this phone and ask whether to add it — one tap from the notification. Settings › Expenses from SMS shows how to set it up.",
+  "onbSmsBody": "When a bank, card or UPI SMS arrives, we read it on this phone and ask whether to add it — one tap from the notification. OTPs and offers are skipped, and nothing is uploaded.",
+  "onbSmsContinue": "Continue without SMS",
+  "turnOn": "Turn on",
+  "onbSmsAllow": "Allow SMS",
+  "onbSmsDenied": "SMS permission was not granted. You can turn this on later in Settings › Expenses from SMS.",
+  "onbLockTitle": "Lock the app?",
+  "onbLockBody": "Ask for a PIN (or your fingerprint / face) when the app opens, and hide amounts in the app switcher. You can change this anytime in Settings.",
+  "onbLockAction": "Set a PIN",
+  "onbRemindersTitle": "Get reminders?",
+  "onbRemindersBody": "A heads-up when a budget reaches 80% or 100%, the day before an EMI or card bill is due, on SIP dates and before an FD matures. Planned on this phone; nothing is sent anywhere.",
+  "onbRemindersContinue": "Continue without reminders",
+  "onbRemindersAllow": "Turn on reminders",
+  "onbRemindersDenied": "Notifications are blocked. You can turn them on later in Settings › Reminders & alerts.",
+  "currencyInr": "Indian rupee",
+  "currencyUsd": "US dollar",
+  "currencyEur": "Euro",
+  "currencyGbp": "British pound",
+  "currencyAed": "UAE dirham",
+  "currencySgd": "Singapore dollar",
+  "currencyAud": "Australian dollar",
+  "currencyCad": "Canadian dollar",
+  "goodMorning": "Good morning",
+  "goodAfternoon": "Good afternoon",
+  "goodEvening": "Good evening",
+  "welcome": "Welcome",
+  "reminders": "Reminders",
+  "homeSmsReview": "{n, plural, =1{1 transaction from SMS to review} other{{n} transactions from SMS to review}}",
+  "@homeSmsReview": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "homeOutThisMonth": "Money out this month",
+  "homeOutIn": "Money out in {month}",
+  "@homeOutIn": {
+    "placeholders": {
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "invested": "Invested",
+  "homeInvestedThisMonth": "+{amount} this month",
+  "@homeInvestedThisMonth": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "homeInvestedIn": "+{amount} in {month}",
+  "@homeInvestedIn": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "homeMonthlyEmi": "{amount}/mo EMI",
+  "@homeMonthlyEmi": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "comingUp": "Coming up",
+  "seeAll": "See all",
+  "whereItWent": "Where it went",
+  "homeNoSpendYet": "No spending yet this month.",
+  "homeNoSpendIn": "No spending in {period}.",
+  "@homeNoSpendIn": {
+    "placeholders": {
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "recent": "Recent",
+  "viewAll": "View all",
+  "homeNoTxns": "No transactions yet",
+  "homeNoTxnsHelp": "Tap + to add your first expense, investment or income.",
+  "homeNothingIn": "Nothing in {period}",
+  "@homeNothingIn": {
+    "placeholders": {
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "homeNothingInHelp": "No transactions were recorded that month.",
+  "homeOfIncome": "of {amount} income",
+  "@homeOfIncome": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "spent": "Spent",
+  "left": "Left",
+  "catKindInvestment": "Investment",
+  "catMove": "Move {name}",
+  "@catMove": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "catTopLevel": "Top level",
+  "catUnder": "Under {name}",
+  "@catUnder": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "catMoveOnlyLeaf": "Only categories without sub-categories can be moved under another",
+  "catDefaultHelp": "Default — used when nothing is picked",
+  "catAddSub": "Add sub-category",
+  "catMoveMenu": "Move…",
+  "catMoveUnderMenu": "Move under…",
+  "catArchive": "Archive {name}",
+  "@catArchive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "catArchived": "{name} archived",
+  "@catArchived": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "catAdd": "Add category",
+  "catSpendHelp": "Money that’s gone — food, rent, bills. Tap ⋮ to add sub-categories.",
+  "catInvestHelp": "Money out that still grows your net worth.",
+  "catIncomeHelp": "Money coming in.",
+  "catArchivedCount": "Archived ({n})",
+  "@catArchivedCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "catArchivedHelp": "Kept for history; not offered on new transactions",
+  "catKindUnder": "{kind} · under {parent}",
+  "@catKindUnder": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "parent": {
+        "type": "String"
+      }
+    }
+  },
+  "restore": "Restore",
+  "catRestored": "{name} restored",
+  "@catRestored": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "catNew": "New category",
+  "catNewSub": "New sub-category in {name}",
+  "@catNewSub": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "immediately": "Immediately",
+  "seconds": "{n} s",
+  "@seconds": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "minutes": "{n} min",
+  "@minutes": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "pinChoose": "Choose a PIN",
+  "pinConfirm": "Confirm your PIN",
+  "pinDigits": "Enter 4–6 digits",
+  "pinAgain": "Enter the same PIN again",
+  "pinCooldown": "Too many attempts. Try again in {n} s",
+  "@pinCooldown": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "pinWrong": "Wrong PIN",
+  "pinCurrent": "Enter your current PIN",
+  "lockOn": "App lock is on",
+  "pinChanged": "PIN changed",
+  "encryptTitle": "Encrypt the database?",
+  "encryptBody": "Your data will be encrypted with a key kept in this phone's secure storage. If that key is lost (for example, app data is cleared), the data cannot be recovered — export a backup first.",
+  "encrypt": "Encrypt",
+  "dbEncrypted": "Database encrypted",
+  "dbDecrypted": "Database decrypted",
+  "appLock": "App lock",
+  "lockWithPin": "Lock with PIN",
+  "lockWithPinHelp": "Asked when the app opens",
+  "changePin": "Change PIN",
+  "unlockBiometric": "Unlock with fingerprint / face",
+  "notAvailableDevice": "Not available on this device",
+  "lockAgainAfter": "Lock again after leaving the app",
+  "hideSwitcher": "Hide in app switcher",
+  "hideSwitcherHelp": "Blurs the recent-apps preview and blocks screenshots",
+  "encryption": "Encryption",
+  "encryptDb": "Encrypt database",
+  "encryptKeyStored": "Key stored in the phone's secure storage",
+  "encryptUnavailable": "Not available for this database",
+  "budgetNew": "New budget",
+  "budgetTabWeekly": "Weekly · {span}",
+  "@budgetTabWeekly": {
+    "placeholders": {
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetTabMonthly": "Monthly · 1st–end",
+  "budgetOverBanner": "{name} is over by {amount}",
+  "@budgetOverBanner": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetNoneWeekly": "No weekly budgets",
+  "budgetNoneMonthly": "No monthly budgets",
+  "budgetEmptyHelp": "Set a limit for any category and track it every cycle.",
+  "budgetCreate": "Create budget",
+  "budgetGoalReached": "Goal reached",
+  "budgetToGoal": "{amount} to reach goal",
+  "@budgetToGoal": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetOverBy": "Over by {amount}",
+  "@budgetOverBy": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetLeft": "{amount} left · {perDay}/day · {days}",
+  "@budgetLeft": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "perDay": {
+        "type": "String"
+      },
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetAllInvestments": "All investments",
+  "budgetAllSpending": "All spending",
+  "nCategories": "{n, plural, =1{1 category} other{{n} categories}}",
+  "@nCategories": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "ofAmount": "of {amount}",
+  "@ofAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetNeedNameLimit": "Add a name and a limit",
+  "budgetEdit": "Edit budget",
+  "budgetDelete": "Delete budget",
+  "budgetNameField": "Name, e.g. Food",
+  "budgetLimitField": "Limit ({symbol})",
+  "@budgetLimitField": {
+    "placeholders": {
+      "symbol": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetSuggestion": "You averaged {amount}/month over the last 3 months · tap to use",
+  "@budgetSuggestion": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetRepeats": "Repeats every",
+  "budgetWeek": "Week ({span})",
+  "@budgetWeek": {
+    "placeholders": {
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetMonth": "Month (1st → end)",
+  "budgetGoal": "Investment goal",
+  "budgetGoalHelp": "Track a target for money invested instead of a spending cap",
+  "budgetCounts": "Counts these investments",
+  "budgetAppliesTo": "Applies to (empty = all spending)",
+  "budgetRollover": "Roll over unspent amount",
+  "budgetAlert80Switch": "Alert at 80%",
+  "budgetAlertOver": "Alert when over",
+  "budgetSave": "Save budget",
+  "totalInvested": "Total invested",
+  "investThisMonth": "+{amount} this month · {n, plural, =1{1 holding} other{{n} holdings}}",
+  "@investThisMonth": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "investNoPrices": "Amounts you put in · no live prices or returns",
+  "investMaturesOn": "{name} matures on {date}",
+  "@investMaturesOn": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "investNone": "No investments yet",
+  "investNoneHelp": "Add an FD, SIP, stock or gold holding to track what you invest.",
+  "investAdd": "Add investment",
+  "investMatures": "matures {date}",
+  "@investMatures": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "nEntries": "{n, plural, =1{1 entry} other{{n} entries}}",
+  "@nEntries": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "interestRate": "Interest rate",
+  "investStarted": "Started {date}",
+  "@investStarted": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "investMaturesCap": "Matures {date}",
+  "@investMaturesCap": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "institution": "Institution",
+  "note": "Note",
+  "contributions": "Contributions ({n})",
+  "@contributions": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "investNoMoney": "No money added yet.",
+  "investAddMoney": "Add money",
+  "investMarkMatured": "Mark matured",
+  "investCloseSold": "Close / sold",
+  "investReactivate": "Mark active again",
+  "investNeedName": "Give the investment a name",
+  "investNameField": "Name, e.g. HDFC Bank FD",
+  "investInstitutionField": "Bank / platform (optional)",
+  "investAmountField": "Amount invested now (optional)",
+  "startDate": "Start date",
+  "maturityDate": "Maturity date (optional)",
+  "investSave": "Save investment",
+  "sourceKindBank": "Bank account",
+  "sourceKindWallet": "UPI / wallet",
+  "sourceAdd": "Add payment source",
+  "sourceDefaultHelp": "Pre-selected on every new transaction",
+  "sourceOutIn": "{kind} · {amount} out in {month}",
+  "@sourceOutIn": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "sourceLimit": "limit {amount}",
+  "@sourceLimit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "sourceBalance": "Balance {amount}",
+  "@sourceBalance": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "sourceOutstanding": "{amount} outstanding",
+  "@sourceOutstanding": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "sourceCredit": "{amount} credit",
+  "@sourceCredit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "sourceNew": "New payment source",
+  "sourceLast4": "Last 4 digits (optional)",
+  "sourceCreditLimit": "Credit limit ({symbol})",
+  "@sourceCreditLimit": {
+    "placeholders": {
+      "symbol": {
+        "type": "String"
+      }
+    }
+  },
+  "sourceBalanceHelp": "Optional · defaults to {amount}",
+  "@sourceBalanceHelp": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "makeDefault": "Make default",
+  "sourceOutstandingField": "Outstanding now ({symbol})",
+  "@sourceOutstandingField": {
+    "placeholders": {
+      "symbol": {
+        "type": "String"
+      }
+    }
+  },
+  "sourceBalanceField": "Current balance ({symbol})",
+  "@sourceBalanceField": {
+    "placeholders": {
+      "symbol": {
+        "type": "String"
+      }
+    }
+  },
+  "sourceAdjustHelp": "Transactions you add will adjust it from here",
+  "pdfReport": "PDF report",
+  "week": "Week",
+  "month": "Month",
+  "year": "Year",
+  "previousPeriod": "Previous period",
+  "nextPeriod": "Next period",
+  "insightsDonutLabel": "Spent {spent}, invested {invested}",
+  "@insightsDonutLabel": {
+    "placeholders": {
+      "spent": {
+        "type": "String"
+      },
+      "invested": {
+        "type": "String"
+      }
+    }
+  },
+  "moneyOutLabel": "Money out",
+  "insightsSaved": "Saved {n}% of income",
+  "@insightsSaved": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "insightsNoEarlier": "No earlier data",
+  "insightsLessSpent": "{n}% less spent",
+  "@insightsLessSpent": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "insightsMoreSpent": "{n}% more spent",
+  "@insightsMoreSpent": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "insightsThanPrevious": "than previous period",
+  "perDay": "{amount} / day",
+  "@perDay": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "averageSpend": "average spend",
+  "monthByMonth": "Month by month",
+  "weekByWeek": "Week by week",
+  "dayByDay": "Day by day",
+  "byCategory": "By category",
+  "insightsNothing": "Nothing recorded in this period.",
+  "insightsDirect": "{name} (direct)",
+  "@insightsDirect": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "insightsCatRow": "{name}  ·  {n, plural, =1{1 txn} other{{n} txns}}",
+  "@insightsCatRow": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "hideSubs": "Hide sub-categories",
+  "showSubs": "Show sub-categories",
+  "smsReadTitle": "Read bank SMS?",
+  "smsReadBodyShortcuts": "iPhone apps can't read SMS, so a Shortcuts automation hands each bank message to Expense Manager. It is read on this phone and you are asked whether to add the transaction.\n\nNothing is sent anywhere. OTPs, offers and reminders are skipped. Next, set up the automation using the steps on this screen.",
+  "smsReadBody": "When a bank, card or UPI SMS arrives, Expense Manager reads it on this phone and asks whether to add the transaction.\n\nOnly messages with an amount that was debited or credited are kept, and nothing is sent anywhere. OTPs, offers and reminders are skipped.",
+  "smsDenied": "SMS permission was denied. Allow it for Expense Manager in system settings.",
+  "smsNoNotifications": "Notifications are blocked, so new expenses will only show up here.",
+  "addedThing": "Added {what}",
+  "@addedThing": {
+    "placeholders": {
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "smsAskToAdd": "Ask to add bank SMS",
+  "smsAskToAddHelp": "Read on this phone · nothing is uploaded",
+  "smsPermissionOff": "SMS permission is off, so new messages are not read.",
+  "allow": "Allow",
+  "smsNothingToReview": "Nothing to review",
+  "smsToReview": "To review ({n})",
+  "@smsToReview": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "smsOnHelp": "New bank and UPI transactions show up here and as a notification.",
+  "smsOffHelp": "Turn this on to be asked about each bank or UPI transaction as its SMS arrives.",
+  "smsStep1": "Open Shortcuts → Automation → + (New Automation) → Message.",
+  "smsStep2": "Message Contains: {keyword}. Choose Run Immediately, then Next.",
+  "@smsStep2": {
+    "placeholders": {
+      "keyword": {
+        "type": "String"
+      }
+    }
+  },
+  "smsStep3": "New Blank Automation → Add Action → search \"{action}\" (Expense Manager).",
+  "@smsStep3": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "smsStep4": "Tap Message in the action and pick Shortcut Input. Done.",
+  "smsStep5": "Repeat with \"{first}\" and \"{second}\" to catch more banks.",
+  "@smsStep5": {
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "second": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotOpen": "Could not open {url}",
+  "@couldNotOpen": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "smsSetupIphone": "Set up on iPhone",
+  "smsSetupIphoneHelp": "iOS doesn't let apps read SMS. A Shortcuts automation passes each bank message to Expense Manager instead (iOS 17 or later runs it without asking).",
+  "smsOpenShortcuts": "Open Shortcuts",
+  "smsGuide": "Guide with pictures",
+  "sipStopTitle": "Stop this SIP?",
+  "sipStopBody": "Contributions already recorded stay on this investment.",
+  "sipStop": "Stop SIP",
+  "sipSetup": "Set up a monthly SIP",
+  "sipSummary": "SIP · {amount} on day {day}",
+  "@sipSummary": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "paused": "Paused",
+  "nextOn": "Next {date}",
+  "@nextOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "nextOnFrom": "Next {date} · {source}",
+  "@nextOnFrom": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "sipAuto": "Added automatically",
+  "sipReminderOnly": "Reminder only · record it when you pay",
+  "stop": "Stop",
+  "sipMonthly": "Monthly SIP",
+  "sipEdit": "Edit SIP",
+  "sipAmountField": "Amount each month ({symbol})",
+  "@sipAmountField": {
+    "placeholders": {
+      "symbol": {
+        "type": "String"
+      }
+    }
+  },
+  "dayOfMonth": "Day of month",
+  "sipAutoOption": "Add it automatically",
+  "sipAutoOptionHelp": "Records the invest transaction each month",
+  "sipRemindOption": "Remind me only",
+  "sipRemindOptionHelp": "Shows it as coming up; you record it",
+  "shareLog": "Share log",
+  "clearLog": "Clear log",
+  "logCleared": "Error log cleared",
+  "noErrors": "No errors recorded",
+  "noErrorsHelp": "Crashes and errors are logged on this phone only. Share the log if you report a bug.",
+  "reminderOn": "Reminder on {date}",
+  "@reminderOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "changeDate": "Change date",
+  "remindMeOn": "Remind me on",
+  "willRemind": "We'll remind you on {date}",
+  "@willRemind": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "savedTurnOnReminders": "Saved. Turn on Settings › Reminders & alerts to get a notification.",
+  "remindMe": "Remind me",
+  "locationUnavailable": "Current location unavailable. Allow location access or search instead.",
+  "pickLocation": "Pick location",
+  "searchPlace": "Search a place or address",
+  "noPlaceMatches": "No matches. Try another name, or tap the map.",
+  "placeName": "Place name",
+  "tapMapForPin": "Tap the map to drop a pin",
+  "pinWrongLeft": "Wrong PIN · {n, plural, =1{1 attempt left} other{{n} attempts left}}",
+  "@pinWrongLeft": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "appLocked": "Expense Manager is locked",
+  "ended": "Ended",
+  "reminderOnly": "reminder only",
+  "deleteSchedule": "Delete this schedule?",
+  "deleteScheduleBody": "No more transactions will be added. Ones already added stay.",
+  "recurring": "Recurring",
+  "nothingRecurring": "Nothing recurring yet",
+  "nothingRecurringHelp": "Turn on “Repeat” when adding a transaction, or set up a SIP on an investment.",
+  "deleteRule": "Delete rule",
+  "editSchedule": "Edit schedule",
+  "onTheDay": "On the day",
+  "daysBefore": "{n, plural, =1{1 day before} other{{n} days before}}",
+  "@daysBefore": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationsBlocked": "Notifications are blocked. Allow them for Expense Manager in system settings.",
+  "testSent": "Test notification sent",
+  "notifications": "Notifications",
+  "notificationsHelp": "Planned on this phone · nothing is sent to a server",
+  "fdLeadTitle": "Remind me before an FD matures",
+  "remindersInfo": "Reminders arrive around {time}: due dates the day before and on the day, SIPs on their date, and budget alerts once per budget when it reaches 80% and 100%.",
+  "@remindersInfo": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "sendTest": "Send a test notification",
+  "tomorrow": "Tomorrow",
+  "inDays": "in {n} days",
+  "@inDays": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "upcomingEmi": "EMI due",
+  "upcomingCard": "Card bill due",
+  "upcomingMaturity": "Matures",
+  "upcomingSip": "SIP due",
+  "upcomingFollowUp": "Follow up",
+  "nothingComingUp": "Nothing coming up",
+  "nothingComingUpHelp": "EMIs, card bills and FD maturities in the next 60 days show up here.",
+  "txnDeleted": "Transaction deleted",
+  "txnGone": "This transaction no longer exists.",
+  "transaction": "Transaction",
+  "dateTime": "Date & time",
+  "location": "Location",
+  "coordinates": "Coordinates",
+  "repeats": "Repeats",
+  "duplicate": "Duplicate",
+  "pdfReceipt": "PDF receipt",
+  "open": "Open",
+  "receiptMissing": "Receipt file not found",
+  "keyPlus": "Plus",
+  "keyMinus": "Minus",
+  "keyEquals": "Equals",
+  "keyDecimal": "Decimal point",
+  "keyDoubleZero": "Double zero",
+  "keyBackspace": "Backspace",
+  "allOf": "All {name}",
+  "@allOf": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "chartBarLabel": "{label}: spent {spent}, invested {invested}",
+  "@chartBarLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "spent": {
+        "type": "String"
+      },
+      "invested": {
+        "type": "String"
+      }
+    }
+  },
+  "pinMismatch": "PINs didn't match. Try again.",
+  "encryptFailed": "Couldn't change encryption: {error}",
+  "@encryptFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pdfTitle": "Expense report",
+  "pdfTitleFor": "Expense report {period}",
+  "@pdfTitleFor": {
+    "placeholders": {
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "pdfDebtPaid": "Debt paid",
+  "pdfSpendByCategory": "Spend by category",
+  "pdfTransactions": "Transactions ({n})",
+  "@pdfTransactions": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "seedFood": "Food & dining",
+  "seedRent": "Rent",
+  "seedShopping": "Shopping",
+  "seedTransport": "Transport",
+  "seedBills": "Bills & utilities",
+  "seedHealth": "Health",
+  "seedEntertainment": "Entertainment",
+  "seedTravel": "Travel",
+  "seedOthers": "Others",
+  "seedFd": "Fixed deposit",
+  "seedMutualFunds": "Mutual funds / SIP",
+  "seedRetirement": "PPF / EPF / NPS",
+  "seedSalary": "Salary",
+  "seedOtherIncome": "Other income"
 }

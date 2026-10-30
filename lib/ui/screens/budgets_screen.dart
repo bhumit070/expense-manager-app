@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/dates.dart';
 import '../../core/money.dart';
+import '../../l10n/l10n.dart';
 import '../../data/models.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
@@ -33,8 +34,8 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     );
     return Scaffold(
       appBar: AppBar(
-        title: Text('Budgets', style: ts(16, weight: FontWeight.w700)),
-        actions: [IconButton(key: const Key('new-budget'), tooltip: 'New budget', icon: const Icon(AppIcons.add), onPressed: open)],
+        title: Text(context.l10n.budgetsTitle, style: ts(16, weight: FontWeight.w700)),
+        actions: [IconButton(key: const Key('new-budget'), tooltip: context.l10n.budgetNew, icon: const Icon(AppIcons.add), onPressed: open)],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -42,7 +43,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
           Segmented<BudgetPeriod>(
             values: BudgetPeriod.values,
             selected: _period,
-            label: (p) => p == BudgetPeriod.weekly ? 'Weekly · $weekSpanLabel' : 'Monthly · 1st–end',
+            label: (p) => p == BudgetPeriod.weekly ? context.l10n.budgetTabWeekly(weekSpanLabel) : context.l10n.budgetTabMonthly,
             onChanged: (p) => setState(() => _period = p),
           ),
           const SizedBox(height: 14),
@@ -59,7 +60,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        '${o.budget.name} is over by ${formatInr(o.used - o.limit)}',
+                        context.l10n.budgetOverBanner(o.budget.name, formatInr(o.used - o.limit)),
                         style: ts(13, weight: FontWeight.w700, color: c.spend),
                       ),
                     ),
@@ -68,7 +69,13 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
               ),
             ),
           if (items.isEmpty)
-            EmptyState(icon: AppIcons.insights, title: 'No ${_period.name} budgets', message: 'Set a limit for any category and track it every cycle.', action: 'Create budget', onAction: open),
+            EmptyState(
+              icon: AppIcons.insights,
+              title: _period == BudgetPeriod.weekly ? context.l10n.budgetNoneWeekly : context.l10n.budgetNoneMonthly,
+              message: context.l10n.budgetEmptyHelp,
+              action: context.l10n.budgetCreate,
+              onAction: open,
+            ),
           for (final p in items) ...[_BudgetCard(p, onTap: () => open(p.budget)), const SizedBox(height: 10)],
         ],
       ),
@@ -87,10 +94,10 @@ class _BudgetCard extends StatelessWidget {
     final c = context.colors;
     final color = p.budget.isGoal ? c.invest : (p.isOver ? c.spend : (p.isNear ? c.debt : c.brand));
     final status = p.budget.isGoal
-        ? (p.remaining <= 0 ? 'Goal reached' : '${formatInr(p.remaining)} to reach goal')
+        ? (p.remaining <= 0 ? context.l10n.budgetGoalReached : context.l10n.budgetToGoal(formatInr(p.remaining)))
         : p.isOver
-        ? 'Over by ${formatInr(-p.remaining)}'
-        : '${formatInr(p.remaining)} left · ${formatInr(p.perDayLeft)}/day · ${p.daysLeft} days left';
+        ? context.l10n.budgetOverBy(formatInr(-p.remaining))
+        : context.l10n.budgetLeft(formatInr(p.remaining), formatInr(p.perDayLeft), context.l10n.daysLeft(p.daysLeft));
     return AppCard(
       onTap: onTap,
       child: Column(
@@ -105,7 +112,10 @@ class _BudgetCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(p.budget.name, style: ts(14, weight: FontWeight.w700)),
-                    Text(p.budget.categoryIds.isEmpty ? (p.budget.isGoal ? 'All investments' : 'All spending') : '${p.budget.categoryIds.length} categories', style: ts(11, color: c.textMuted)),
+                    Text(
+                      p.budget.categoryIds.isEmpty ? (p.budget.isGoal ? context.l10n.budgetAllInvestments : context.l10n.budgetAllSpending) : context.l10n.nCategories(p.budget.categoryIds.length),
+                      style: ts(11, color: c.textMuted),
+                    ),
                   ],
                 ),
               ),
@@ -116,7 +126,7 @@ class _BudgetCard extends StatelessWidget {
                     formatInr(p.used),
                     style: ts(14, weight: FontWeight.w700, color: p.isOver ? c.spend : c.text),
                   ),
-                  Text('of ${formatInr(p.limit)}', style: ts(11, color: c.textMuted)),
+                  Text(context.l10n.ofAmount(formatInr(p.limit)), style: ts(11, color: c.textMuted)),
                 ],
               ),
             ],
@@ -176,7 +186,7 @@ class _BudgetFormScreenState extends State<BudgetFormScreen> {
     final app = AppScope.read(context);
     final limit = parseInr(_limit.text);
     if (_name.text.trim().isEmpty || limit == null || limit <= 0) {
-      showSnack(context, 'Add a name and a limit');
+      showSnack(context, context.l10n.budgetNeedNameLimit);
       return;
     }
     final b = Budget(
@@ -207,12 +217,12 @@ class _BudgetFormScreenState extends State<BudgetFormScreen> {
     );
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existing == null ? 'New budget' : 'Edit budget', style: ts(16, weight: FontWeight.w700)),
+        title: Text(widget.existing == null ? context.l10n.budgetNew : context.l10n.budgetEdit, style: ts(16, weight: FontWeight.w700)),
         actions: [
           if (widget.existing != null)
             IconButton(
               key: const Key('delete-budget'),
-              tooltip: 'Delete budget',
+              tooltip: context.l10n.budgetDelete,
               icon: const Icon(AppIcons.delete),
               onPressed: () {
                 app.planning.deleteBudget(widget.existing!.id!);
@@ -228,14 +238,14 @@ class _BudgetFormScreenState extends State<BudgetFormScreen> {
           TextField(
             key: const Key('budget-name'),
             controller: _name,
-            decoration: const InputDecoration(labelText: 'Name, e.g. Food'),
+            decoration: InputDecoration(labelText: context.l10n.budgetNameField),
           ),
           const SizedBox(height: 12),
           TextField(
             key: const Key('budget-limit'),
             controller: _limit,
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: 'Limit ($currencySymbol)', prefixText: '$currencySymbol '),
+            decoration: InputDecoration(labelText: context.l10n.budgetLimitField(currencySymbol), prefixText: '$currencySymbol '),
           ),
           if (suggestion > 0)
             Padding(
@@ -243,28 +253,28 @@ class _BudgetFormScreenState extends State<BudgetFormScreen> {
               child: GestureDetector(
                 key: const Key('use-suggestion'),
                 onTap: () => setState(() => _limit.text = '${suggestion ~/ 100}'),
-                child: Text('You averaged ${formatInr(suggestion)}/month over the last 3 months · tap to use', style: ts(12, color: c.brand)),
+                child: Text(context.l10n.budgetSuggestion(formatInr(suggestion)), style: ts(12, color: c.brand)),
               ),
             ),
-          label('Repeats every'),
+          label(context.l10n.budgetRepeats),
           Segmented<BudgetPeriod>(
             values: BudgetPeriod.values,
             selected: _period,
-            label: (p) => p == BudgetPeriod.weekly ? 'Week ($weekSpanLabel)' : 'Month (1st → end)',
+            label: (p) => p == BudgetPeriod.weekly ? context.l10n.budgetWeek(weekSpanLabel) : context.l10n.budgetMonth,
             onChanged: (p) => setState(() => _period = p),
           ),
           SwitchListTile(
             key: const Key('goal-switch'),
             contentPadding: EdgeInsets.zero,
-            title: const Text('Investment goal'),
-            subtitle: const Text('Track a target for money invested instead of a spending cap'),
+            title: Text(context.l10n.budgetGoal),
+            subtitle: Text(context.l10n.budgetGoalHelp),
             value: _goal,
             onChanged: (v) => setState(() {
               _goal = v;
               _cats = {};
             }),
           ),
-          label(_goal ? 'Counts these investments' : 'Applies to (empty = all spending)'),
+          label(_goal ? context.l10n.budgetCounts : context.l10n.budgetAppliesTo),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -278,14 +288,26 @@ class _BudgetFormScreenState extends State<BudgetFormScreen> {
             SwitchListTile(
               key: const Key('rollover-switch'),
               contentPadding: EdgeInsets.zero,
-              title: const Text('Roll over unspent amount'),
+              title: Text(context.l10n.budgetRollover),
               value: _rollover,
               onChanged: (v) => setState(() => _rollover = v),
             ),
-          SwitchListTile(key: const Key('alert80-switch'), contentPadding: EdgeInsets.zero, title: const Text('Alert at 80%'), value: _alert80, onChanged: (v) => setState(() => _alert80 = v)),
-          SwitchListTile(key: const Key('alert100-switch'), contentPadding: EdgeInsets.zero, title: const Text('Alert when over'), value: _alert100, onChanged: (v) => setState(() => _alert100 = v)),
+          SwitchListTile(
+            key: const Key('alert80-switch'),
+            contentPadding: EdgeInsets.zero,
+            title: Text(context.l10n.budgetAlert80Switch),
+            value: _alert80,
+            onChanged: (v) => setState(() => _alert80 = v),
+          ),
+          SwitchListTile(
+            key: const Key('alert100-switch'),
+            contentPadding: EdgeInsets.zero,
+            title: Text(context.l10n.budgetAlertOver),
+            value: _alert100,
+            onChanged: (v) => setState(() => _alert100 = v),
+          ),
           const SizedBox(height: 16),
-          FilledButton(key: const Key('save-budget'), onPressed: _save, child: Text(widget.existing == null ? 'Create budget' : 'Save budget')),
+          FilledButton(key: const Key('save-budget'), onPressed: _save, child: Text(widget.existing == null ? context.l10n.budgetCreate : context.l10n.budgetSave)),
         ],
       ),
     );

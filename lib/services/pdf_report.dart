@@ -1,18 +1,27 @@
 import 'dart:typed_data';
 
+import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../core/dates.dart';
 import '../core/money.dart';
 import '../data/models.dart';
+import '../l10n/app_localizations_en.dart';
+import '../l10n/l10n.dart';
 
 /// Built-in PDF fonts have no ₹ glyph, so reports use an ASCII symbol ("Rs").
 String pdfMoney(int paise) => formatInr(paise).replaceAll(currentCurrency.symbol, currentCurrency.asciiSymbol);
 
-/// Builds a shareable PDF report for a period.
+/// Builds a shareable PDF report for a period. The built-in PDF fonts only
+/// cover Latin script, so other languages get an English report.
 Future<Uint8List> buildPdfReport({required Period period, required Totals totals, required List<CategoryTotal> spendByCategory, required List<TxnView> transactions}) {
-  final doc = pw.Document(title: 'Expense report ${period.label}');
+  final l = const {'en', 'fr'}.contains(currentL10n.localeName) ? currentL10n : AppLocalizationsEn();
+  return Intl.withLocale(l.localeName, () => _report(l, period, totals, spendByCategory, transactions)) as Future<Uint8List>;
+}
+
+Future<Uint8List> _report(AppLocalizations l, Period period, Totals totals, List<CategoryTotal> spendByCategory, List<TxnView> transactions) {
+  final doc = pw.Document(title: l.pdfTitleFor(period.label));
   const brand = PdfColor.fromInt(0xFF4F46E5);
   pw.Widget stat(String label, int value) => pw.Expanded(
     child: pw.Container(
@@ -33,37 +42,37 @@ Future<Uint8List> buildPdfReport({required Period period, required Totals totals
       pageFormat: PdfPageFormat.a4,
       build: (_) => [
         pw.Text(
-          'Expense report',
+          l.pdfTitle,
           style: const pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: brand),
         ),
         pw.Text('${period.label} · ${period.rangeLabel}', style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700)),
         pw.SizedBox(height: 16),
         pw.Row(
           children: [
-            stat('Spent', totals.spend),
+            stat(l.spent, totals.spend),
             pw.SizedBox(width: 8),
-            stat('Invested', totals.invest),
+            stat(l.invested, totals.invest),
             pw.SizedBox(width: 8),
-            stat('Income', totals.income),
+            stat(l.typeIncome, totals.income),
             pw.SizedBox(width: 8),
-            stat('Debt paid', totals.debtOut),
+            stat(l.pdfDebtPaid, totals.debtOut),
           ],
         ),
         pw.SizedBox(height: 20),
-        pw.Text('Spend by category', style: const pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+        pw.Text(l.pdfSpendByCategory, style: const pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
         pw.SizedBox(height: 6),
         pw.TableHelper.fromTextArray(
-          headers: ['Category', 'Transactions', 'Amount'],
+          headers: [l.category, l.transactionsTitle, l.amount],
           data: [
             for (final c in spendByCategory) [c.category.name, '${c.count}', pdfMoney(c.total)],
           ],
           cellAlignments: {1: pw.Alignment.centerRight, 2: pw.Alignment.centerRight},
         ),
         pw.SizedBox(height: 20),
-        pw.Text('Transactions (${transactions.length})', style: const pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+        pw.Text(l.pdfTransactions(transactions.length), style: const pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
         pw.SizedBox(height: 6),
         pw.TableHelper.fromTextArray(
-          headers: ['Date', 'Type', 'Category', 'Details', 'Amount'],
+          headers: [l.date, l.type, l.category, l.details, l.amount],
           data: [
             for (final t in transactions) [isoDateTime(t.txn.occurredAt), t.txn.type.name, t.category.name, t.txn.titleOr(''), pdfMoney(t.signedAmount)],
           ],

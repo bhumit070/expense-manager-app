@@ -2,16 +2,17 @@ import 'dart:math' as math;
 
 import 'package:sqlite3/sqlite3.dart';
 
+import '../l10n/l10n.dart';
 import 'models.dart';
 import 'transactions_repo.dart';
 
 enum Frequency { daily, weekly, monthly, yearly }
 
 String frequencyLabel(Frequency f) => switch (f) {
-  Frequency.daily => 'Daily',
-  Frequency.weekly => 'Weekly',
-  Frequency.monthly => 'Monthly',
-  Frequency.yearly => 'Yearly',
+  Frequency.daily => currentL10n.daily,
+  Frequency.weekly => currentL10n.weekly,
+  Frequency.monthly => currentL10n.monthly,
+  Frequency.yearly => currentL10n.yearly,
 };
 
 int _daysIn(int year, int month) => DateTime(year, month + 1, 0).day;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../state/app_state.dart';
 import '../../state/security_state.dart';
 import '../theme/tokens.dart';
@@ -8,9 +9,9 @@ import 'lock_screen.dart';
 import '../theme/icons.dart';
 
 String timeoutLabel(Duration d) => switch (d.inSeconds) {
-  0 => 'Immediately',
-  < 60 => '${d.inSeconds} s',
-  _ => '${d.inMinutes} min',
+  0 => currentL10n.immediately,
+  < 60 => currentL10n.seconds(d.inSeconds),
+  _ => currentL10n.minutes(d.inMinutes),
 };
 
 /// Asks for a new PIN twice and pops with it.
@@ -36,7 +37,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
     } else {
       setState(() {
         _first = null;
-        _error = "PINs didn't match. Try again.";
+        _error = context.l10n.pinMismatch;
       });
     }
   }
@@ -48,8 +49,8 @@ class _SetPinScreenState extends State<SetPinScreen> {
       child: SingleChildScrollView(
         child: PinPad(
           key: ValueKey(_first == null),
-          title: _first == null ? 'Choose a PIN' : 'Confirm your PIN',
-          message: _error ?? (_first == null ? 'Enter 4–6 digits' : 'Enter the same PIN again'),
+          title: _first == null ? context.l10n.pinChoose : context.l10n.pinConfirm,
+          message: _error ?? (_first == null ? context.l10n.pinDigits : context.l10n.pinAgain),
           messageIsError: _error != null,
           onSubmit: _submit,
         ),
@@ -75,7 +76,7 @@ class _ConfirmPinScreenState extends State<ConfirmPinScreen> {
         Navigator.pop(context, true);
       case PinResult.wrong:
       case PinResult.coolingDown:
-        setState(() => _error = sec.cooldownLeft > Duration.zero ? 'Too many attempts. Try again in ${sec.cooldownLeft.inSeconds} s' : 'Wrong PIN');
+        setState(() => _error = sec.cooldownLeft > Duration.zero ? context.l10n.pinCooldown(sec.cooldownLeft.inSeconds) : context.l10n.pinWrong);
     }
   }
 
@@ -86,7 +87,7 @@ class _ConfirmPinScreenState extends State<ConfirmPinScreen> {
       appBar: AppBar(),
       body: Center(
         child: SingleChildScrollView(
-          child: PinPad(title: 'Enter your current PIN', message: _error, messageIsError: _error != null, onSubmit: (pin) => _submit(sec, pin)),
+          child: PinPad(title: context.l10n.pinCurrent, message: _error, messageIsError: _error != null, onSubmit: (pin) => _submit(sec, pin)),
         ),
       ),
     );
@@ -118,7 +119,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
   Future<void> _toggleLock(SecurityState sec, bool on) async {
     if (on) {
-      if (await setUpAppLock(context) && mounted) showSnack(context, 'App lock is on');
+      if (await setUpAppLock(context) && mounted) showSnack(context, context.l10n.lockOn);
     } else if (await _confirmPin(context)) {
       sec.disableLock();
     }
@@ -126,7 +127,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
   Future<void> _changePin(SecurityState sec) async {
     if (!await _confirmPin(context) || !mounted) return;
-    if (await setUpAppLock(context) && mounted) showSnack(context, 'PIN changed');
+    if (await setUpAppLock(context) && mounted) showSnack(context, context.l10n.pinChanged);
   }
 
   Future<void> _toggleEncryption(SecurityState sec, bool on) async {
@@ -134,14 +135,11 @@ class _SecurityScreenState extends State<SecurityScreen> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Encrypt the database?'),
-          content: const Text(
-            'Your data will be encrypted with a key kept in this phone\'s secure storage. '
-            'If that key is lost (for example, app data is cleared), the data cannot be recovered — export a backup first.',
-          ),
+          title: Text(context.l10n.encryptTitle),
+          content: Text(context.l10n.encryptBody),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-            FilledButton(key: const Key('encrypt-confirm'), onPressed: () => Navigator.pop(context, true), child: const Text('Encrypt')),
+            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(context.l10n.cancel)),
+            FilledButton(key: const Key('encrypt-confirm'), onPressed: () => Navigator.pop(context, true), child: Text(context.l10n.encrypt)),
           ],
         ),
       );
@@ -149,9 +147,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
     }
     try {
       on ? await sec.encryptDatabase() : await sec.decryptDatabase();
-      if (mounted) showSnack(context, on ? 'Database encrypted' : 'Database decrypted');
+      if (mounted) showSnack(context, on ? context.l10n.dbEncrypted : context.l10n.dbDecrypted);
     } catch (e) {
-      if (mounted) showSnack(context, "Couldn't change encryption: $e");
+      if (mounted) showSnack(context, context.l10n.encryptFailed('$e'));
     }
   }
 
@@ -179,22 +177,22 @@ class _SecurityScreenState extends State<SecurityScreen> {
       listenable: sec,
       builder: (context, _) => Scaffold(
         appBar: AppBar(
-          title: Text('App lock & privacy', style: ts(16, weight: FontWeight.w700)),
+          title: Text(context.l10n.settingsAppLock, style: ts(16, weight: FontWeight.w700)),
         ),
         body: ListView(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
           children: [
-            group('App lock', [
+            group(context.l10n.appLock, [
               SwitchListTile(
                 key: const Key('lock-switch'),
                 secondary: const Icon(AppIcons.lock),
-                title: const Text('Lock with PIN'),
-                subtitle: const Text('Asked when the app opens'),
+                title: Text(context.l10n.lockWithPin),
+                subtitle: Text(context.l10n.lockWithPinHelp),
                 value: sec.lockEnabled,
                 onChanged: (v) => _toggleLock(sec, v),
               ),
               if (sec.lockEnabled) ...[
-                ListTile(key: const Key('change-pin'), leading: const Icon(AppIcons.pin), title: const Text('Change PIN'), onTap: () => _changePin(sec)),
+                ListTile(key: const Key('change-pin'), leading: const Icon(AppIcons.pin), title: Text(context.l10n.changePin), onTap: () => _changePin(sec)),
                 FutureBuilder<bool>(
                   future: _bioAvailable,
                   builder: (context, snap) {
@@ -202,8 +200,8 @@ class _SecurityScreenState extends State<SecurityScreen> {
                     return SwitchListTile(
                       key: const Key('bio-switch'),
                       secondary: const Icon(AppIcons.fingerprint),
-                      title: const Text('Unlock with fingerprint / face'),
-                      subtitle: available ? null : const Text('Not available on this device'),
+                      title: Text(context.l10n.unlockBiometric),
+                      subtitle: available ? null : Text(context.l10n.notAvailableDevice),
                       value: available && sec.biometricsOn,
                       onChanged: available ? (v) => sec.biometricsOn = v : null,
                     );
@@ -213,7 +211,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Text('Lock again after leaving the app', style: ts(12, color: c.textMuted)),
+                    child: Text(context.l10n.lockAgainAfter, style: ts(12, color: c.textMuted)),
                   ),
                 ),
                 Padding(
@@ -222,22 +220,22 @@ class _SecurityScreenState extends State<SecurityScreen> {
                 ),
               ],
             ]),
-            group('Privacy', [
+            group(context.l10n.settingsPrivacy, [
               SwitchListTile(
                 key: const Key('hide-switch'),
                 secondary: const Icon(AppIcons.hidden),
-                title: const Text('Hide in app switcher'),
-                subtitle: const Text('Blurs the recent-apps preview and blocks screenshots'),
+                title: Text(context.l10n.hideSwitcher),
+                subtitle: Text(context.l10n.hideSwitcherHelp),
                 value: sec.hideInSwitcher,
                 onChanged: (v) => sec.hideInSwitcher = v,
               ),
             ]),
-            group('Encryption', [
+            group(context.l10n.encryption, [
               SwitchListTile(
                 key: const Key('encrypt-switch'),
                 secondary: const Icon(AppIcons.encryption),
-                title: const Text('Encrypt database'),
-                subtitle: Text(sec.canEncrypt ? 'Key stored in the phone\'s secure storage' : 'Not available for this database'),
+                title: Text(context.l10n.encryptDb),
+                subtitle: Text(sec.canEncrypt ? context.l10n.encryptKeyStored : context.l10n.encryptUnavailable),
                 value: sec.encrypted,
                 onChanged: sec.canEncrypt ? (v) => _toggleEncryption(sec, v) : null,
               ),
