@@ -115,7 +115,7 @@ void main() {
       await tester.tap(find.byKey(const Key('rollover-switch')));
       await tester.tap(find.byKey(const Key('alert80-switch')));
       await tester.tap(find.byKey(const Key('alert100-switch')));
-      await tester.tap(find.text('Week (Mon → Sun)'));
+      await tester.tap(find.text('Week (Mon–Sun)'));
       await tester.tap(find.text('Month (1st → end)'));
       await tester.pump();
       await tester.tap(find.byKey(const Key('save-budget')));

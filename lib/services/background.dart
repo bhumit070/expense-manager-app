@@ -5,7 +5,9 @@ import 'package:sqlite3/sqlite3.dart';
 import 'package:workmanager/workmanager.dart';
 
 import '../data/device_db.dart';
+import '../core/dates.dart';
 import '../data/recurring_repo.dart';
+import '../data/settings_repo.dart';
 import '../state/reminders.dart';
 import 'notifications.dart';
 
@@ -16,6 +18,7 @@ const dailyTask = 'expense-manager-daily';
 /// alerts and re-plan reminders. Pure function of the database, [now] and
 /// the notification [service].
 Future<void> runDaily(Database db, DateTime now, NotificationService service) async {
+  weekStartDay = parseWeekStart(SettingsRepo(db).get('week_start'));
   RecurringRepo(db).run(now);
   await Reminders(db: db, service: service, clock: () => now).refresh();
 }

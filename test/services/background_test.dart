@@ -1,3 +1,4 @@
+import 'package:expense_manager/core/dates.dart';
 import 'package:expense_manager/data/database.dart';
 import 'package:expense_manager/data/models.dart';
 import 'package:expense_manager/data/recurring_repo.dart';
@@ -31,6 +32,15 @@ void main() {
     expect(s.txns.list(const TxnFilter(search: 'Tea')).length, before + 2, reason: '27 and 28 Oct were due');
     expect(n.shown.single.$2, 'Food budget used up');
     expect(n.scheduled, isNotEmpty);
+  });
+
+  test('runDaily uses the stored first day of the week', () async {
+    addTearDown(() => weekStartDay = DateTime.monday);
+    final s = makeState();
+    s.settings.set('week_start', '${DateTime.sunday}');
+    weekStartDay = DateTime.monday;
+    await runDaily(s.db, kNow, FakeNotifications());
+    expect(weekStartDay, DateTime.sunday);
   });
 
   test('backgroundTask opens, runs and closes the database; failures return false', () async {

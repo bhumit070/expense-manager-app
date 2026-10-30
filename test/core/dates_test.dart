@@ -22,6 +22,21 @@ void main() {
       expect(w.next.start, DateTime(2026, 11, 2));
       expect(w.previous.start, DateTime(2026, 10, 19));
     });
+    test('follows the chosen first day of the week', () {
+      addTearDown(() => weekStartDay = DateTime.monday);
+      expect(weekSpanLabel, 'Mon–Sun');
+      weekStartDay = DateTime.sunday;
+      final sun = Period.of(PeriodKind.week, tue);
+      expect([sun.start, sun.lastDay, weekSpanLabel], [DateTime(2026, 10, 25), DateTime(2026, 10, 31), 'Sun–Sat']);
+      expect(Period.of(PeriodKind.week, DateTime(2026, 10, 25, 9)).start, DateTime(2026, 10, 25), reason: 'Sunday starts its own week');
+      weekStartDay = DateTime.saturday;
+      final sat = Period.of(PeriodKind.week, tue);
+      expect([sat.start, sat.end, weekSpanLabel], [DateTime(2026, 10, 24), DateTime(2026, 10, 31), 'Sat–Fri']);
+      expect(sat.next.start, DateTime(2026, 10, 31));
+    });
+    test('parseWeekStart accepts 1–7 and falls back to Monday', () {
+      expect([parseWeekStart('7'), parseWeekStart('6'), parseWeekStart(null), parseWeekStart('9'), parseWeekStart('x')], [7, 6, 1, 1, 1]);
+    });
   });
 
   group('Period.month', () {
