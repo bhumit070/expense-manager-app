@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import '../core/dates.dart';
 import '../core/money.dart';
 import '../data/catalog_repo.dart';
 import '../data/planning_repo.dart';
@@ -44,6 +45,7 @@ class AppState extends ChangeNotifier {
        recurring = RecurringRepo(db),
        templates = TemplatesRepo(db) {
     currentCurrency = currencyByCode(settings.get('currency'));
+    weekStartDay = parseWeekStart(settings.get('week_start'));
     // Installs from before onboarding existed already have data: skip it.
     if (settings.get('onboarded') == null && db.select('SELECT 1 FROM transactions LIMIT 1').isNotEmpty) settings.set('onboarded', '1');
     final service = notifications ?? NotificationService.none;
@@ -154,6 +156,15 @@ class AppState extends ChangeNotifier {
   set currency(Currency c) {
     settings.set('currency', c.code);
     currentCurrency = c;
+    changed();
+  }
+
+  /// First day of the week for weekly budgets and insights.
+  int get weekStart => weekStartDay;
+
+  set weekStart(int day) {
+    settings.set('week_start', '$day');
+    weekStartDay = day;
     changed();
   }
 

@@ -50,6 +50,21 @@ class SettingsScreen extends StatelessWidget {
     app.changed();
   }
 
+  Future<void> _pickWeekStart(BuildContext context, AppState app) async {
+    final picked = await showDialog<int>(
+      context: context,
+      builder: (_) => ChoiceDialog<int>(
+        title: 'Week starts on',
+        subtitle: 'Weekly budgets and the week view in Insights follow this.',
+        values: weekStartChoices,
+        selected: app.weekStart,
+        label: (d) => weekdaysLong[d - 1],
+        keyPrefix: 'pick-week-start',
+      ),
+    );
+    if (picked != null) app.weekStart = picked;
+  }
+
   Future<void> _pickCurrency(BuildContext context, AppState app) async {
     final picked = await showDialog<String>(
       context: context,
@@ -207,7 +222,14 @@ class SettingsScreen extends StatelessWidget {
               trailing: TrailingText('${app.recurring.rules().where((r) => !r.paused && !r.ended).length} active'),
               onTap: () => open(const RecurringScreen()),
             ),
-            const ListTile(leading: Icon(AppIcons.calendar), title: Text('Week starts on'), subtitle: Text('Weekly budgets run Monday to Sunday'), trailing: TrailingText('Monday')),
+            ListTile(
+              key: const Key('week-start'),
+              leading: const Icon(AppIcons.calendar),
+              title: const Text('Week starts on'),
+              subtitle: Text('Weekly budgets and insights run $weekSpanLabel'),
+              trailing: TrailingText(weekdaysLong[app.weekStart - 1]),
+              onTap: () => _pickWeekStart(context, app),
+            ),
           ]),
           group('Data', [
             ListTile(

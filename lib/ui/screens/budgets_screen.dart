@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/dates.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
 import '../../state/app_state.dart';
@@ -41,7 +42,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
           Segmented<BudgetPeriod>(
             values: BudgetPeriod.values,
             selected: _period,
-            label: (p) => p == BudgetPeriod.weekly ? 'Weekly · Mon–Sun' : 'Monthly · 1st–end',
+            label: (p) => p == BudgetPeriod.weekly ? 'Weekly · $weekSpanLabel' : 'Monthly · 1st–end',
             onChanged: (p) => setState(() => _period = p),
           ),
           const SizedBox(height: 14),
@@ -249,7 +250,7 @@ class _BudgetFormScreenState extends State<BudgetFormScreen> {
           Segmented<BudgetPeriod>(
             values: BudgetPeriod.values,
             selected: _period,
-            label: (p) => p == BudgetPeriod.weekly ? 'Week (Mon → Sun)' : 'Month (1st → end)',
+            label: (p) => p == BudgetPeriod.weekly ? 'Week ($weekSpanLabel)' : 'Month (1st → end)',
             onChanged: (p) => setState(() => _period = p),
           ),
           SwitchListTile(

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:expense_manager/app.dart';
+import 'package:expense_manager/core/dates.dart';
 import 'package:expense_manager/core/money.dart';
 import 'package:expense_manager/data/database.dart';
 import 'package:expense_manager/core/flavor.dart';
@@ -294,6 +295,31 @@ void main() {
       expect(s.currency.code, 'USD');
       expect(s.settings.get('currency'), 'USD');
       expect(find.text(r'USD · $'), findsOneWidget);
+    });
+
+    testWidgets('week start: pick a day, budgets follow it', (tester) async {
+      addTearDown(() => weekStartDay = DateTime.monday);
+      final s = makeState();
+      await pumpRoute(tester, s, const SettingsScreen());
+      await tester.ensureVisible(find.byKey(const Key('week-start')));
+      expect(find.text('Weekly budgets and insights run Mon–Sun'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('week-start')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('pick-week-start-7')));
+      await tester.pumpAndSettle();
+      expect([s.weekStart, s.settings.get('week_start')], [DateTime.sunday, '7']);
+      expect(find.text('Sunday'), findsOneWidget);
+      expect(find.text('Weekly budgets and insights run Sun–Sat'), findsOneWidget);
+      expect(Period.of(PeriodKind.week, kNow).start, DateTime(2026, 10, 25));
+      // Reopening the app keeps the choice.
+      weekStartDay = DateTime.monday;
+      expect(AppState(db: s.db, files: FakeFiles(), location: FakeLocation(), receipts: FakeReceipts(), smsPlatform: FakeSmsPlatform()).weekStart, DateTime.sunday);
+      // Dismissing the picker changes nothing.
+      await tester.tap(find.byKey(const Key('week-start')));
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      expect(s.weekStart, DateTime.sunday);
     });
 
     testWidgets('about: version, privacy and licenses', (tester) async {

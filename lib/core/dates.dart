@@ -1,10 +1,27 @@
-/// Date and budget-period helpers. Weeks run Monday → Sunday and months run
-/// from the 1st to the last day, both in local time.
+/// Date and budget-period helpers. Weeks start on [weekStartDay] (Monday by
+/// default) and months run from the 1st to the last day, both in local time.
 library;
 
 const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const monthsLong = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const weekdaysShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const weekdaysLong = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+/// Days a week can start on, offered in Settings.
+const weekStartChoices = [DateTime.monday, DateTime.sunday, DateTime.saturday];
+
+/// First day of the week ([DateTime.monday] … [DateTime.sunday]) for weekly
+/// budgets and insights. Set from Settings → Week starts on.
+int weekStartDay = DateTime.monday;
+
+/// Reads a stored week-start value, falling back to Monday.
+int parseWeekStart(String? value) {
+  final d = int.tryParse(value ?? '');
+  return d != null && d >= DateTime.monday && d <= DateTime.sunday ? d : DateTime.monday;
+}
+
+/// "Mon–Sun", "Sun–Sat": the current week's first and last day.
+String get weekSpanLabel => '${weekdaysShort[weekStartDay - 1]}–${weekdaysShort[(weekStartDay + 5) % 7]}';
 
 enum PeriodKind { week, month, year }
 
@@ -21,7 +38,7 @@ class Period {
   factory Period.of(PeriodKind kind, DateTime anchor) {
     switch (kind) {
       case PeriodKind.week:
-        final s = dayStart(anchor).subtract(Duration(days: anchor.weekday - DateTime.monday));
+        final s = dayStart(anchor).subtract(Duration(days: (anchor.weekday - weekStartDay) % 7));
         final start = DateTime(s.year, s.month, s.day);
         return Period(kind, start, DateTime(start.year, start.month, start.day + 7));
       case PeriodKind.month:
