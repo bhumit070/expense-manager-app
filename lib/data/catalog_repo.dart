@@ -77,11 +77,30 @@ class CatalogRepo {
   void renameCategory(int id, String name) => db.execute('UPDATE categories SET name = ? WHERE id = ?', [name.trim(), id]);
 
   /// Archives a category and its sub-categories. The default category cannot be archived.
-  bool archiveCategory(int id) {
+  bool archiveCategory(int id) => archiveCategoryIds(id).isNotEmpty;
+
+  /// Archives a category and its active sub-categories and returns their ids
+  /// (for undo); empty for the default category.
+  List<int> archiveCategoryIds(int id) {
     final c = category(id);
-    if (c.isDefault) return false;
+    if (c.isDefault) return const [];
+    final ids = [
+      for (final r in db.select('SELECT id FROM categories WHERE (id = ? OR parent_id = ?) AND archived = 0', [id, id])) r['id'] as int,
+    ];
     db.execute('UPDATE categories SET archived = 1 WHERE id = ? OR parent_id = ?', [id, id]);
-    return true;
+    return ids;
+  }
+
+  /// Archived categories, parents first, then by name.
+  List<Category> archivedCategories() => db.select('SELECT * FROM categories WHERE archived = 1 ORDER BY kind, parent_id IS NOT NULL, lower(name)').map(Category.fromRow).toList();
+
+  /// Brings archived categories back. A sub-category whose parent is
+  /// archived brings the parent back too, so it is never hidden.
+  void restoreCategories(Iterable<int> ids) {
+    for (final id in ids) {
+      final c = category(id);
+      db.execute('UPDATE categories SET archived = 0 WHERE id = ? OR id = ?', [id, c.parentId ?? id]);
+    }
   }
 
   /// Persists a new order for the given ids.

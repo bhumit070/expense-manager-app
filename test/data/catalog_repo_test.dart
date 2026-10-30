@@ -31,6 +31,24 @@ void main() {
     expect(s.catalog.categories(kind: CategoryKind.invest).map((c) => c.id).toList(), ids);
   });
 
+  test('archived categories can be listed and restored', () {
+    final s = makeState();
+    final food = catId(s, 'Food & dining');
+    final coffee = s.catalog.addCategory(name: 'Coffee', kind: CategoryKind.spend, icon: 'food', color: 0, parentId: food);
+    final tea = s.catalog.addCategory(name: 'Tea', kind: CategoryKind.spend, icon: 'food', color: 0, parentId: food);
+    expect(s.catalog.archiveCategoryIds(tea), [tea]);
+    expect(s.catalog.archiveCategoryIds(food)..sort(), [food, coffee]..sort(), reason: 'Tea was already archived');
+    expect(s.catalog.archiveCategoryIds(s.catalog.defaultCategory().id), isEmpty);
+    expect(s.catalog.archivedCategories().map((c) => c.name), ['Food & dining', 'Coffee', 'Tea']);
+
+    // Restoring a sub-category brings its archived parent back with it.
+    s.catalog.restoreCategories([tea]);
+    expect([s.catalog.category(tea).archived, s.catalog.category(food).archived, s.catalog.category(coffee).archived], [false, false, true]);
+    s.catalog.restoreCategories([food, coffee]);
+    expect(s.catalog.archivedCategories(), isEmpty);
+    expect(s.catalog.children(food).map((c) => c.name), ['Coffee', 'Tea']);
+  });
+
   test('sources: add, default, archive and spending', () {
     final s = makeState();
     final ids = seed(s);
