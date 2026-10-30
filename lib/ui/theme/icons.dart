@@ -25,6 +25,7 @@ abstract final class AppIcons {
   static const IconData chevronLeft = LucideIcons.chevronLeft;
   static const IconData chevronRight = LucideIcons.chevronRight;
   static const IconData close = LucideIcons.x;
+  static const IconData code = LucideIcons.codeXml;
   static const IconData cloudUpload = LucideIcons.cloudUpload;
   static const IconData copy = LucideIcons.copy;
   static const IconData creditCard = LucideIcons.creditCard;
@@ -118,6 +119,7 @@ abstract final class AppIcons {
     chevronLeft,
     chevronRight,
     close,
+    code,
     cloudUpload,
     copy,
     creditCard,

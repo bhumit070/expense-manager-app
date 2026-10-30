@@ -26,6 +26,9 @@ class FakeMapServices extends MapServices {
   final opened = <(double, double, String?)>[];
   final links = <Uri>[];
 
+  /// What [openExternal] reports (false: no app could open the link).
+  bool linksOpen = true;
+
   @override
   TileProvider tileProvider() => tiles;
 
@@ -38,7 +41,7 @@ class FakeMapServices extends MapServices {
   @override
   Future<bool> openExternal(Uri uri) async {
     links.add(uri);
-    return true;
+    return linksOpen;
   }
 }
 
