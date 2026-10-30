@@ -22,6 +22,10 @@ import '../theme/icons.dart';
 /// The published privacy policy (GitHub Pages, built from docs/privacy-policy.md).
 const privacyPolicyUrl = 'https://bhumit070.github.io/expense-manager-app/privacy-policy/';
 
+/// The app's public source code and issue tracker.
+const sourceCodeUrl = 'https://github.com/bhumit070/expense-manager-app';
+const reportIssueUrl = '$sourceCodeUrl/issues/new';
+
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -48,6 +52,10 @@ class SettingsScreen extends StatelessWidget {
     if (picked == null) return;
     app.catalog.setDefaultSource(picked);
     app.changed();
+  }
+
+  Future<void> _openLink(BuildContext context, String url) async {
+    if (!await MapServices.instance.openExternal(Uri.parse(url)) && context.mounted) showSnack(context, 'No browser found to open $url');
   }
 
   Future<void> _pickWeekStart(BuildContext context, AppState app) async {
@@ -303,6 +311,14 @@ class SettingsScreen extends StatelessWidget {
               onTap: () => _showPrivacy(context),
             ),
             ListTile(
+              key: const Key('source-code'),
+              leading: const Icon(AppIcons.code),
+              title: const Text('Source code on GitHub'),
+              subtitle: const Text('github.com/bhumit070/expense-manager-app'),
+              trailing: const Icon(AppIcons.openExternal, size: 18),
+              onTap: () => _openLink(context, sourceCodeUrl),
+            ),
+            ListTile(
               key: const Key('licenses'),
               leading: const Icon(AppIcons.document),
               title: const Text('Open-source licenses'),
@@ -316,6 +332,14 @@ class SettingsScreen extends StatelessWidget {
               title: const Text('Diagnostics'),
               subtitle: const Text('Local error log · view, share or clear'),
               onTap: () => open(const DiagnosticsScreen()),
+            ),
+            ListTile(
+              key: const Key('report-issue'),
+              leading: const Icon(AppIcons.bug),
+              title: const Text('Report a problem'),
+              subtitle: const Text('Opens a GitHub issue · needs a GitHub account'),
+              trailing: const Icon(AppIcons.openExternal, size: 18),
+              onTap: () => _openLink(context, reportIssueUrl),
             ),
           ]),
         ],

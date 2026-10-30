@@ -322,6 +322,23 @@ void main() {
       expect(s.weekStart, DateTime.sunday);
     });
 
+    testWidgets('GitHub links: source code and report a problem', (tester) async {
+      final maps = useFakeMaps(addTearDown);
+      await pumpRoute(tester, makeState(), const SettingsScreen());
+      await tester.ensureVisible(find.byKey(const Key('source-code')));
+      await tester.tap(find.byKey(const Key('source-code')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('report-issue')));
+      await tester.tap(find.byKey(const Key('report-issue')));
+      await tester.pumpAndSettle();
+      expect(maps.links, [Uri.parse('https://github.com/bhumit070/expense-manager-app'), Uri.parse('https://github.com/bhumit070/expense-manager-app/issues/new')]);
+      expect(find.byType(SnackBar), findsNothing);
+      maps.linksOpen = false;
+      await tester.tap(find.byKey(const Key('report-issue')));
+      await tester.pumpAndSettle();
+      expect(find.text('No browser found to open $reportIssueUrl'), findsOneWidget);
+    });
+
     testWidgets('about: version, privacy and licenses', (tester) async {
       final maps = useFakeMaps(addTearDown);
       PackageInfo.setMockInitialValues(appName: 'Expense Manager', packageName: 'x', version: '0.1.0', buildNumber: '5', buildSignature: '');
