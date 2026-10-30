@@ -13,13 +13,14 @@ import '../theme/icons.dart';
 typedef OnboardingStep = Widget Function(BuildContext context, VoidCallback next);
 
 /// Pages shown on first launch, in order. Features add their steps here.
-List<OnboardingStep> defaultOnboardingSteps() => [
+List<OnboardingStep> defaultOnboardingSteps({bool sms = false}) => [
   (_, next) => WelcomeStep(onNext: next),
   (_, next) => NameStep(onNext: next),
   (_, next) => CurrencyStep(onNext: next),
   (_, next) => SourceStep(onNext: next),
   (_, next) => LocationStep(onNext: next),
   (_, next) => NotificationsStep(onNext: next),
+  if (sms) (_, next) => SmsStep(onNext: next),
   (_, next) => AppLockStep(onNext: next),
 ];
 
@@ -34,7 +35,7 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  late final List<OnboardingStep> _steps = widget.steps ?? defaultOnboardingSteps();
+  late final List<OnboardingStep> _steps = widget.steps ?? defaultOnboardingSteps(sms: AppScope.read(context).smsPlatform.supported);
   final _pages = PageController();
   int _index = 0;
 
@@ -351,6 +352,51 @@ class _LocationStepState extends State<LocationStep> {
           Text(
             'Permission was not granted. You can turn it on later in Settings.',
             key: const Key('onboarding-location-denied'),
+            style: ts(13, color: c.spend),
+          ),
+      ],
+    );
+  }
+}
+
+/// Offers to read bank SMS and ask before adding each transaction (Android).
+class SmsStep extends StatefulWidget {
+  const SmsStep({super.key, required this.onNext});
+
+  final VoidCallback onNext;
+
+  @override
+  State<SmsStep> createState() => _SmsStepState();
+}
+
+class _SmsStepState extends State<SmsStep> {
+  bool _denied = false;
+
+  Future<void> _allow() async {
+    final result = await AppScope.read(context).enableSms();
+    if (!mounted) return;
+    if (result == SmsEnableResult.denied) {
+      setState(() => _denied = true);
+    } else {
+      widget.onNext();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return StepLayout(
+      icon: AppIcons.sms,
+      title: 'Add expenses from bank SMS?',
+      body: 'When a bank, card or UPI SMS arrives, we read it on this phone and ask whether to add it — one tap from the notification. OTPs and offers are skipped, and nothing is uploaded.',
+      action: _denied ? 'Continue without SMS' : 'Allow SMS',
+      onAction: _denied ? widget.onNext : _allow,
+      secondary: _denied ? null : TextButton(key: const Key('onboarding-sms-skip'), onPressed: widget.onNext, child: const Text('Not now')),
+      children: [
+        if (_denied)
+          Text(
+            'SMS permission was not granted. You can turn this on later in Settings › Expenses from SMS.',
+            key: const Key('onboarding-sms-denied'),
             style: ts(13, color: c.spend),
           ),
       ],

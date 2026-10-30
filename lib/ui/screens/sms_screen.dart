@@ -47,18 +47,20 @@ class _SmsScreenState extends State<SmsScreen> {
       ),
     );
     if (ok != true || !mounted) return;
-    if (!await app.smsPlatform.requestPermission()) {
-      if (mounted) showSnack(context, 'SMS permission was denied. Allow it for Expense Manager in system settings.');
-      return;
+    final result = await app.enableSms();
+    if (!mounted) return;
+    switch (result) {
+      case SmsEnableResult.denied:
+        showSnack(context, 'SMS permission was denied. Allow it for Expense Manager in system settings.');
+        return;
+      case SmsEnableResult.noNotifications:
+        showSnack(context, 'Notifications are blocked, so new expenses will only show up here.');
+      case SmsEnableResult.on:
+        break;
     }
-    if (!await app.reminders.service.requestPermission() && mounted) {
-      showSnack(context, 'Notifications are blocked, so new expenses will only show up here.');
-    }
-    app.sms.enabled = true;
     setState(() {
       _permission = Future.value(true);
     });
-    app.changed();
   }
 
   Future<void> _allow(AppState app) async {

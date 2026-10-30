@@ -21,6 +21,16 @@ import 'security_state.dart';
 import 'sms_inbox.dart';
 import '../services/receipts.dart';
 
+/// Result of turning on Expenses from SMS.
+enum SmsEnableResult {
+  /// SMS permission denied: still off.
+  denied,
+
+  /// On, but notifications are blocked so prompts only reach the review list.
+  noNotifications,
+  on,
+}
+
 /// App-wide state. Repositories are synchronous (SQLite via FFI) and fast;
 /// screens re-query when [notifyListeners] fires after a write.
 class AppState extends ChangeNotifier {
@@ -84,6 +94,16 @@ class AppState extends ChangeNotifier {
   /// An SMS capture to open in the add form, set when its notification is
   /// tapped; the UI opens it and clears this.
   final smsToOpen = ValueNotifier<SmsCapture?>(null);
+
+  /// Asks for the SMS permission (and notifications for the prompts) and
+  /// turns Expenses from SMS on when SMS access is granted.
+  Future<SmsEnableResult> enableSms() async {
+    if (!await smsPlatform.requestPermission()) return SmsEnableResult.denied;
+    final notified = await reminders.service.requestPermission();
+    sms.enabled = true;
+    changed();
+    return notified ? SmsEnableResult.on : SmsEnableResult.noNotifications;
+  }
 
   /// Handles a notification tap (or button) while the app runs.
   Future<void> handleNotificationTap(NotificationTap tap) async {

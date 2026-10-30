@@ -88,6 +88,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(s.reminders.enabled, isFalse);
 
+    expect(find.text('Add expenses from bank SMS?'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('onboarding-sms-skip')));
+    await tester.pumpAndSettle();
+    expect(s.sms.enabled, isFalse);
+
     expect(find.text('Finish'), findsOneWidget);
     expect(find.text('Lock the app?'), findsOneWidget);
     await tester.tap(find.byKey(const Key('onboarding-lock-skip')));
@@ -100,7 +105,7 @@ void main() {
   testWidgets('every step can be skipped', (tester) async {
     final s = makeState(onboarded: false);
     await pumpApp(tester, s);
-    for (var i = 0; i < 7; i++) {
+    for (var i = 0; i < 8; i++) {
       await tester.tap(find.byKey(const Key('onboarding-skip')));
       await tester.pumpAndSettle();
     }
@@ -207,6 +212,48 @@ void main() {
     await pumpScreen(tester, s, const OnboardingScreen(), brightness: Brightness.dark);
     expect(find.byKey(const Key('onboarding-dots')), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  group('SMS step', () {
+    testWidgets('allowing turns on Expenses from SMS and moves on', (tester) async {
+      final sms = FakeSmsPlatform();
+      final s = makeState(onboarded: false, sms: sms, notifications: FakeNotifications());
+      await pumpScreen(tester, s, OnboardingScreen(steps: [(_, next) => SmsStep(onNext: next)]));
+      await tester.tap(find.byKey(const Key('onboarding-next')));
+      await tester.pumpAndSettle();
+      expect([sms.requests, s.sms.enabled, s.onboarded], [1, true, true]);
+    });
+
+    testWidgets('on even when notifications are blocked', (tester) async {
+      final s = makeState(onboarded: false, sms: FakeSmsPlatform(), notifications: FakeNotifications(grant: false));
+      await pumpScreen(tester, s, OnboardingScreen(steps: [(_, next) => SmsStep(onNext: next)]));
+      await tester.tap(find.byKey(const Key('onboarding-next')));
+      await tester.pumpAndSettle();
+      expect([s.sms.enabled, s.onboarded], [true, true]);
+    });
+
+    testWidgets('denied explains and continues without SMS', (tester) async {
+      final s = makeState(onboarded: false, sms: FakeSmsPlatform(grant: false));
+      await pumpScreen(tester, s, OnboardingScreen(steps: [(_, next) => SmsStep(onNext: next)]));
+      await tester.tap(find.byKey(const Key('onboarding-next')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('onboarding-sms-denied')), findsOneWidget);
+      expect(find.byKey(const Key('onboarding-sms-skip')), findsNothing);
+      await tester.tap(find.text('Continue without SMS'));
+      await tester.pumpAndSettle();
+      expect([s.sms.enabled, s.onboarded], [false, true]);
+    });
+
+    testWidgets('only offered where SMS can be read', (tester) async {
+      final s = makeState(onboarded: false, sms: FakeSmsPlatform(isSupported: false));
+      await pumpApp(tester, s);
+      for (var i = 0; i < 7; i++) {
+        expect(find.text('Add expenses from bank SMS?'), findsNothing);
+        await tester.tap(find.byKey(const Key('onboarding-skip')));
+        await tester.pumpAndSettle();
+      }
+      expect(s.onboarded, isTrue);
+    });
   });
 }
 
