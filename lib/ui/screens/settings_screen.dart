@@ -4,6 +4,7 @@ import '../../core/dates.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
 import '../../data/transactions_repo.dart';
+import '../../services/maps.dart';
 import '../../services/pdf_report.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
@@ -16,6 +17,9 @@ import 'recurring_screen.dart';
 import 'reminder_settings_screen.dart';
 import 'sources_screen.dart';
 import '../theme/icons.dart';
+
+/// The published privacy policy (GitHub Pages, built from docs/privacy-policy.md).
+const privacyPolicyUrl = 'https://bhumit070.github.io/expense-manager-app/privacy-policy/';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -69,9 +73,12 @@ class SettingsScreen extends StatelessWidget {
       title: const Text('Privacy'),
       content: const Text(
         'Expense Manager has no account, server or analytics. Everything you enter is stored in a database on this phone and only leaves it when you export or share a file yourself.\n\n'
-        'Location is read only when you allow it, and only to label your own transactions.',
+        'Location is read only when you allow it, and only to label your own transactions. Map tiles are loaded from OpenStreetMap when you open a map.',
       ),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+      actions: [
+        TextButton(key: const Key('privacy-policy'), onPressed: () => MapServices.instance.openExternal(Uri.parse(privacyPolicyUrl)), child: const Text('Read full policy')),
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+      ],
     ),
   );
 

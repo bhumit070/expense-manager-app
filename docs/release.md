@@ -30,7 +30,7 @@ Keep it (and its passwords) somewhere safe; losing it means you can't update the
 
 ## Play Console — internal testing
 
-1. Create the app in Play Console (Finance, Free). Complete **App content**: privacy policy URL (publish `docs/privacy-policy.md`), Data safety = no data collected, content rating questionnaire, target audience 18+, no ads.
+1. Create the app in Play Console (Finance, Free). Complete **App content**: privacy policy URL https://bhumit070.github.io/expense-manager-app/privacy-policy/ (GitHub Pages from `docs/`), Data safety = no data collected, content rating questionnaire, target audience 18+, no ads.
 2. Enrol in **Play App Signing** (default) and use the upload key above.
 3. Play requires an **AAB** for store tracks: `flutter build appbundle --release --flavor prod` → `build/app/outputs/bundle/prodRelease/app-prod-release.aab`.
 4. **Testing → Internal testing → Create release**, upload the AAB, add release notes, add testers (email list), roll out.
