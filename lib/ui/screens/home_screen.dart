@@ -12,13 +12,14 @@ import 'categories_screen.dart';
 import 'reminders_screen.dart';
 import 'data_flows.dart';
 import 'settings_screen.dart';
+import '../../l10n/l10n.dart';
 import 'sms_screen.dart';
 import 'sources_screen.dart';
 import 'transactions_screen.dart';
 import 'txn_detail_screen.dart';
 import '../theme/icons.dart';
 
-String greeting(DateTime now) => now.hour < 12 ? 'Good morning' : (now.hour < 17 ? 'Good afternoon' : 'Good evening');
+String greeting(DateTime now) => now.hour < 12 ? currentL10n.goodMorning : (now.hour < 17 ? currentL10n.goodAfternoon : currentL10n.goodEvening);
 
 String initials(String name) {
   final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
@@ -70,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () => push(const SettingsScreen()),
               child: Semantics(
                 button: true,
-                label: 'Settings',
+                label: context.l10n.settingsTitle,
                 child: CircleAvatar(
                   radius: 24,
                   backgroundColor: c.brandSoft,
@@ -89,13 +90,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(greeting(now), style: ts(12, color: c.textMuted)),
-                  Text(name.isEmpty ? 'Welcome' : name, style: ts(18, weight: FontWeight.w700)),
+                  Text(name.isEmpty ? context.l10n.welcome : name, style: ts(18, weight: FontWeight.w700)),
                 ],
               ),
             ),
             IconButton(
               key: const Key('open-reminders'),
-              tooltip: 'Reminders',
+              tooltip: context.l10n.reminders,
               onPressed: () => push(const RemindersScreen()),
               icon: Badge(
                 isLabelVisible: upcoming.isNotEmpty,
@@ -116,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icon(AppIcons.sms, color: c.brand, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(smsPending == 1 ? '1 transaction from SMS to review' : '$smsPending transactions from SMS to review', style: ts(13, weight: FontWeight.w600)),
+                  child: Text(context.l10n.homeSmsReview(smsPending), style: ts(13, weight: FontWeight.w600)),
                 ),
                 Icon(AppIcons.chevronRight, color: c.textFaint, size: 18),
               ],
@@ -126,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 8),
         Row(
           children: [
-            IconButton(key: const Key('home-prev-month'), tooltip: 'Previous month', onPressed: () => setState(() => _picked = month.previous), icon: const Icon(AppIcons.chevronLeft)),
+            IconButton(key: const Key('home-prev-month'), tooltip: context.l10n.previousMonth, onPressed: () => setState(() => _picked = month.previous), icon: const Icon(AppIcons.chevronLeft)),
             Expanded(
               child: Text(
                 month.label,
@@ -137,23 +138,25 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             IconButton(
               key: const Key('home-next-month'),
-              tooltip: 'Next month',
+              tooltip: context.l10n.nextMonth,
               onPressed: isCurrent ? null : () => setState(() => _picked = month.next == current ? null : month.next),
               icon: const Icon(AppIcons.chevronRight),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        _Hero(totals: totals, base: base, title: isCurrent ? 'Money out this month' : 'Money out in ${monthsShort[month.start.month - 1]}'),
+        _Hero(totals: totals, base: base, title: isCurrent ? context.l10n.homeOutThisMonth : context.l10n.homeOutIn(monthsShort[month.start.month - 1])),
         const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
               child: StatTile(
                 icon: AppIcons.trendingUp,
-                label: 'Invested',
+                label: context.l10n.invested,
                 value: formatInrCompact(invested),
-                caption: '+${formatInrCompact(totals.invest)} ${isCurrent ? 'this month' : 'in ${monthsShort[month.start.month - 1]}'}',
+                caption: isCurrent
+                    ? context.l10n.homeInvestedThisMonth(formatInrCompact(totals.invest))
+                    : context.l10n.homeInvestedIn(formatInrCompact(totals.invest), monthsShort[month.start.month - 1]),
                 color: c.invest,
                 soft: c.investSoft,
                 onTap: widget.onOpenInvestments,
@@ -163,9 +166,9 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: StatTile(
                 icon: AppIcons.creditCard,
-                label: 'You owe',
+                label: context.l10n.debtYouOwe,
                 value: formatInrCompact(debts.owe),
-                caption: '${formatInrCompact(debts.monthlyEmi)}/mo EMI',
+                caption: context.l10n.homeMonthlyEmi(formatInrCompact(debts.monthlyEmi)),
                 color: c.debt,
                 soft: c.debtSoft,
                 onTap: widget.onOpenDebts,
@@ -173,12 +176,20 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: StatTile(icon: AppIcons.people, label: 'Owed to you', value: formatInrCompact(debts.owed), caption: 'to collect', color: c.brand, soft: c.brandSoft, onTap: widget.onOpenDebts),
+              child: StatTile(
+                icon: AppIcons.people,
+                label: context.l10n.debtOwedToYou,
+                value: formatInrCompact(debts.owed),
+                caption: context.l10n.debtToCollect,
+                color: c.brand,
+                soft: c.brandSoft,
+                onTap: widget.onOpenDebts,
+              ),
             ),
           ],
         ),
         if (upcoming.isNotEmpty) ...[
-          SectionHeader('Coming up', action: 'See all', onAction: () => push(const RemindersScreen())),
+          SectionHeader(context.l10n.comingUp, action: context.l10n.seeAll, onAction: () => push(const RemindersScreen())),
           AppCard(
             key: const Key('coming-up'),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -190,19 +201,19 @@ class _HomeScreenState extends State<HomeScreen> {
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              Pill('Budgets', icon: AppIcons.insights, onTap: () => push(const BudgetsScreen())),
+              Pill(context.l10n.budgetsTitle, icon: AppIcons.insights, onTap: () => push(const BudgetsScreen())),
               const SizedBox(width: 8),
-              Pill('Categories', icon: AppIcons.grid, onTap: () => push(const CategoriesScreen())),
+              Pill(context.l10n.settingsCategories, icon: AppIcons.grid, onTap: () => push(const CategoriesScreen())),
               const SizedBox(width: 8),
-              Pill('Payment sources', icon: AppIcons.wallet, onTap: () => push(const SourcesScreen())),
+              Pill(context.l10n.settingsSources, icon: AppIcons.wallet, onTap: () => push(const SourcesScreen())),
             ],
           ),
         ),
         const BackupBanner(padding: EdgeInsets.only(top: 16)),
-        SectionHeader('Where it went', action: 'Insights', onAction: widget.onOpenInsights),
+        SectionHeader(context.l10n.whereItWent, action: context.l10n.navInsights, onAction: widget.onOpenInsights),
         AppCard(
           child: cats.isEmpty
-              ? Text(isCurrent ? 'No spending yet this month.' : 'No spending in ${month.label}.', style: ts(13, color: c.textMuted))
+              ? Text(isCurrent ? context.l10n.homeNoSpendYet : context.l10n.homeNoSpendIn(month.label), style: ts(13, color: c.textMuted))
               : Column(
                   children: [
                     for (final ct in cats)
@@ -235,12 +246,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
         ),
-        SectionHeader('Recent', action: 'View all', onAction: () => push(const TransactionsScreen())),
+        SectionHeader(context.l10n.recent, action: context.l10n.viewAll, onAction: () => push(const TransactionsScreen())),
         if (recent.isEmpty)
           AppCard(
             child: isCurrent
-                ? const EmptyState(icon: AppIcons.receipt, title: 'No transactions yet', message: 'Tap + to add your first expense, investment or income.')
-                : EmptyState(icon: AppIcons.receipt, title: 'Nothing in ${month.label}', message: 'No transactions were recorded that month.'),
+                ? EmptyState(icon: AppIcons.receipt, title: context.l10n.homeNoTxns, message: context.l10n.homeNoTxnsHelp)
+                : EmptyState(icon: AppIcons.receipt, title: context.l10n.homeNothingIn(month.label), message: context.l10n.homeNothingInHelp),
           )
         else
           AppCard(
@@ -320,17 +331,17 @@ class _Hero extends StatelessWidget {
             key: const Key('hero-out'),
             style: ts(34, weight: FontWeight.w800, color: Colors.white, spacing: -1),
           ),
-          Text('of ${formatInr(totals.income)} income', style: ts(13, color: const Color(0xFFA5B4FC))),
+          Text(context.l10n.homeOfIncome(formatInr(totals.income)), style: ts(13, color: const Color(0xFFA5B4FC))),
           const SizedBox(height: 16),
           SegmentBar(segments: [(totals.spend / base, c.spend), (totals.invest / base, c.invest)], height: 10, track: const Color(0xFF312E81)),
           const SizedBox(height: 16),
           Row(
             children: [
-              legend('Spent', totals.spend, c.spend),
+              legend(context.l10n.spent, totals.spend, c.spend),
               const SizedBox(width: 8),
-              legend('Invested', totals.invest, c.invest),
+              legend(context.l10n.invested, totals.invest, c.invest),
               const SizedBox(width: 8),
-              legend('Left', totals.left, const Color(0xFF6366F1)),
+              legend(context.l10n.left, totals.left, const Color(0xFF6366F1)),
             ],
           ),
         ],

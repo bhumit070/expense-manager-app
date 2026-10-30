@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/dates.dart';
 import '../../core/money.dart';
+import '../../l10n/l10n.dart';
 import '../../data/models.dart';
 import '../../data/transactions_repo.dart';
 import '../../services/pdf_report.dart';
@@ -77,11 +78,11 @@ class _InsightsScreenState extends State<InsightsScreen> {
         Row(
           children: [
             Expanded(
-              child: Text('Insights', style: ts(26, weight: FontWeight.w800, spacing: -0.5)),
+              child: Text(context.l10n.navInsights, style: ts(26, weight: FontWeight.w800, spacing: -0.5)),
             ),
             IconButton(
               key: const Key('open-budgets'),
-              tooltip: 'Budgets',
+              tooltip: context.l10n.budgetsTitle,
               icon: const Icon(AppIcons.insights),
               onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const BudgetsScreen())),
             ),
@@ -90,7 +91,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     padding: EdgeInsets.all(12),
                     child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
                   )
-                : IconButton(key: const Key('export-pdf'), tooltip: 'PDF report', icon: const Icon(AppIcons.pdf), onPressed: () => _export(app, p)),
+                : IconButton(key: const Key('export-pdf'), tooltip: context.l10n.pdfReport, icon: const Icon(AppIcons.pdf), onPressed: () => _export(app, p)),
           ],
         ),
         const SizedBox(height: 12),
@@ -98,9 +99,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
           values: PeriodKind.values,
           selected: _kind,
           label: (k) => switch (k) {
-            PeriodKind.week => 'Week',
-            PeriodKind.month => 'Month',
-            PeriodKind.year => 'Year',
+            PeriodKind.week => context.l10n.week,
+            PeriodKind.month => context.l10n.month,
+            PeriodKind.year => context.l10n.year,
           },
           onChanged: (k) => setState(() {
             _kind = k;
@@ -110,7 +111,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
         const SizedBox(height: 12),
         Row(
           children: [
-            IconButton(key: const Key('insights-prev'), tooltip: 'Previous period', icon: const Icon(AppIcons.chevronLeft), onPressed: () => setState(() => _period = _period!.previous)),
+            IconButton(key: const Key('insights-prev'), tooltip: context.l10n.previousPeriod, icon: const Icon(AppIcons.chevronLeft), onPressed: () => setState(() => _period = _period!.previous)),
             Expanded(
               child: Column(
                 children: [
@@ -119,7 +120,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                 ],
               ),
             ),
-            IconButton(key: const Key('insights-next'), tooltip: 'Next period', icon: const Icon(AppIcons.chevronRight), onPressed: () => setState(() => _period = _period!.next)),
+            IconButton(key: const Key('insights-next'), tooltip: context.l10n.nextPeriod, icon: const Icon(AppIcons.chevronRight), onPressed: () => setState(() => _period = _period!.next)),
           ],
         ),
         const SizedBox(height: 8),
@@ -128,7 +129,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
           child: Row(
             children: [
               DonutChart(
-                semanticLabel: 'Spent ${formatInr(t.spend)}, invested ${formatInr(t.invest)}',
+                semanticLabel: context.l10n.insightsDonutLabel(formatInr(t.spend), formatInr(t.invest)),
                 segments: [(t.spend.toDouble(), c.spend), (t.invest.toDouble(), c.invest)],
                 center: Padding(
                   padding: const EdgeInsets.all(12),
@@ -137,7 +138,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('Money out', style: ts(11, color: c.textMuted)),
+                        Text(context.l10n.moneyOutLabel, style: ts(11, color: c.textMuted)),
                         Text(formatInrCompact(t.moneyOut), style: ts(18, weight: FontWeight.w800)),
                       ],
                     ),
@@ -149,17 +150,17 @@ class _InsightsScreenState extends State<InsightsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    LegendDot('Spent', c.spend),
+                    LegendDot(context.l10n.spent, c.spend),
                     Text(formatInr(t.spend), style: ts(17, weight: FontWeight.w800)),
                     const SizedBox(height: 12),
-                    LegendDot('Invested', c.invest),
+                    LegendDot(context.l10n.invested, c.invest),
                     Text(formatInr(t.invest), style: ts(17, weight: FontWeight.w800)),
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(color: c.investSoft, borderRadius: BorderRadius.circular(10)),
                       child: Text(
-                        'Saved ${(t.savingsRate * 100).round()}% of income',
+                        context.l10n.insightsSaved((t.savingsRate * 100).round()),
                         style: ts(11, weight: FontWeight.w600, color: c.positive),
                       ),
                     ),
@@ -178,8 +179,11 @@ class _InsightsScreenState extends State<InsightsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(change == null ? 'No earlier data' : (change <= 0 ? '${-change}% less spent' : '$change% more spent'), style: ts(13, weight: FontWeight.w700)),
-                    Text('than previous period', style: ts(11, color: c.textMuted)),
+                    Text(
+                      change == null ? context.l10n.insightsNoEarlier : (change <= 0 ? context.l10n.insightsLessSpent(-change) : context.l10n.insightsMoreSpent(change)),
+                      style: ts(13, weight: FontWeight.w700),
+                    ),
+                    Text(context.l10n.insightsThanPrevious, style: ts(11, color: c.textMuted)),
                   ],
                 ),
               ),
@@ -191,8 +195,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${formatInr(t.spend ~/ daysElapsed)} / day', style: ts(13, weight: FontWeight.w700)),
-                    Text('average spend', style: ts(11, color: c.textMuted)),
+                    Text(context.l10n.perDay(formatInr(t.spend ~/ daysElapsed)), style: ts(13, weight: FontWeight.w700)),
+                    Text(context.l10n.averageSpend, style: ts(11, color: c.textMuted)),
                   ],
                 ),
               ),
@@ -200,9 +204,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
           ],
         ),
         SectionHeader(switch (p.kind) {
-          PeriodKind.year => 'Month by month',
-          PeriodKind.month => 'Week by week',
-          PeriodKind.week => 'Day by day',
+          PeriodKind.year => context.l10n.monthByMonth,
+          PeriodKind.month => context.l10n.weekByWeek,
+          PeriodKind.week => context.l10n.dayByDay,
         }),
         AppCard(
           padding: const EdgeInsets.all(18),
@@ -211,7 +215,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
             children: [
               BucketBars(buckets: buckets, labels: _labels(p, buckets), highlight: _highlight(p, buckets, now)),
               const SizedBox(height: 10),
-              Row(children: [LegendDot('Spend', c.spend), const SizedBox(width: 16), LegendDot('Invest', c.invest)]),
+              Row(children: [LegendDot(context.l10n.typeSpend, c.spend), const SizedBox(width: 16), LegendDot(context.l10n.typeInvest, c.invest)]),
             ],
           ),
         ),
@@ -220,7 +224,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
           child: Row(
             children: [
               Expanded(
-                child: Text('By category', style: ts(17, weight: FontWeight.w700)),
+                child: Text(context.l10n.byCategory, style: ts(17, weight: FontWeight.w700)),
               ),
               SizedBox(
                 width: 160,
@@ -231,7 +235,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
         ),
         AppCard(
           child: cats.isEmpty
-              ? Text('Nothing recorded in this period.', style: ts(13, color: c.textMuted))
+              ? Text(context.l10n.insightsNothing, style: ts(13, color: c.textMuted))
               : Column(
                   children: [
                     for (final ct in cats) ...[
@@ -240,7 +244,14 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         for (final sub in app.txns.byCategory(p, _breakdown, parentId: ct.category.id))
                           Padding(
                             padding: const EdgeInsets.only(left: 28),
-                            child: _catRow(context, sub, p, share: sub.total / ct.total, bar: sub.total / ct.total, label: sub.category.id == ct.category.id ? '${sub.category.name} (direct)' : null),
+                            child: _catRow(
+                              context,
+                              sub,
+                              p,
+                              share: sub.total / ct.total,
+                              bar: sub.total / ct.total,
+                              label: sub.category.id == ct.category.id ? context.l10n.insightsDirect(sub.category.name) : null,
+                            ),
                           ),
                     ],
                   ],
@@ -276,7 +287,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text('${label ?? ct.category.name}  ·  ${ct.count} txn${ct.count == 1 ? '' : 's'}', style: ts(13, weight: FontWeight.w600)),
+                        child: Text(context.l10n.insightsCatRow(label ?? ct.category.name, ct.count), style: ts(13, weight: FontWeight.w600)),
                       ),
                       Text('${(share * 100).round()}%  ', style: ts(11, color: c.textMuted)),
                       Text(formatInr(ct.total), style: ts(13, weight: FontWeight.w700)),
@@ -290,7 +301,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
             if (ct.subCount > 0)
               IconButton(
                 key: Key('expand-cat-${ct.category.id}'),
-                tooltip: expanded ? 'Hide sub-categories' : 'Show sub-categories',
+                tooltip: expanded ? context.l10n.hideSubs : context.l10n.showSubs,
                 icon: Icon(expanded ? AppIcons.expandLess : AppIcons.expandMore),
                 onPressed: () => setState(() => expanded ? _expanded.remove(ct.category.id) : _expanded.add(ct.category.id)),
               ),

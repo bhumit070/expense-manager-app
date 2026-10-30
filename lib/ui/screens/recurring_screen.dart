@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../core/dates.dart';
 import '../../core/money.dart';
 import '../../data/recurring_repo.dart';
@@ -10,8 +11,9 @@ import '../widgets/common.dart';
 import '../theme/icons.dart';
 
 String ruleStatus(RecurringRule r) {
-  final state = r.ended ? 'Ended' : (r.paused ? 'Paused' : 'Next ${longDate(r.nextRun)}');
-  return '${frequencyLabel(r.frequency)} · $state${r.autoCreate ? '' : ' · reminder only'}';
+  final l = currentL10n;
+  final state = r.ended ? l.ended : (r.paused ? l.paused : l.nextOn(longDate(r.nextRun)));
+  return [frequencyLabel(r.frequency), state, if (!r.autoCreate) l.reminderOnly].join(' · ');
 }
 
 /// Lists recurring rules (including SIPs) with pause, edit and delete.
@@ -32,11 +34,11 @@ class RecurringScreen extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete this schedule?'),
-        content: const Text('No more transactions will be added. Ones already added stay.'),
+        title: Text(context.l10n.deleteSchedule),
+        content: Text(context.l10n.deleteScheduleBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(key: const Key('confirm-delete-rule'), onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.l10n.cancel)),
+          FilledButton(key: const Key('confirm-delete-rule'), onPressed: () => Navigator.pop(ctx, true), child: Text(context.l10n.delete)),
         ],
       ),
     );
@@ -53,10 +55,10 @@ class RecurringScreen extends StatelessWidget {
     final rules = app.recurring.rules();
     return Scaffold(
       appBar: AppBar(
-        title: Text('Recurring', style: ts(16, weight: FontWeight.w700)),
+        title: Text(context.l10n.recurring, style: ts(16, weight: FontWeight.w700)),
       ),
       body: rules.isEmpty
-          ? const EmptyState(icon: AppIcons.repeat, title: 'Nothing recurring yet', message: 'Turn on “Repeat” when adding a transaction, or set up a SIP on an investment.')
+          ? EmptyState(icon: AppIcons.repeat, title: context.l10n.nothingRecurring, message: context.l10n.nothingRecurringHelp)
           : ListView(
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
               children: [
@@ -86,7 +88,7 @@ class RecurringScreen extends StatelessWidget {
                                     app.changed();
                                   },
                                 ),
-                              IconButton(key: Key('delete-rule-${r.id}'), tooltip: 'Delete rule', icon: const Icon(AppIcons.delete), onPressed: () => _delete(context, app, r)),
+                              IconButton(key: Key('delete-rule-${r.id}'), tooltip: context.l10n.deleteRule, icon: const Icon(AppIcons.delete), onPressed: () => _delete(context, app, r)),
                             ],
                           ),
                         ),
@@ -123,7 +125,7 @@ class _RuleDialogState extends State<RuleDialog> {
   void _save() {
     final amount = parseInr(_amount.text);
     if (amount == null || amount <= 0) {
-      showSnack(context, 'Enter an amount greater than zero');
+      showSnack(context, context.l10n.txnNeedAmount);
       return;
     }
     var r = widget.rule.copyWith(template: widget.rule.template.copyWith(amount: amount));
@@ -133,7 +135,7 @@ class _RuleDialogState extends State<RuleDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Edit schedule'),
+    title: Text(context.l10n.editSchedule),
     content: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -141,7 +143,7 @@ class _RuleDialogState extends State<RuleDialog> {
           key: const Key('rule-amount'),
           controller: _amount,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(labelText: 'Amount (₹)'),
+          decoration: InputDecoration(labelText: context.l10n.amountIn(currencySymbol)),
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -152,8 +154,8 @@ class _RuleDialogState extends State<RuleDialog> {
       ],
     ),
     actions: [
-      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-      FilledButton(key: const Key('rule-save'), onPressed: _save, child: const Text('Save')),
+      TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.cancel)),
+      FilledButton(key: const Key('rule-save'), onPressed: _save, child: Text(context.l10n.save)),
     ],
   );
 }

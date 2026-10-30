@@ -1,3 +1,4 @@
+import '../l10n/l10n.dart';
 import '../core/dates.dart';
 import '../core/money.dart';
 import '../data/catalog_repo.dart';
@@ -123,7 +124,7 @@ class ImportRow {
 List<ImportRow> buildImport(List<List<String>> rows, CatalogRepo catalog, TransactionsRepo txns, {int? sourceId}) {
   if (rows.isEmpty) return const [];
   final map = CsvMapping.detect(rows.first);
-  if (!map.isValid) return const [ImportRow(line: 1, error: 'Need a date column and an amount (or debit/credit) column')];
+  if (!map.isValid) return [ImportRow(line: 1, error: currentL10n.importNeedColumns)];
   String cell(List<String> r, int i) => i >= 0 && i < r.length ? r[i].trim() : '';
   final out = <ImportRow>[];
   for (var i = 1; i < rows.length; i++) {
@@ -131,7 +132,7 @@ List<ImportRow> buildImport(List<List<String>> rows, CatalogRepo catalog, Transa
     final line = i + 1;
     final date = parseFlexibleDate(cell(r, map.date));
     if (date == null) {
-      out.add(ImportRow(line: line, error: 'Invalid date "${cell(r, map.date)}"'));
+      out.add(ImportRow(line: line, error: currentL10n.importInvalidDate(cell(r, map.date))));
       continue;
     }
     int? amount;
@@ -149,7 +150,7 @@ List<ImportRow> buildImport(List<List<String>> rows, CatalogRepo catalog, Transa
       }
     }
     if (amount == null || amount == 0) {
-      out.add(ImportRow(line: line, error: 'Invalid amount'));
+      out.add(ImportRow(line: line, error: currentL10n.importInvalidAmount));
       continue;
     }
     if (amount < 0) {

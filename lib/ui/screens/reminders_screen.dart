@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/dates.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
+import '../../l10n/l10n.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
@@ -12,27 +13,26 @@ import '../theme/icons.dart';
 String dueIn(DateTime date, DateTime now) {
   final days = dayStart(date).difference(dayStart(now)).inDays;
   return switch (days) {
-    0 => 'Today',
-    1 => 'Tomorrow',
-    _ => 'in $days days',
+    0 => currentL10n.today,
+    1 => currentL10n.tomorrow,
+    _ => currentL10n.inDays(days),
   };
 }
 
 /// Group header for a reminder date: "Today", "Tomorrow" or "Thu, 5 Nov".
 String dueDayLabel(DateTime date, DateTime now) {
   final days = dayStart(date).difference(dayStart(now)).inDays;
-  if (days == 0) return 'Today';
-  if (days == 1) return 'Tomorrow';
-  final base = '${weekdaysShort[date.weekday - 1]}, ${date.day} ${monthsShort[date.month - 1]}';
-  return date.year == now.year ? base : '$base ${date.year}';
+  if (days == 0) return currentL10n.today;
+  if (days == 1) return currentL10n.tomorrow;
+  return weekdayDate(date, now);
 }
 
 String upcomingKindLabel(UpcomingKind k) => switch (k) {
-  UpcomingKind.emi => 'EMI due',
-  UpcomingKind.cardDue => 'Card bill due',
-  UpcomingKind.maturity => 'Matures',
-  UpcomingKind.sip => 'SIP due',
-  UpcomingKind.followUp => 'Follow up',
+  UpcomingKind.emi => currentL10n.upcomingEmi,
+  UpcomingKind.cardDue => currentL10n.upcomingCard,
+  UpcomingKind.maturity => currentL10n.upcomingMaturity,
+  UpcomingKind.sip => currentL10n.upcomingSip,
+  UpcomingKind.followUp => currentL10n.upcomingFollowUp,
 };
 
 IconData upcomingIcon(UpcomingKind k) => switch (k) {
@@ -108,10 +108,10 @@ class RemindersScreen extends StatelessWidget {
     }
     return Scaffold(
       appBar: AppBar(
-        title: Text('Reminders', style: ts(16, weight: FontWeight.w700)),
+        title: Text(context.l10n.reminders, style: ts(16, weight: FontWeight.w700)),
       ),
       body: items.isEmpty
-          ? const EmptyState(icon: AppIcons.notifications, title: 'Nothing coming up', message: 'EMIs, card bills and FD maturities in the next 60 days show up here.')
+          ? EmptyState(icon: AppIcons.notifications, title: context.l10n.nothingComingUp, message: context.l10n.nothingComingUpHelp)
           : ListView(
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
               children: [

@@ -5,17 +5,18 @@ import '../core/money.dart';
 import '../data/models.dart';
 import '../data/planning_repo.dart';
 import '../data/settings_repo.dart';
+import '../l10n/l10n.dart';
 import '../services/notifications.dart';
 
 /// What the user can switch on or off under Settings › Reminders & alerts.
 enum ReminderType { budget, dues, sip, maturity, followUp }
 
 String reminderTypeLabel(ReminderType t) => switch (t) {
-  ReminderType.budget => 'Budget alerts (80% and 100%)',
-  ReminderType.dues => 'EMI and card due dates',
-  ReminderType.sip => 'SIP reminders',
-  ReminderType.maturity => 'FD maturity',
-  ReminderType.followUp => 'Follow-ups on money owed to me',
+  ReminderType.budget => currentL10n.reminderTypeBudget,
+  ReminderType.dues => currentL10n.reminderTypeDues,
+  ReminderType.sip => currentL10n.reminderTypeSip,
+  ReminderType.maturity => currentL10n.reminderTypeMaturity,
+  ReminderType.followUp => currentL10n.reminderTypeFollowUp,
 };
 
 /// A notification to schedule: [at] is local wall-clock time.
@@ -95,21 +96,23 @@ class Reminders {
     final now = clock();
     final lead = maturityLeadDays;
     final out = <(DateTime, String, String)>[];
+    final l = currentL10n;
     for (final u in planning.upcoming(now, days: reminderWindowDays + lead)) {
       final amount = u.amount == null ? '' : formatInr(u.amount!);
       switch (u.kind) {
         case UpcomingKind.emi || UpcomingKind.cardDue when isOn(ReminderType.dues):
-          final what = u.kind == UpcomingKind.emi ? 'EMI' : 'Card bill';
-          final due = amount.isEmpty ? 'is due' : 'of $amount is due';
-          out.add((_at(u.date.subtract(const Duration(days: 1))), '$what due tomorrow', '${u.title}: $what $due tomorrow.'));
-          out.add((_at(u.date), '$what due today', '${u.title}: $what $due today.'));
+          final emi = u.kind == UpcomingKind.emi;
+          final what = emi ? l.emi : l.cardBill;
+          final tomorrow = amount.isEmpty ? l.reminderDueTomorrowBody(u.title, what) : l.reminderDueTomorrowAmountBody(u.title, what, amount);
+          final today = amount.isEmpty ? l.reminderDueTodayBody(u.title, what) : l.reminderDueTodayAmountBody(u.title, what, amount);
+          out.add((_at(u.date.subtract(const Duration(days: 1))), emi ? l.reminderEmiTomorrow : l.reminderCardTomorrow, tomorrow));
+          out.add((_at(u.date), emi ? l.reminderEmiToday : l.reminderCardToday, today));
         case UpcomingKind.sip when isOn(ReminderType.sip):
-          out.add((_at(u.date), 'SIP due today', '${u.title}: invest $amount today.'));
+          out.add((_at(u.date), l.reminderSipToday, l.reminderSipBody(u.title, amount)));
         case UpcomingKind.maturity when isOn(ReminderType.maturity):
-          final when = lead == 0 ? 'today' : (lead == 1 ? 'tomorrow' : 'in $lead days');
-          out.add((_at(u.date.subtract(Duration(days: lead))), 'FD matures $when', '${u.title} ($amount invested) matures on ${shortDate(u.date)}.'));
+          out.add((_at(u.date.subtract(Duration(days: lead))), l.reminderFdMatures(lead), l.reminderFdBody(u.title, amount, shortDate(u.date))));
         case UpcomingKind.followUp when isOn(ReminderType.followUp):
-          out.add((_at(u.date), 'Follow up with ${u.title}', '${u.title} still owes you $amount.'));
+          out.add((_at(u.date), l.reminderFollowUp(u.title), l.reminderFollowUpBody(u.title, amount)));
         default:
           break;
       }
@@ -156,9 +159,9 @@ class Reminders {
       final key = 'budget_alert:${b.id}';
       final last = (settings.get(key) ?? '').split(':');
       if (last.length == 2 && last[0] == '$cycle' && int.parse(last[1]) >= level) continue;
-      final title = level == 100 ? '${b.name} budget used up' : '80% of ${b.name} budget used';
-      final left = p.daysLeft == 1 ? '1 day left' : '${p.daysLeft} days left';
-      await service.show(_alertIdBase + b.id! * 2 + (level == 100 ? 1 : 0), title, '${formatInr(p.used)} of ${formatInr(p.limit)} spent · $left');
+      final l = currentL10n;
+      final title = level == 100 ? l.budgetAlertFull(b.name) : l.budgetAlert80(b.name);
+      await service.show(_alertIdBase + b.id! * 2 + (level == 100 ? 1 : 0), title, l.budgetAlertBody(formatInr(p.used), formatInr(p.limit), l.daysLeft(p.daysLeft)));
       settings.set(key, '$cycle:$level');
       sent.add(title);
     }
@@ -173,8 +176,8 @@ class Reminders {
   }
 
   /// Lets the user confirm notifications work on their phone.
-  Future<void> sendTest() => service.show(testNotificationId, 'Reminders are on', 'You will hear about budgets, due dates, SIPs and maturities here. Nothing leaves your phone.');
+  Future<void> sendTest() => service.show(testNotificationId, currentL10n.reminderTestTitle, currentL10n.reminderTestBody);
 }
 
 /// Day label used next to the "Remind me" button: "5 Nov".
-String followUpLabel(DateTime day) => '${day.day} ${monthsShort[day.month - 1]}';
+String followUpLabel(DateTime day) => shortDate(day);

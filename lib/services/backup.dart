@@ -10,6 +10,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dates.dart';
 import '../data/database.dart';
 import '../data/models.dart';
@@ -34,24 +35,42 @@ int backupKdfIterations = 210000;
 Future<R> Function<R>(FutureOr<R> Function() computation) runInBackground = Isolate.run;
 
 sealed class BackupException implements Exception {
-  const BackupException(this.message);
+  const BackupException();
 
-  final String message;
+  /// Why, in the app's language.
+  String get message;
 
   @override
   String toString() => message;
 }
 
 class BackupNeedsPassword extends BackupException {
-  const BackupNeedsPassword() : super('This backup is password-protected');
+  const BackupNeedsPassword();
+
+  @override
+  String get message => currentL10n.backupNeedsPassword;
 }
 
 class BackupWrongPassword extends BackupException {
-  const BackupWrongPassword() : super('Wrong password');
+  const BackupWrongPassword();
+
+  @override
+  String get message => currentL10n.backupWrongPassword;
 }
 
+enum BackupProblem { notABackup, damaged, tooNew }
+
 class BackupInvalid extends BackupException {
-  const BackupInvalid([super.message = 'Not an Expense Manager backup']);
+  const BackupInvalid([this.problem = BackupProblem.notABackup]);
+
+  final BackupProblem problem;
+
+  @override
+  String get message => switch (problem) {
+    BackupProblem.notABackup => currentL10n.backupInvalid,
+    BackupProblem.damaged => currentL10n.backupDamaged,
+    BackupProblem.tooNew => currentL10n.backupTooNew,
+  };
 }
 
 /// What a backup says about itself.
@@ -151,7 +170,7 @@ Future<Uint8List> encryptLedger(Uint8List zip, String password, {int? iterations
 
 Future<Uint8List> _decrypt(Uint8List bytes, String password) {
   const head = 8 + 1 + 4;
-  if (bytes.length < head + 16 + 12 + 16) throw const BackupInvalid('Backup file is damaged');
+  if (bytes.length < head + 16 + 12 + 16) throw const BackupInvalid(BackupProblem.damaged);
   final rounds = ByteData.sublistView(bytes, 9, 13).getUint32(0);
   final salt = bytes.sublist(head, head + 16);
   final nonce = bytes.sublist(head + 16, head + 28);
@@ -197,7 +216,7 @@ Future<Ledger> openLedger(Uint8List bytes, {String? password}) async {
     throw const BackupInvalid();
   }
   if (manifest.format > ledgerFormat || manifest.schemaVersion > schemaVersion) {
-    throw const BackupInvalid('This backup was made by a newer version of the app. Update the app first.');
+    throw const BackupInvalid(BackupProblem.tooNew);
   }
   final receipts = <String, Uint8List>{};
   for (final f in archive.files) {
@@ -338,9 +357,9 @@ RestoreResult _merge(AppState app) {
 enum BackupInterval { off, weekly, monthly }
 
 String backupIntervalLabel(BackupInterval i) => switch (i) {
-  BackupInterval.off => 'Off',
-  BackupInterval.weekly => 'Weekly',
-  BackupInterval.monthly => 'Monthly',
+  BackupInterval.off => currentL10n.off,
+  BackupInterval.weekly => currentL10n.weekly,
+  BackupInterval.monthly => currentL10n.monthly,
 };
 
 /// Backup reminder preferences, stored in settings under `backup.*`.
@@ -382,5 +401,5 @@ extension BackupPrefs on AppState {
   }
 
   /// "Last backup: 12 Oct" / "Never backed up".
-  String get lastBackupLabel => lastBackupAt == null ? 'Never backed up' : 'Last backup ${shortDate(lastBackupAt!)}';
+  String get lastBackupLabel => lastBackupAt == null ? currentL10n.backupNever : currentL10n.backupLast(shortDate(lastBackupAt!));
 }

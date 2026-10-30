@@ -4,11 +4,13 @@ import 'package:sqlite3/sqlite3.dart';
 import '../core/dates.dart';
 import '../core/money.dart';
 import '../data/catalog_repo.dart';
+import '../data/database.dart';
 import '../data/planning_repo.dart';
 import '../data/recurring_repo.dart';
 import '../data/settings_repo.dart';
 import '../data/templates_repo.dart';
 import '../data/transactions_repo.dart';
+import '../l10n/l10n.dart';
 import '../services/app_info.dart';
 import '../services/error_log.dart';
 import '../services/file_gateway.dart';
@@ -56,6 +58,7 @@ class AppState extends ChangeNotifier {
        templates = TemplatesRepo(db) {
     currentCurrency = currencyByCode(settings.get('currency'));
     weekStartDay = parseWeekStart(settings.get('week_start'));
+    applyLocale(locale);
     // Installs from before onboarding existed already have data: skip it.
     if (settings.get('onboarded') == null && db.select('SELECT 1 FROM transactions LIMIT 1').isNotEmpty) settings.set('onboarded', '1');
     final service = notifications ?? NotificationService.none;
@@ -178,6 +181,21 @@ class AppState extends ChangeNotifier {
     currentCurrency = c;
     changed();
   }
+
+  /// The chosen language code ('en', 'fr'…), or null to follow the device.
+  String? get language => appLanguages.any((l) => l.code == settings.get('language')) ? settings.get('language') : null;
+
+  set language(String? code) {
+    final before = currentL10n;
+    settings.set('language', code ?? '');
+    applyLocale(locale);
+    // Starter categories follow the language until setup is done.
+    if (!onboarded) relabelSeed(db, before, currentL10n);
+    changed();
+  }
+
+  /// The language the app shows: [language], else the device's if offered.
+  Locale get locale => resolveLocale(language);
 
   /// First day of the week for weekly budgets and insights.
   int get weekStart => weekStartDay;

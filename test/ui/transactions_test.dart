@@ -45,7 +45,7 @@ void main() {
     await pumpScreen(tester, s, const TransactionsScreen());
     await tester.tap(find.text('Invest').first);
     await tester.pump();
-    expect(find.text('1 transactions'), findsOneWidget);
+    expect(find.text('1 transaction'), findsOneWidget);
     await tester.tap(find.text('All').first);
     await tester.pump();
     await tester.dragUntilVisible(find.text('Transport'), find.byKey(const Key('category-chips')), const Offset(-150, 0));
@@ -60,14 +60,14 @@ void main() {
     expect(find.text('Swiggy'), findsOneWidget);
     await tester.tap(find.text('Transport'));
     await tester.pump();
-    expect(find.text('1 transactions'), findsOneWidget);
+    expect(find.text('1 transaction'), findsOneWidget);
   });
 
   testWidgets('All categories chip clears the category filter', (tester) async {
     final s = makeState();
     seed(s);
     await pumpScreen(tester, s, TransactionsScreen(initialFilter: TxnFilter(categoryIds: {catId(s, 'Rent')})));
-    expect(find.text('1 transactions'), findsOneWidget);
+    expect(find.text('1 transaction'), findsOneWidget);
     await tester.tap(find.text('All categories'));
     await tester.pump();
     expect(find.text('7 transactions'), findsOneWidget);

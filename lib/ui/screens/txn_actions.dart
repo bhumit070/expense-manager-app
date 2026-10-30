@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../state/app_state.dart';
 
 /// Soft-deletes a transaction and offers Undo on [messenger].
@@ -10,9 +11,9 @@ void deleteTxnWithUndo(ScaffoldMessengerState messenger, AppState app, int id) {
     ..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
-        content: const Text('Transaction deleted'),
+        content: Text(currentL10n.txnDeleted),
         action: SnackBarAction(
-          label: 'Undo',
+          label: currentL10n.undo,
           onPressed: () {
             app.txns.restore(id);
             app.changed();

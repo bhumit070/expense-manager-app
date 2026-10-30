@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../core/dates.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
@@ -28,14 +29,14 @@ class TxnDetailScreen extends StatelessWidget {
     if (v == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: const EmptyState(icon: AppIcons.delete, title: 'Transaction deleted', message: 'This transaction no longer exists.'),
+        body: EmptyState(icon: AppIcons.delete, title: context.l10n.txnDeleted, message: context.l10n.txnGone),
       );
     }
     final t = v.txn;
     void open(Widget w) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => w));
     return Scaffold(
       appBar: AppBar(
-        title: Text('Transaction', style: ts(16, weight: FontWeight.w700)),
+        title: Text(context.l10n.transaction, style: ts(16, weight: FontWeight.w700)),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -65,12 +66,15 @@ class TxnDetailScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Column(
               children: [
-                DetailRow(label: 'Date & time', value: '${longDate(t.occurredAt)} · ${timeOfDay(t.occurredAt)}'),
+                DetailRow(label: context.l10n.dateTime, value: '${longDate(t.occurredAt)} · ${timeOfDay(t.occurredAt)}'),
                 const Divider(),
-                DetailRow(label: v.inflow ? 'Received in' : 'Paid from', value: v.source?.display ?? '—'),
-                if (t.place != null) ...[const Divider(), DetailRow(label: 'Location', value: t.place!)],
-                if (t.lat != null) ...[const Divider(), DetailRow(label: 'Coordinates', value: '${t.lat!.toStringAsFixed(4)}, ${t.lng!.toStringAsFixed(4)}')],
-                if (t.recurringId == null ? null : app.recurring.byId(t.recurringId!) case final rule?) ...[const Divider(), DetailRow(label: 'Repeats', value: frequencyLabel(rule.frequency))],
+                DetailRow(label: v.inflow ? context.l10n.txnReceivedIn : context.l10n.txnPaidFrom, value: v.source?.display ?? '—'),
+                if (t.place != null) ...[const Divider(), DetailRow(label: context.l10n.location, value: t.place!)],
+                if (t.lat != null) ...[const Divider(), DetailRow(label: context.l10n.coordinates, value: '${t.lat!.toStringAsFixed(4)}, ${t.lng!.toStringAsFixed(4)}')],
+                if (t.recurringId == null ? null : app.recurring.byId(t.recurringId!) case final rule?) ...[
+                  const Divider(),
+                  DetailRow(label: context.l10n.repeats, value: frequencyLabel(rule.frequency)),
+                ],
               ],
             ),
           ),
@@ -82,7 +86,7 @@ class TxnDetailScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'NOTE',
+                    context.l10n.note.toUpperCase(),
                     style: ts(12, weight: FontWeight.w700, color: c.textMuted, spacing: 0.6),
                   ),
                   if (t.note.isNotEmpty)
@@ -112,7 +116,7 @@ class TxnDetailScreen extends StatelessWidget {
                   key: const Key('duplicate'),
                   onPressed: () => open(TxnFormScreen(existing: v, duplicate: true)),
                   icon: const Icon(AppIcons.copy),
-                  label: const Text('Duplicate'),
+                  label: Text(context.l10n.duplicate),
                 ),
               ),
               const SizedBox(width: 10),
@@ -121,7 +125,7 @@ class TxnDetailScreen extends StatelessWidget {
                   key: const Key('edit'),
                   onPressed: () => open(TxnFormScreen(existing: v)),
                   icon: const Icon(AppIcons.edit),
-                  label: const Text('Edit'),
+                  label: Text(context.l10n.edit),
                 ),
               ),
               const SizedBox(width: 10),
@@ -135,7 +139,7 @@ class TxnDetailScreen extends StatelessWidget {
                     deleteTxnWithUndo(messenger, app, id);
                   },
                   icon: const Icon(AppIcons.delete),
-                  label: const Text('Delete'),
+                  label: Text(context.l10n.delete),
                 ),
               ),
             ],
@@ -161,7 +165,7 @@ class _ReceiptCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'RECEIPT',
+            context.l10n.receipt.toUpperCase(),
             style: ts(12, weight: FontWeight.w700, color: c.textMuted, spacing: 0.6),
           ),
           const SizedBox(height: 10),
@@ -171,7 +175,7 @@ class _ReceiptCard extends StatelessWidget {
                 Icon(AppIcons.pdf, color: c.spend, size: 32),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text('PDF receipt', style: ts(14, weight: FontWeight.w600)),
+                  child: Text(context.l10n.pdfReceipt, style: ts(14, weight: FontWeight.w600)),
                 ),
               ],
             )
@@ -187,7 +191,7 @@ class _ReceiptCard extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              TextButton.icon(key: const Key('receipt-open'), onPressed: () => app.receipts.open(path), icon: const Icon(AppIcons.openExternal, size: 18), label: const Text('Open')),
+              TextButton.icon(key: const Key('receipt-open'), onPressed: () => app.receipts.open(path), icon: const Icon(AppIcons.openExternal, size: 18), label: Text(context.l10n.open)),
               const Spacer(),
               TextButton.icon(
                 key: const Key('receipt-remove'),
@@ -198,7 +202,7 @@ class _ReceiptCard extends StatelessWidget {
                   app.changed();
                 },
                 icon: const Icon(AppIcons.delete, size: 18),
-                label: const Text('Remove'),
+                label: Text(context.l10n.remove),
               ),
             ],
           ),
@@ -212,7 +216,7 @@ Widget _missing(AppColors c) => Container(
   height: 120,
   color: c.surfaceMuted,
   alignment: Alignment.center,
-  child: Text('Receipt file not found', style: ts(12, color: c.textMuted)),
+  child: Text(currentL10n.receiptMissing, style: ts(12, color: c.textMuted)),
 );
 
 /// Full-screen, zoomable receipt photo.
@@ -224,7 +228,7 @@ class ReceiptViewer extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Colors.black,
-    appBar: AppBar(backgroundColor: Colors.black, foregroundColor: Colors.white, title: const Text('Receipt')),
+    appBar: AppBar(backgroundColor: Colors.black, foregroundColor: Colors.white, title: Text(context.l10n.receipt)),
     body: InteractiveViewer(
       maxScale: 5,
       child: Center(child: Image.file(File(path), errorBuilder: (_, _, _) => _missing(context.colors))),

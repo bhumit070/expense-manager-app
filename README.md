@@ -107,7 +107,7 @@ These run outside `tool/verify.sh` and CI:
 
 ## Release
 
-See [`docs/release.md`](docs/release.md) (signing secrets, Play internal testing, TestFlight), [`docs/store-listing.md`](docs/store-listing.md) and [`docs/privacy-policy.md`](docs/privacy-policy.md). Strings live in `lib/l10n/app_en.arb`; `flutter pub get` regenerates `app_localizations*.dart`.
+See [`docs/release.md`](docs/release.md) (signing secrets, Play internal testing, TestFlight), [`docs/store-listing.md`](docs/store-listing.md) and [`docs/privacy-policy.md`](docs/privacy-policy.md). Strings live in `lib/l10n/app_en.arb` with translations in `app_fr`, `app_ja`, `app_hi`, `app_gu` and `app_or.arb` (Settings › Language, or the device language); `flutter pub get` regenerates `app_localizations*.dart`, and `test/l10n` checks every language has every key and placeholder.
 
 ## License
 

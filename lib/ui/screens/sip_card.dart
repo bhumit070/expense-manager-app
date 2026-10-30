@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../core/dates.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
@@ -82,11 +83,11 @@ class SipCard extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Stop this SIP?'),
-        content: const Text('Contributions already recorded stay on this investment.'),
+        title: Text(context.l10n.sipStopTitle),
+        content: Text(context.l10n.sipStopBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(key: const Key('confirm-stop-sip'), onPressed: () => Navigator.pop(ctx, true), child: const Text('Stop SIP')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.l10n.cancel)),
+          FilledButton(key: const Key('confirm-stop-sip'), onPressed: () => Navigator.pop(ctx, true), child: Text(context.l10n.sipStop)),
         ],
       ),
     );
@@ -103,7 +104,7 @@ class SipCard extends StatelessWidget {
     final sip = app.recurring.forInvestment(investment.id!);
     if (sip == null) {
       if (investment.status != InvestmentStatus.active) return const SizedBox.shrink();
-      return OutlinedButton.icon(key: const Key('setup-sip'), onPressed: () => _edit(context, app, null), icon: const Icon(AppIcons.eventRepeat), label: const Text('Set up a monthly SIP'));
+      return OutlinedButton.icon(key: const Key('setup-sip'), onPressed: () => _edit(context, app, null), icon: const Icon(AppIcons.eventRepeat), label: Text(context.l10n.sipSetup));
     }
     final source = sip.template.sourceId == null ? null : app.catalog.sources(includeArchived: true).where((s) => s.id == sip.template.sourceId).firstOrNull;
     return AppCard(
@@ -119,13 +120,13 @@ class SipCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('SIP · ${formatInr(sip.template.amount)} on day ${sip.startAt.day}', style: ts(15, weight: FontWeight.w700)),
+                    Text(context.l10n.sipSummary(formatInr(sip.template.amount), sip.startAt.day), style: ts(15, weight: FontWeight.w700)),
                     Text(
-                      sip.paused ? 'Paused' : 'Next ${longDate(sip.nextRun)}${source == null ? '' : ' · ${source.display}'}',
+                      sip.paused ? context.l10n.paused : (source == null ? context.l10n.nextOn(longDate(sip.nextRun)) : context.l10n.nextOnFrom(longDate(sip.nextRun), source.display)),
                       key: const Key('sip-next'),
                       style: ts(12, color: c.textMuted),
                     ),
-                    Text(sip.autoCreate ? 'Added automatically' : 'Reminder only · record it when you pay', style: ts(11, color: c.textFaint)),
+                    Text(sip.autoCreate ? context.l10n.sipAuto : context.l10n.sipReminderOnly, style: ts(11, color: c.textFaint)),
                   ],
                 ),
               ),
@@ -143,14 +144,14 @@ class SipCard extends StatelessWidget {
                       builder: (_) => TxnFormScreen(initialType: TxnType.invest, investmentId: investment.id),
                     ),
                   ),
-                  child: const Text('Record payment'),
+                  child: Text(context.l10n.debtRecordPayment),
                 ),
-              TextButton(key: const Key('edit-sip'), onPressed: () => _edit(context, app, sip), child: const Text('Edit')),
+              TextButton(key: const Key('edit-sip'), onPressed: () => _edit(context, app, sip), child: Text(context.l10n.edit)),
               TextButton(
                 key: const Key('stop-sip'),
                 style: TextButton.styleFrom(foregroundColor: c.spend),
                 onPressed: () => _stop(context, app, sip),
-                child: const Text('Stop'),
+                child: Text(context.l10n.stop),
               ),
             ],
           ),
@@ -193,7 +194,7 @@ class _SipDialogState extends State<SipDialog> {
   void _save() {
     final amount = parseInr(_amount.text);
     if (amount == null || amount <= 0) {
-      showSnack(context, 'Enter an amount greater than zero');
+      showSnack(context, context.l10n.txnNeedAmount);
       return;
     }
     Navigator.pop<SipInput>(context, (amount: amount, day: _day, sourceId: _sourceId, autoCreate: _auto));
@@ -204,7 +205,7 @@ class _SipDialogState extends State<SipDialog> {
     final app = AppScope.of(context);
     final sources = app.catalog.sources();
     return AlertDialog(
-      title: Text(widget.existing == null ? 'Monthly SIP' : 'Edit SIP'),
+      title: Text(widget.existing == null ? context.l10n.sipMonthly : context.l10n.sipEdit),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -214,13 +215,13 @@ class _SipDialogState extends State<SipDialog> {
               controller: _amount,
               autofocus: widget.existing == null,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Amount each month (₹)'),
+              decoration: InputDecoration(labelText: context.l10n.sipAmountField(currencySymbol)),
             ),
             const SizedBox(height: 10),
             DropdownButtonFormField<int>(
               key: const Key('sip-day'),
               initialValue: _day,
-              decoration: const InputDecoration(labelText: 'Day of month'),
+              decoration: InputDecoration(labelText: context.l10n.dayOfMonth),
               items: [for (var d = 1; d <= sipDays; d++) DropdownMenuItem(value: d, child: Text('$d'))],
               onChanged: (d) => setState(() => _day = d!),
             ),
@@ -229,9 +230,9 @@ class _SipDialogState extends State<SipDialog> {
               key: const Key('sip-source'),
               isExpanded: true,
               initialValue: sources.any((s) => s.id == _sourceId) ? _sourceId : null,
-              decoration: const InputDecoration(labelText: 'Paid from'),
+              decoration: InputDecoration(labelText: context.l10n.txnPaidFrom),
               items: [
-                const DropdownMenuItem<int?>(value: null, child: Text('Not set')),
+                DropdownMenuItem<int?>(value: null, child: Text(context.l10n.notSet)),
                 for (final s in sources)
                   DropdownMenuItem<int?>(
                     value: s.id,
@@ -244,16 +245,22 @@ class _SipDialogState extends State<SipDialog> {
             RadioGroup<bool>(
               groupValue: _auto,
               onChanged: (v) => setState(() => _auto = v!),
-              child: const Column(
+              child: Column(
                 children: [
                   RadioListTile<bool>(
-                    key: Key('sip-auto'),
+                    key: const Key('sip-auto'),
                     contentPadding: EdgeInsets.zero,
                     value: true,
-                    title: Text('Add it automatically'),
-                    subtitle: Text('Records the invest transaction each month'),
+                    title: Text(context.l10n.sipAutoOption),
+                    subtitle: Text(context.l10n.sipAutoOptionHelp),
                   ),
-                  RadioListTile<bool>(key: Key('sip-remind'), contentPadding: EdgeInsets.zero, value: false, title: Text('Remind me only'), subtitle: Text('Shows it as coming up; you record it')),
+                  RadioListTile<bool>(
+                    key: const Key('sip-remind'),
+                    contentPadding: EdgeInsets.zero,
+                    value: false,
+                    title: Text(context.l10n.sipRemindOption),
+                    subtitle: Text(context.l10n.sipRemindOptionHelp),
+                  ),
                 ],
               ),
             ),
@@ -261,8 +268,8 @@ class _SipDialogState extends State<SipDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(key: const Key('sip-save'), onPressed: _save, child: const Text('Save')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.cancel)),
+        FilledButton(key: const Key('sip-save'), onPressed: _save, child: Text(context.l10n.save)),
       ],
     );
   }

@@ -1,3 +1,4 @@
+import '../l10n/l10n.dart';
 import '../core/dates.dart';
 import '../core/money.dart';
 
@@ -8,7 +9,7 @@ String bankLabel(StatementBank b) => switch (b) {
   StatementBank.hdfc => 'HDFC Bank',
   StatementBank.sbi => 'SBI',
   StatementBank.icici => 'ICICI Bank',
-  StatementBank.generic => 'Bank statement',
+  StatementBank.generic => currentL10n.bankStatement,
 };
 
 /// One transaction read from a statement.

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/money.dart';
+import '../../l10n/l10n.dart';
 import '../theme/tokens.dart';
 import 'common.dart';
 import '../theme/icons.dart';
@@ -103,11 +104,11 @@ class AmountKeypad extends StatelessWidget {
 
   /// What a screen reader says for each key.
   static String keyLabel(String k) => switch (k) {
-    '+' => 'Plus',
-    '−' => 'Minus',
-    '=' => 'Equals',
-    '.' => 'Decimal point',
-    '00' => 'Double zero',
+    '+' => currentL10n.keyPlus,
+    '−' => currentL10n.keyMinus,
+    '=' => currentL10n.keyEquals,
+    '.' => currentL10n.keyDecimal,
+    '00' => currentL10n.keyDoubleZero,
     _ => k,
   };
 
@@ -135,7 +136,7 @@ class AmountKeypad extends StatelessWidget {
                           height: 52,
                           child: Center(
                             child: k == '⌫'
-                                ? Icon(AppIcons.backspace, color: c.textMuted, semanticLabel: 'Backspace')
+                                ? Icon(AppIcons.backspace, color: c.textMuted, semanticLabel: context.l10n.keyBackspace)
                                 : Text(
                                     k,
                                     semanticsLabel: keyLabel(k),

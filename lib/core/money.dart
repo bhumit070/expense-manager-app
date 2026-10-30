@@ -2,6 +2,8 @@
 /// cents for USD…; always 1/100) to avoid floating-point rounding errors.
 library;
 
+import '../l10n/l10n.dart';
+
 const int paisePerRupee = 100;
 
 /// A display currency. Amounts are not converted; this only changes how
@@ -18,6 +20,13 @@ class Currency {
 
   /// Symbol safe for the built-in PDF fonts.
   final String asciiSymbol;
+
+  /// [name] in the app's language.
+  String get localName {
+    final l = currentL10n;
+    final names = {'INR': l.currencyInr, 'USD': l.currencyUsd, 'EUR': l.currencyEur, 'GBP': l.currencyGbp, 'AED': l.currencyAed, 'SGD': l.currencySgd, 'AUD': l.currencyAud, 'CAD': l.currencyCad};
+    return names[code] ?? name;
+  }
 }
 
 const inr = Currency('INR', '₹', 'Indian rupee', indianGrouping: true, asciiSymbol: 'Rs ');

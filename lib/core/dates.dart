@@ -2,10 +2,17 @@
 /// default) and months run from the 1st to the last day, both in local time.
 library;
 
-const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const monthsLong = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const weekdaysShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const weekdaysLong = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+import 'package:intl/intl.dart';
+
+import '../l10n/l10n.dart';
+
+// Month and weekday names in the app's language (Intl.defaultLocale, set
+// with the language). 1 Jan 2024 was a Monday.
+List<String> _names(String pattern, DateTime Function(int i) at, int n) => [for (var i = 0; i < n; i++) DateFormat(pattern).format(at(i))];
+List<String> get monthsShort => _names('MMM', (i) => DateTime(2024, i + 1), 12);
+List<String> get monthsLong => _names('MMMM', (i) => DateTime(2024, i + 1), 12);
+List<String> get weekdaysShort => _names('EEE', (i) => DateTime(2024, 1, i + 1), 7);
+List<String> get weekdaysLong => _names('EEEE', (i) => DateTime(2024, 1, i + 1), 7);
 
 /// Days a week can start on, offered in Settings.
 const weekStartChoices = [DateTime.monday, DateTime.sunday, DateTime.saturday];
@@ -78,7 +85,7 @@ class Period {
       case PeriodKind.week:
         return '${shortDate(start)} – ${shortDate(lastDay)}';
       case PeriodKind.month:
-        return '${monthsLong[start.month - 1]} ${start.year}';
+        return DateFormat.yMMMM().format(start);
       case PeriodKind.year:
         return '${start.year}';
     }
@@ -93,23 +100,36 @@ class Period {
   int get hashCode => Object.hash(kind, start);
 }
 
-String shortDate(DateTime d) => '${d.day} ${monthsShort[d.month - 1]}';
+/// "25 Oct" (English); other languages use their own day-month order.
+String shortDate(DateTime d) => _en ? '${d.day} ${monthsShort[d.month - 1]}' : DateFormat.MMMd().format(d);
 
-String longDate(DateTime d) => '${weekdaysShort[d.weekday - 1]}, ${d.day} ${monthsShort[d.month - 1]} ${d.year}';
+/// "25 Oct 2026".
+String dayMonthYear(DateTime d) => _en ? '${shortDate(d)} ${d.year}' : DateFormat.yMMMd().format(d);
+
+/// "Sat, 25 Oct 2026".
+String longDate(DateTime d) => _en ? '${weekdaysShort[d.weekday - 1]}, ${shortDate(d)} ${d.year}' : DateFormat.yMMMEd().format(d);
+
+/// "Sat, 25 Oct", with the year when it is not [now]'s.
+String weekdayDate(DateTime d, DateTime now) {
+  if (d.year != now.year) return longDate(d);
+  return _en ? '${weekdaysShort[d.weekday - 1]}, ${shortDate(d)}' : DateFormat.MMMEd().format(d);
+}
 
 String timeOfDay(DateTime d) {
+  if (!_en) return DateFormat.jm().format(d);
   final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
   final m = d.minute.toString().padLeft(2, '0');
   return '$h:$m ${d.hour < 12 ? 'AM' : 'PM'}';
 }
 
+bool get _en => Intl.getCurrentLocale().startsWith('en');
+
 /// "Today", "Yesterday" or "Sat, 25 Oct" relative to [now].
 String relativeDay(DateTime d, DateTime now) {
   final diff = dayStart(now).difference(dayStart(d)).inDays;
-  if (diff == 0) return 'Today';
-  if (diff == 1) return 'Yesterday';
-  final base = '${weekdaysShort[d.weekday - 1]}, ${d.day} ${monthsShort[d.month - 1]}';
-  return d.year == now.year ? base : '$base ${d.year}';
+  if (diff == 0) return currentL10n.today;
+  if (diff == 1) return currentL10n.yesterday;
+  return weekdayDate(d, now);
 }
 
 /// ISO-ish date for CSV: 2026-10-28 21:41.

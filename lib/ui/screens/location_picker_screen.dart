@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../l10n/l10n.dart';
 import '../../services/location.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
@@ -71,7 +72,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     if (!mounted) return;
     setState(() => _busy = false);
     if (place == null) {
-      showSnack(context, 'Current location unavailable. Allow location access or search instead.');
+      showSnack(context, context.l10n.locationUnavailable);
     } else {
       _select(place);
     }
@@ -89,8 +90,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     final c = context.colors;
     return Scaffold(
       appBar: AppBar(
-        title: Text('Pick location', style: ts(16, weight: FontWeight.w700)),
-        actions: [TextButton(key: const Key('confirm-place'), onPressed: _point == null ? null : _confirm, child: const Text('Done'))],
+        title: Text(context.l10n.pickLocation, style: ts(16, weight: FontWeight.w700)),
+        actions: [TextButton(key: const Key('confirm-place'), onPressed: _point == null ? null : _confirm, child: Text(context.l10n.done))],
       ),
       body: Column(
         children: [
@@ -102,7 +103,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               textInputAction: TextInputAction.search,
               onSubmitted: (_) => _search(app),
               decoration: InputDecoration(
-                hintText: 'Search a place or address',
+                hintText: context.l10n.searchPlace,
                 prefixIcon: const Icon(AppIcons.search),
                 suffixIcon: _busy
                     ? const Padding(
@@ -133,7 +134,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
           else if (_searched)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Text('No matches. Try another name, or tap the map.', style: ts(12, color: c.textMuted)),
+              child: Text(context.l10n.noPlaceMatches, style: ts(12, color: c.textMuted)),
             ),
           Expanded(
             child: FlutterMap(
@@ -174,14 +175,14 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                   TextField(
                     key: const Key('place-name'),
                     controller: _name,
-                    decoration: InputDecoration(labelText: 'Place name', helperText: _point == null ? 'Tap the map to drop a pin' : coordinates(_point!.latitude, _point!.longitude)),
+                    decoration: InputDecoration(labelText: context.l10n.placeName, helperText: _point == null ? context.l10n.tapMapForPin : coordinates(_point!.latitude, _point!.longitude)),
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     key: const Key('use-current'),
                     onPressed: _busy ? null : () => _useCurrent(app),
                     icon: const Icon(AppIcons.myLocation),
-                    label: const Text('Use current location'),
+                    label: Text(context.l10n.useCurrentLocation),
                   ),
                 ],
               ),

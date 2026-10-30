@@ -6,6 +6,7 @@ import '../../core/money.dart';
 import '../../data/models.dart';
 import '../../data/recent_searches.dart';
 import '../../data/transactions_repo.dart';
+import '../../l10n/l10n.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/category_picker.dart';
@@ -17,18 +18,18 @@ import 'txn_form_screen.dart';
 import '../theme/icons.dart';
 
 String scopeLabel(SearchScope s) => switch (s) {
-  SearchScope.all => 'All',
-  SearchScope.notes => 'Notes',
-  SearchScope.merchant => 'Merchant',
-  SearchScope.amount => 'Amount',
-  SearchScope.place => 'Place',
+  SearchScope.all => currentL10n.all,
+  SearchScope.notes => currentL10n.searchScopeNotes,
+  SearchScope.merchant => currentL10n.searchScopeMerchant,
+  SearchScope.amount => currentL10n.amount,
+  SearchScope.place => currentL10n.searchScopePlace,
 };
 
 String sortLabel(TxnSort s) => switch (s) {
-  TxnSort.newest => 'Newest first',
-  TxnSort.oldest => 'Oldest first',
-  TxnSort.amountDesc => 'Amount: high to low',
-  TxnSort.amountAsc => 'Amount: low to high',
+  TxnSort.newest => currentL10n.sortNewest,
+  TxnSort.oldest => currentL10n.sortOldest,
+  TxnSort.amountDesc => currentL10n.sortAmountDesc,
+  TxnSort.amountAsc => currentL10n.sortAmountAsc,
 };
 
 /// The note, tags or place line that matched [query] within [scope], if any.
@@ -123,11 +124,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final type = _filter.types.length == 1 ? _filter.types.first : null;
     return Scaffold(
       appBar: AppBar(
-        title: Text('Transactions', style: ts(16, weight: FontWeight.w700)),
+        title: Text(context.l10n.transactionsTitle, style: ts(16, weight: FontWeight.w700)),
         actions: [
           PopupMenuButton<TxnSort>(
             key: const Key('sort'),
-            tooltip: 'Sort',
+            tooltip: context.l10n.sort,
             icon: const Icon(AppIcons.sort),
             initialValue: _filter.sort,
             onSelected: (v) => setState(() => _filter = _filter.copyWith(sort: v)),
@@ -164,16 +165,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 isDense: true,
                                 prefixIcon: Icon(AppIcons.search, color: c.textFaint),
                                 hintText: switch (_filter.scope) {
-                                  SearchScope.all => 'Search merchant, note, #tag, amount…',
-                                  SearchScope.notes => 'Search notes and #tags',
-                                  SearchScope.merchant => 'Search merchants',
-                                  SearchScope.amount => 'Exact amount, e.g. 450 or ₹1,200',
-                                  SearchScope.place => 'Search places',
+                                  SearchScope.all => context.l10n.searchHintAll,
+                                  SearchScope.notes => context.l10n.searchHintNotes,
+                                  SearchScope.merchant => context.l10n.searchHintMerchant,
+                                  SearchScope.amount => context.l10n.searchHintAmount(currencySymbol),
+                                  SearchScope.place => context.l10n.searchHintPlace,
                                 },
                                 suffixIcon: searching
                                     ? IconButton(
                                         key: const Key('clear-search'),
-                                        tooltip: 'Clear search',
+                                        tooltip: context.l10n.clearSearch,
                                         icon: const Icon(AppIcons.close, size: 18),
                                         onPressed: () {
                                           _search.clear();
@@ -191,7 +192,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                             backgroundColor: c.spend,
                             child: IconButton.filled(
                               key: const Key('open-filters'),
-                              tooltip: 'Filters',
+                              tooltip: context.l10n.filters,
                               style: IconButton.styleFrom(backgroundColor: c.text, foregroundColor: c.bg, fixedSize: const Size(48, 48)),
                               icon: const Icon(AppIcons.filter),
                               onPressed: () async {
@@ -235,7 +236,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       child: Segmented<TxnType?>(
                         values: const [null, ...TxnType.values],
                         selected: type,
-                        label: (t) => t == null ? 'All' : typeLabel(t),
+                        label: (t) => t == null ? context.l10n.all : typeLabel(t),
                         onChanged: (t) => setState(() => _filter = _filter.copyWith(types: t == null ? {} : {t})),
                       ),
                     ),
@@ -248,7 +249,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         children: [
                           Pill(
-                            'All categories',
+                            context.l10n.allCategories,
                             selected: _filter.categoryIds.isEmpty,
                             onTap: () => setState(() => _filter = _filter.copyWith(categoryIds: {})),
                           ),
@@ -278,7 +279,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                             if (!searching)
                               IconButton(
                                 key: const Key('prev-period'),
-                                tooltip: 'Previous month',
+                                tooltip: context.l10n.previousMonth,
                                 icon: const Icon(AppIcons.chevronLeft),
                                 onPressed: () => setState(() => _period = _period!.previous),
                               ),
@@ -288,14 +289,19 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(searching ? 'All time' : period.label, style: ts(14, weight: FontWeight.w700)),
-                                    Text('${totals.count} transactions', style: ts(12, color: c.textMuted)),
+                                    Text(searching ? context.l10n.allTime : period.label, style: ts(14, weight: FontWeight.w700)),
+                                    Text(context.l10n.nTransactions(totals.count), style: ts(12, color: c.textMuted)),
                                   ],
                                 ),
                               ),
                             ),
                             if (!searching)
-                              IconButton(key: const Key('next-period'), tooltip: 'Next month', icon: const Icon(AppIcons.chevronRight), onPressed: () => setState(() => _period = _period!.next)),
+                              IconButton(
+                                key: const Key('next-period'),
+                                tooltip: context.l10n.nextMonth,
+                                icon: const Icon(AppIcons.chevronRight),
+                                onPressed: () => setState(() => _period = _period!.next),
+                              ),
                             ConstrainedBox(
                               constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.35),
                               child: FittedBox(
@@ -305,11 +311,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Text(
-                                      'Out ${formatInr(totals.allOut)}',
+                                      context.l10n.moneyOut(formatInr(totals.allOut)),
                                       style: ts(12, weight: FontWeight.w700, color: c.spend),
                                     ),
                                     Text(
-                                      'In ${formatInr(totals.allIn)}',
+                                      context.l10n.moneyIn(formatInr(totals.allIn)),
                                       style: ts(12, weight: FontWeight.w700, color: c.positive),
                                     ),
                                   ],
@@ -329,7 +335,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               child: showRecents
                   ? _RecentList(items: recents, recent: recent, onPick: (q) => _useRecent(recent, q), onChanged: () => setState(() {}))
                   : items.isEmpty
-                  ? EmptyState(icon: AppIcons.searchOff, title: 'Nothing here', message: searching ? 'No transactions match "${_filter.search.trim()}".' : 'No transactions in this period.')
+                  ? EmptyState(icon: AppIcons.searchOff, title: context.l10n.nothingHere, message: searching ? context.l10n.noTxnMatch(_filter.search.trim()) : context.l10n.noTxnInPeriod)
                   : NotificationListener<ScrollNotification>(
                       // Load the next page as the end comes into view.
                       onNotification: (n) {
@@ -365,8 +371,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           final id = v.txn.id!;
                           return Dismissible(
                             key: ValueKey('swipe-$id'),
-                            background: _SwipeBackground(color: c.brand, icon: AppIcons.edit, label: 'Edit', alignment: Alignment.centerLeft),
-                            secondaryBackground: _SwipeBackground(color: c.spend, icon: AppIcons.delete, label: 'Delete', alignment: Alignment.centerRight),
+                            background: _SwipeBackground(color: c.brand, icon: AppIcons.edit, label: context.l10n.edit, alignment: Alignment.centerLeft),
+                            secondaryBackground: _SwipeBackground(color: c.spend, icon: AppIcons.delete, label: context.l10n.delete, alignment: Alignment.centerRight),
                             confirmDismiss: (dir) async {
                               if (dir == DismissDirection.endToStart) return true;
                               await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TxnFormScreen(existing: v)));
@@ -377,8 +383,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                             child: Semantics(
                               key: Key('row-actions-$id'),
                               customSemanticsActions: {
-                                const CustomSemanticsAction(label: 'Edit'): () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TxnFormScreen(existing: v))),
-                                const CustomSemanticsAction(label: 'Delete'): () => deleteTxnWithUndo(ScaffoldMessenger.of(context), app, id),
+                                CustomSemanticsAction(label: context.l10n.edit): () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TxnFormScreen(existing: v))),
+                                CustomSemanticsAction(label: context.l10n.delete): () => deleteTxnWithUndo(ScaffoldMessenger.of(context), app, id),
                               },
                               child: TxnTile(
                                 v,
@@ -454,7 +460,7 @@ class _RecentList extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                'RECENT SEARCHES',
+                context.l10n.recentSearches.toUpperCase(),
                 style: ts(12, weight: FontWeight.w700, color: c.textMuted, spacing: 0.6),
               ),
             ),
@@ -464,7 +470,7 @@ class _RecentList extends StatelessWidget {
                 recent.clear();
                 onChanged();
               },
-              child: const Text('Clear'),
+              child: Text(context.l10n.clear),
             ),
           ],
         ),
@@ -477,7 +483,7 @@ class _RecentList extends StatelessWidget {
             onTap: () => onPick(q),
             trailing: IconButton(
               key: Key('remove-recent-$i'),
-              tooltip: 'Remove from recent searches',
+              tooltip: context.l10n.removeRecentSearch,
               icon: const Icon(AppIcons.close, size: 18),
               onPressed: () {
                 recent.remove(q);
@@ -542,7 +548,7 @@ class _FilterSheetState extends State<FilterSheet> {
           Row(
             children: [
               Expanded(
-                child: Text('Filters', style: ts(20, weight: FontWeight.w800)),
+                child: Text(context.l10n.filters, style: ts(20, weight: FontWeight.w800)),
               ),
               TextButton(
                 key: const Key('reset-filters'),
@@ -553,21 +559,21 @@ class _FilterSheetState extends State<FilterSheet> {
                   _min.clear();
                   _max.clear();
                 }),
-                child: const Text('Reset all'),
+                child: Text(context.l10n.resetAll),
               ),
             ],
           ),
-          label('Type'),
+          label(context.l10n.type),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [for (final t in TxnType.values) Pill(typeLabel(t), dot: c.typeColor(t), selected: _types.contains(t), onTap: () => _toggle(_types, t))],
           ),
-          label('Categories'),
+          label(context.l10n.settingsCategories),
           TextField(
             key: const Key('category-search'),
             onChanged: (v) => setState(() => _catQuery = v),
-            decoration: const InputDecoration(isDense: true, prefixIcon: Icon(AppIcons.search), hintText: 'Search categories'),
+            decoration: InputDecoration(isDense: true, prefixIcon: const Icon(AppIcons.search), hintText: context.l10n.searchCategories),
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -575,7 +581,7 @@ class _FilterSheetState extends State<FilterSheet> {
             runSpacing: 8,
             children: [for (final cat in cats) Pill(categoryLabel(cat, all), dot: Color(cat.color), selected: _cats.contains(cat.id), onTap: () => _toggle(_cats, cat.id))],
           ),
-          label('Amount ($currencySymbol)'),
+          label(context.l10n.amountIn(currencySymbol)),
           Row(
             children: [
               Expanded(
@@ -583,7 +589,7 @@ class _FilterSheetState extends State<FilterSheet> {
                   key: const Key('min-amount'),
                   controller: _min,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(isDense: true, labelText: 'Min'),
+                  decoration: InputDecoration(isDense: true, labelText: context.l10n.min),
                 ),
               ),
               const SizedBox(width: 10),
@@ -592,12 +598,12 @@ class _FilterSheetState extends State<FilterSheet> {
                   key: const Key('max-amount'),
                   controller: _max,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(isDense: true, labelText: 'Max'),
+                  decoration: InputDecoration(isDense: true, labelText: context.l10n.max),
                 ),
               ),
             ],
           ),
-          label('Paid via'),
+          label(context.l10n.paidVia),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -611,7 +617,7 @@ class _FilterSheetState extends State<FilterSheet> {
               final max = parseInr(_max.text);
               Navigator.of(context).pop(TxnFilter(types: _types, categoryIds: _cats, sourceIds: _sources, minAmount: min, maxAmount: max));
             },
-            child: const Text('Apply filters'),
+            child: Text(context.l10n.applyFilters),
           ),
         ],
       ),

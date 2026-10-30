@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/money.dart';
 import '../../data/models.dart';
+import '../../l10n/l10n.dart';
 import 'common.dart';
 import '../theme/tokens.dart';
 
@@ -92,7 +93,7 @@ class BucketBars extends StatelessWidget {
             Expanded(
               child: Semantics(
                 // One readable summary per bar instead of unlabeled shapes.
-                label: '${labels[i]}: spent ${formatInr(buckets[i].spend)}, invested ${formatInr(buckets[i].invest)}',
+                label: context.l10n.chartBarLabel(labels[i], formatInr(buckets[i].spend), formatInr(buckets[i].invest)),
                 excludeSemantics: true,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,

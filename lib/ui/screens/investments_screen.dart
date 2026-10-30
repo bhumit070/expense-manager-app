@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../core/dates.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
@@ -40,14 +41,14 @@ class InvestmentsScreen extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Text('Investments', style: ts(26, weight: FontWeight.w800, spacing: -0.5)),
+              child: Text(context.l10n.investmentsTitle, style: ts(26, weight: FontWeight.w800, spacing: -0.5)),
             ),
             FilledButton.icon(
               key: const Key('add-investment'),
               style: FilledButton.styleFrom(minimumSize: const Size(0, 48), backgroundColor: solidForWhite(c.invest), foregroundColor: Colors.white),
               onPressed: () => open(const InvestmentFormScreen()),
               icon: const Icon(AppIcons.add),
-              label: const Text('Add'),
+              label: Text(context.l10n.add),
             ),
           ],
         ),
@@ -58,7 +59,7 @@ class InvestmentsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Total invested', style: ts(13, color: const Color(0xFFA7F3D0))),
+              Text(context.l10n.totalInvested, style: ts(13, color: const Color(0xFFA7F3D0))),
               const SizedBox(height: 4),
               Text(
                 formatInr(total),
@@ -66,7 +67,7 @@ class InvestmentsScreen extends StatelessWidget {
                 style: ts(32, weight: FontWeight.w800, color: Colors.white, spacing: -1),
               ),
               const SizedBox(height: 6),
-              Text('+${formatInr(month)} this month · ${holdings.length} holdings', style: ts(12, color: const Color(0xFFA7F3D0))),
+              Text(context.l10n.investThisMonth(formatInr(month), holdings.length), style: ts(12, color: const Color(0xFFA7F3D0))),
               if (total > 0) ...[
                 const SizedBox(height: 14),
                 SegmentBar(
@@ -102,7 +103,7 @@ class InvestmentsScreen extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: 12),
-              Text('Amounts you put in · no live prices or returns', style: ts(11, color: const Color(0xFF6EE7B7))),
+              Text(context.l10n.investNoPrices, style: ts(11, color: const Color(0xFF6EE7B7))),
             ],
           ),
         ),
@@ -119,7 +120,7 @@ class InvestmentsScreen extends StatelessWidget {
                   Icon(AppIcons.event, color: c.debt),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text('${m.name} matures on ${shortDate(m.maturityAt!)}', style: ts(13, weight: FontWeight.w700)),
+                    child: Text(context.l10n.investMaturesOn(m.name, shortDate(m.maturityAt!)), style: ts(13, weight: FontWeight.w700)),
                   ),
                 ],
               ),
@@ -128,9 +129,9 @@ class InvestmentsScreen extends StatelessWidget {
         if (holdings.isEmpty)
           EmptyState(
             icon: AppIcons.trendingUp,
-            title: 'No investments yet',
-            message: 'Add an FD, SIP, stock or gold holding to track what you invest.',
-            action: 'Add investment',
+            title: context.l10n.investNone,
+            message: context.l10n.investNoneHelp,
+            action: context.l10n.investAdd,
             onAction: () => open(const InvestmentFormScreen()),
           ),
         for (final k in kinds) ...[
@@ -169,7 +170,7 @@ String holdingSubtitle(Investment i) {
   final parts = <String>[
     if (i.institution.isNotEmpty) i.institution,
     if (i.rate != null) '${i.rate!.toStringAsFixed(2)}%',
-    if (i.maturityAt != null) 'matures ${shortDate(i.maturityAt!)} ${i.maturityAt!.year}',
+    if (i.maturityAt != null) currentL10n.investMatures(dayMonthYear(i.maturityAt!)),
   ];
   return parts.isEmpty ? investmentKindLabel(i.kind) : parts.join(' · ');
 }
@@ -204,7 +205,7 @@ class _HoldingRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(formatInr(h.invested), style: ts(14, weight: FontWeight.w700)),
-                Text('${h.entries} entr${h.entries == 1 ? 'y' : 'ies'}', style: ts(11, color: c.textMuted)),
+                Text(context.l10n.nEntries(h.entries), style: ts(11, color: c.textMuted)),
               ],
             ),
           ],
@@ -265,7 +266,7 @@ class InvestmentDetailScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Invested', style: ts(11, color: c.textMuted)),
+                          Text(context.l10n.invested, style: ts(11, color: c.textMuted)),
                           Text(
                             formatInr(invested),
                             key: const Key('detail-invested'),
@@ -277,7 +278,7 @@ class InvestmentDetailScreen extends StatelessWidget {
                     if (inv.rate != null)
                       Column(
                         children: [
-                          Text('Interest rate', style: ts(11, color: c.textMuted)),
+                          Text(context.l10n.interestRate, style: ts(11, color: c.textMuted)),
                           Text('${inv.rate!.toStringAsFixed(2)}%', style: ts(16, weight: FontWeight.w800)),
                         ],
                       ),
@@ -290,12 +291,12 @@ class InvestmentDetailScreen extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: Text('Started ${shortDate(inv.startAt!)} ${inv.startAt!.year}', style: ts(11, color: c.textMuted)),
+                        child: Text(context.l10n.investStarted(dayMonthYear(inv.startAt!)), style: ts(11, color: c.textMuted)),
                       ),
-                      Text('${Period(PeriodKind.year, inv.startAt!, inv.maturityAt!).daysLeft(now)} days left', style: ts(11, weight: FontWeight.w700)),
+                      Text(context.l10n.daysLeft(Period(PeriodKind.year, inv.startAt!, inv.maturityAt!).daysLeft(now)), style: ts(11, weight: FontWeight.w700)),
                       Expanded(
                         child: Text(
-                          'Matures ${shortDate(inv.maturityAt!)} ${inv.maturityAt!.year}',
+                          context.l10n.investMaturesCap(dayMonthYear(inv.maturityAt!)),
                           textAlign: TextAlign.end,
                           style: ts(11, color: c.textMuted),
                         ),
@@ -312,17 +313,17 @@ class InvestmentDetailScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Column(
                 children: [
-                  if (inv.institution.isNotEmpty) DetailRow(label: 'Institution', value: inv.institution),
-                  if (inv.note.isNotEmpty) DetailRow(label: 'Note', value: inv.note),
+                  if (inv.institution.isNotEmpty) DetailRow(label: context.l10n.institution, value: inv.institution),
+                  if (inv.note.isNotEmpty) DetailRow(label: context.l10n.note, value: inv.note),
                 ],
               ),
             ),
           ],
           const SizedBox(height: 12),
           SipCard(investment: inv),
-          SectionHeader('Contributions (${linked.length})'),
+          SectionHeader(context.l10n.contributions(linked.length)),
           if (linked.isEmpty)
-            Text('No money added yet.', style: ts(13, color: c.textMuted))
+            Text(context.l10n.investNoMoney, style: ts(13, color: c.textMuted))
           else
             AppCard(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -348,22 +349,22 @@ class InvestmentDetailScreen extends StatelessWidget {
                 ),
               ),
               icon: const Icon(AppIcons.add),
-              label: const Text('Add money'),
+              label: Text(context.l10n.investAddMoney),
             ),
             const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(key: const Key('mark-matured'), onPressed: () => setStatus(InvestmentStatus.matured), child: const Text('Mark matured')),
+                  child: OutlinedButton(key: const Key('mark-matured'), onPressed: () => setStatus(InvestmentStatus.matured), child: Text(context.l10n.investMarkMatured)),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: OutlinedButton(key: const Key('close-investment'), onPressed: () => setStatus(InvestmentStatus.closed), child: const Text('Close / sold')),
+                  child: OutlinedButton(key: const Key('close-investment'), onPressed: () => setStatus(InvestmentStatus.closed), child: Text(context.l10n.investCloseSold)),
                 ),
               ],
             ),
           ] else
-            OutlinedButton(key: const Key('reactivate'), onPressed: () => setStatus(InvestmentStatus.active), child: const Text('Mark active again')),
+            OutlinedButton(key: const Key('reactivate'), onPressed: () => setStatus(InvestmentStatus.active), child: Text(context.l10n.investReactivate)),
         ],
       ),
     );
@@ -399,7 +400,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
   void _save() {
     final app = AppScope.read(context);
     if (_name.text.trim().isEmpty) {
-      showSnack(context, 'Give the investment a name');
+      showSnack(context, context.l10n.investNeedName);
       return;
     }
     final id = app.planning.addInvestment(Investment(kind: _kind, name: _name.text, institution: _institution.text, rate: double.tryParse(_rate.text.trim()), startAt: _start, maturityAt: _maturity));
@@ -418,10 +419,10 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    String fmt(DateTime? d) => d == null ? 'Not set' : '${shortDate(d)} ${d.year}';
+    String fmt(DateTime? d) => d == null ? context.l10n.notSet : dayMonthYear(d);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Add investment', style: ts(16, weight: FontWeight.w700)),
+        title: Text(context.l10n.investAdd, style: ts(16, weight: FontWeight.w700)),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -435,33 +436,33 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
           TextField(
             key: const Key('inv-name'),
             controller: _name,
-            decoration: const InputDecoration(labelText: 'Name, e.g. HDFC Bank FD'),
+            decoration: InputDecoration(labelText: context.l10n.investNameField),
           ),
           const SizedBox(height: 12),
           TextField(
             key: const Key('inv-institution'),
             controller: _institution,
-            decoration: const InputDecoration(labelText: 'Bank / platform (optional)'),
+            decoration: InputDecoration(labelText: context.l10n.investInstitutionField),
           ),
           const SizedBox(height: 12),
           TextField(
             key: const Key('inv-rate'),
             controller: _rate,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: 'Interest rate % (optional)'),
+            decoration: InputDecoration(labelText: context.l10n.debtFieldRate),
           ),
           const SizedBox(height: 12),
           TextField(
             key: const Key('inv-amount'),
             controller: _amount,
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: 'Amount invested now (optional)', prefixText: '$currencySymbol '),
+            decoration: InputDecoration(labelText: context.l10n.investAmountField, prefixText: '$currencySymbol '),
           ),
           const SizedBox(height: 8),
           ListTile(
             key: const Key('inv-start'),
             contentPadding: EdgeInsets.zero,
-            title: const Text('Start date'),
+            title: Text(context.l10n.startDate),
             trailing: Text(fmt(_start), style: ts(13, color: c.textMuted)),
             onTap: () async {
               final d = await _pick(_start);
@@ -471,7 +472,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
           ListTile(
             key: const Key('inv-maturity'),
             contentPadding: EdgeInsets.zero,
-            title: const Text('Maturity date (optional)'),
+            title: Text(context.l10n.maturityDate),
             trailing: Text(fmt(_maturity), style: ts(13, color: c.textMuted)),
             onTap: () async {
               final d = await _pick(_maturity);
@@ -479,7 +480,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
             },
           ),
           const SizedBox(height: 16),
-          FilledButton(key: const Key('save-investment'), onPressed: _save, child: const Text('Save investment')),
+          FilledButton(key: const Key('save-investment'), onPressed: _save, child: Text(context.l10n.investSave)),
         ],
       ),
     );

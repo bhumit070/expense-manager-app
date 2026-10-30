@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
@@ -24,30 +25,30 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     final text = log?.read() ?? '';
     return Scaffold(
       appBar: AppBar(
-        title: Text('Diagnostics', style: ts(16, weight: FontWeight.w700)),
+        title: Text(context.l10n.diagnosticsTitle, style: ts(16, weight: FontWeight.w700)),
         actions: [
           if (text.isNotEmpty) ...[
             IconButton(
               key: const Key('share-log'),
-              tooltip: 'Share log',
+              tooltip: context.l10n.shareLog,
               icon: const Icon(AppIcons.share),
               onPressed: () => app.files.saveAndShare('expense-manager-errors.log', utf8.encode(text), 'text/plain'),
             ),
             IconButton(
               key: const Key('clear-log'),
-              tooltip: 'Clear log',
+              tooltip: context.l10n.clearLog,
               icon: const Icon(AppIcons.delete),
               onPressed: () {
                 log!.clear();
                 setState(() {});
-                showSnack(context, 'Error log cleared');
+                showSnack(context, context.l10n.logCleared);
               },
             ),
           ],
         ],
       ),
       body: text.isEmpty
-          ? const EmptyState(icon: AppIcons.checkCircle, title: 'No errors recorded', message: 'Crashes and errors are logged on this phone only. Share the log if you report a bug.')
+          ? EmptyState(icon: AppIcons.checkCircle, title: context.l10n.noErrors, message: context.l10n.noErrorsHelp)
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: SelectableText(

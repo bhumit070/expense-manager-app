@@ -113,6 +113,7 @@ void main() {
       await expectLater(openLedger(Uint8List.fromList([...ledgerMagic, 1, 2, 3])), throwsA(isA<BackupNeedsPassword>()));
       await expectLater(openLedger(Uint8List.fromList([...ledgerMagic, 1, 2, 3]), password: 'x'), throwsA(isA<BackupInvalid>()));
       expect('${const BackupWrongPassword()}', 'Wrong password');
+      expect(const BackupNeedsPassword().message, 'This backup is password-protected');
     });
 
     test('invalid files are rejected with a reason', () async {

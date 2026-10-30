@@ -124,7 +124,7 @@ void main() {
       expect([b.name, b.limit, b.rollover, b.alert80, b.alert100, b.categoryIds.length], ['Food', 1000000, true, false, false, 1]);
       expect(find.text('Food'), findsOneWidget);
       expect(find.textContaining('left ·'), findsOneWidget);
-      expect(find.text('1 categories'), findsOneWidget);
+      expect(find.text('1 category'), findsOneWidget);
       expect(find.byKey(const Key('pace-marker')), findsOneWidget);
     });
 

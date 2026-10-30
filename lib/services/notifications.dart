@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
+
+import '../l10n/l10n.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -87,8 +89,8 @@ const smsChannelId = 'sms_expenses';
 String darwinCategoryId(List<NotificationActionSpec> actions) => actions.map((a) => a.id).join('+');
 
 /// The iOS categories for every set of buttons the app posts.
-List<DarwinNotificationCategory> darwinCategories([List<List<NotificationActionSpec>> sets = const [smsPromptActions, smsAddedActions]]) => [
-  for (final set in sets)
+List<DarwinNotificationCategory> darwinCategories([List<List<NotificationActionSpec>>? sets]) => [
+  for (final set in sets ?? [smsPromptActions, smsAddedActions])
     DarwinNotificationCategory(
       darwinCategoryId(set),
       actions: [
@@ -111,16 +113,16 @@ class PlatformNotificationService extends NotificationService {
 
   static Future<String> _deviceTimezone() async => (await FlutterTimezone.getLocalTimezone()).identifier;
 
-  static const _details = NotificationDetails(
+  static NotificationDetails get _details => NotificationDetails(
     android: AndroidNotificationDetails(
       reminderChannelId,
-      'Reminders & alerts',
-      channelDescription: 'Budget alerts, due dates, SIPs and maturity reminders',
+      currentL10n.remindersTitle,
+      channelDescription: currentL10n.reminderChannelHelp,
       importance: Importance.high,
       priority: Priority.high,
       icon: 'ic_notification',
     ),
-    iOS: DarwinNotificationDetails(),
+    iOS: const DarwinNotificationDetails(),
   );
 
   /// Loads time zones and initialises the plugin once.
@@ -186,8 +188,8 @@ class PlatformNotificationService extends NotificationService {
       notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           smsChannelId,
-          'Expenses from SMS',
-          channelDescription: 'Asks before adding a bank or UPI transaction read from an SMS',
+          currentL10n.smsTitle,
+          channelDescription: currentL10n.smsChannelHelp,
           importance: Importance.high,
           priority: Priority.high,
           icon: 'ic_notification',

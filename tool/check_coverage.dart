@@ -1,7 +1,12 @@
 // Fails unless every line in lib/ is covered by tests.
 //
 // Usage: flutter test --coverage && dart run tool/check_coverage.dart [minPercent]
+//
+// Generated localizations (lib/l10n/app_localizations*.dart) are skipped: they
+// are one getter per string per language, checked by test/l10n instead.
 import 'dart:io';
+
+bool _generated(String path) => RegExp(r'lib/l10n/app_localizations[_a-z]*\.dart$').hasMatch(path);
 
 void main(List<String> args) {
   final min = args.isEmpty ? 100.0 : double.parse(args.first);
@@ -17,6 +22,10 @@ void main(List<String> args) {
       file = line.substring(3).replaceAll('\\', '/');
       final i = file.indexOf('lib/');
       if (i >= 0) file = file.substring(i);
+      if (_generated(file)) {
+        file = null;
+        continue;
+      }
       hits.putIfAbsent(file, () => {});
     } else if (line.startsWith('DA:') && file != null) {
       final parts = line.substring(3).split(',');
@@ -25,7 +34,7 @@ void main(List<String> args) {
     }
   }
   // Files that no test loaded are reported as 0% instead of silently skipped.
-  final all = Directory('lib').listSync(recursive: true).whereType<File>().where((f) => f.path.endsWith('.dart')).map((f) => f.path.replaceAll('\\', '/'));
+  final all = Directory('lib').listSync(recursive: true).whereType<File>().where((f) => f.path.endsWith('.dart')).map((f) => f.path.replaceAll('\\', '/')).where((f) => !_generated(f));
   final missing = all.where((f) => !hits.containsKey(f)).toList()..sort();
 
   var total = 0, covered = 0;

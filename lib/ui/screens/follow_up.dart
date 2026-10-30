@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../core/dates.dart';
 import '../../data/models.dart';
 import '../../state/app_state.dart';
@@ -20,10 +21,10 @@ class FollowUpButton extends StatelessWidget {
       final action = await showDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('Reminder on ${followUpLabel(current)}'),
+          title: Text(context.l10n.reminderOn(followUpLabel(current))),
           actions: [
-            TextButton(key: const Key('follow-up-remove'), onPressed: () => Navigator.pop(context, 'remove'), child: const Text('Remove')),
-            FilledButton(key: const Key('follow-up-change'), onPressed: () => Navigator.pop(context, 'change'), child: const Text('Change date')),
+            TextButton(key: const Key('follow-up-remove'), onPressed: () => Navigator.pop(context, 'remove'), child: Text(context.l10n.remove)),
+            FilledButton(key: const Key('follow-up-change'), onPressed: () => Navigator.pop(context, 'change'), child: Text(context.l10n.changeDate)),
           ],
         ),
       );
@@ -39,13 +40,13 @@ class FollowUpButton extends StatelessWidget {
       initialDate: current ?? today.add(const Duration(days: 7)),
       firstDate: today,
       lastDate: today.add(const Duration(days: 365)),
-      helpText: 'Remind me on',
+      helpText: context.l10n.remindMeOn,
     );
     if (picked == null) return;
     app.planning.setFollowUp(id, picked);
     app.changed();
     if (context.mounted) {
-      showSnack(context, app.reminders.enabled ? "We'll remind you on ${followUpLabel(picked)}" : 'Saved. Turn on Settings › Reminders & alerts to get a notification.');
+      showSnack(context, app.reminders.enabled ? context.l10n.willRemind(followUpLabel(picked)) : context.l10n.savedTurnOnReminders);
     }
   }
 
@@ -58,7 +59,7 @@ class FollowUpButton extends StatelessWidget {
       style: OutlinedButton.styleFrom(minimumSize: const Size(0, 34)),
       onPressed: () => _pick(context, app, current),
       icon: Icon(current == null ? AppIcons.alarmAdd : AppIcons.alarmOn, size: 16),
-      label: Text(current == null ? 'Remind me' : followUpLabel(current)),
+      label: Text(current == null ? context.l10n.remindMe : followUpLabel(current)),
     );
   }
 }

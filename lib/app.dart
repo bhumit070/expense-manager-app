@@ -29,6 +29,7 @@ class ExpenseApp extends StatelessWidget {
           onGenerateTitle: (context) => context.l10n.appTitle,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
+          locale: AppScope.of(context).locale,
           debugShowCheckedModeBanner: false,
           navigatorKey: _navigator,
           theme: buildTheme(Brightness.light),

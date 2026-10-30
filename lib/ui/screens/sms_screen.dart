@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
 import '../../app.dart';
 import '../../services/maps.dart';
 import '../../core/dates.dart';
@@ -36,17 +37,11 @@ class _SmsScreenState extends State<SmsScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Read bank SMS?'),
-        content: Text(
-          app.smsPlatform.viaShortcuts
-              ? 'iPhone apps can\'t read SMS, so a Shortcuts automation hands each bank message to Expense Manager. It is read on this phone and you are asked whether to add the transaction.\n\n'
-                    'Nothing is sent anywhere. OTPs, offers and reminders are skipped. Next, set up the automation using the steps on this screen.'
-              : 'When a bank, card or UPI SMS arrives, Expense Manager reads it on this phone and asks whether to add the transaction.\n\n'
-                    'Only messages with an amount that was debited or credited are kept, and nothing is sent anywhere. OTPs, offers and reminders are skipped.',
-        ),
+        title: Text(context.l10n.smsReadTitle),
+        content: Text(app.smsPlatform.viaShortcuts ? context.l10n.smsReadBodyShortcuts : context.l10n.smsReadBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Not now')),
-          FilledButton(key: const Key('sms-allow'), onPressed: () => Navigator.pop(ctx, true), child: const Text('Continue')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.l10n.notNow)),
+          FilledButton(key: const Key('sms-allow'), onPressed: () => Navigator.pop(ctx, true), child: Text(context.l10n.continue_)),
         ],
       ),
     );
@@ -55,10 +50,10 @@ class _SmsScreenState extends State<SmsScreen> {
     if (!mounted) return;
     switch (result) {
       case SmsEnableResult.denied:
-        showSnack(context, 'SMS permission was denied. Allow it for Expense Manager in system settings.');
+        showSnack(context, context.l10n.smsDenied);
         return;
       case SmsEnableResult.noNotifications:
-        showSnack(context, 'Notifications are blocked, so new expenses will only show up here.');
+        showSnack(context, context.l10n.smsNoNotifications);
       case SmsEnableResult.on:
         break;
     }
@@ -77,7 +72,7 @@ class _SmsScreenState extends State<SmsScreen> {
   Future<void> _add(AppState app, SmsCapture c) async {
     await app.sms.approve(c.id);
     app.changed();
-    if (mounted) showSnack(context, 'Added ${app.sms.headline(c)}');
+    if (mounted) showSnack(context, context.l10n.addedThing(app.sms.headline(c)));
   }
 
   Future<void> _ignore(AppState app, SmsCapture c) async {
@@ -93,7 +88,7 @@ class _SmsScreenState extends State<SmsScreen> {
     final pending = app.sms.pending();
     return Scaffold(
       appBar: AppBar(
-        title: Text('Expenses from SMS', style: ts(16, weight: FontWeight.w700)),
+        title: Text(context.l10n.smsTitle, style: ts(16, weight: FontWeight.w700)),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -103,8 +98,8 @@ class _SmsScreenState extends State<SmsScreen> {
             child: SwitchListTile(
               key: const Key('sms-switch'),
               secondary: const Icon(AppIcons.sms),
-              title: const Text('Ask to add bank SMS'),
-              subtitle: const Text('Read on this phone · nothing is uploaded'),
+              title: Text(context.l10n.smsAskToAdd),
+              subtitle: Text(context.l10n.smsAskToAddHelp),
               value: on,
               onChanged: (v) => _toggle(app, v),
             ),
@@ -122,9 +117,9 @@ class _SmsScreenState extends State<SmsScreen> {
                             Icon(AppIcons.warning, color: c.debt, size: 20),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: Text('SMS permission is off, so new messages are not read.', style: ts(13, color: c.textMuted)),
+                              child: Text(context.l10n.smsPermissionOff, style: ts(13, color: c.textMuted)),
                             ),
-                            TextButton(key: const Key('sms-permission'), onPressed: () => _allow(app), child: const Text('Allow')),
+                            TextButton(key: const Key('sms-permission'), onPressed: () => _allow(app), child: Text(context.l10n.allow)),
                           ],
                         ),
                       ),
@@ -132,14 +127,11 @@ class _SmsScreenState extends State<SmsScreen> {
                   : const SizedBox.shrink(),
             ),
           const SizedBox(height: 20),
-          SectionHeader(pending.isEmpty ? 'Nothing to review' : 'To review (${pending.length})'),
+          SectionHeader(pending.isEmpty ? context.l10n.smsNothingToReview : context.l10n.smsToReview(pending.length)),
           if (pending.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                on ? 'New bank and UPI transactions show up here and as a notification.' : 'Turn this on to be asked about each bank or UPI transaction as its SMS arrives.',
-                style: ts(13, color: c.textMuted),
-              ),
+              child: Text(on ? context.l10n.smsOnHelp : context.l10n.smsOffHelp, style: ts(13, color: c.textMuted)),
             ),
           for (final p in pending) ...[_CaptureCard(capture: p, onAdd: () => _add(app, p), onIgnore: () => _ignore(app, p)), const SizedBox(height: 12)],
         ],
@@ -156,16 +148,12 @@ const iosSmsGuideUrl = 'https://bhumit070.github.io/expense-manager-app/ios-sms/
 class ShortcutsSetupCard extends StatelessWidget {
   const ShortcutsSetupCard({super.key});
 
-  static const steps = [
-    'Open Shortcuts → Automation → + (New Automation) → Message.',
-    'Message Contains: debited. Choose Run Immediately, then Next.',
-    'New Blank Automation → Add Action → search "Log bank SMS" (Expense Manager).',
-    'Tap Message in the action and pick Shortcut Input. Done.',
-    'Repeat with "credited" and "spent" to catch more banks.',
-  ];
+  // The keywords and the action name stay in English: bank SMS and the
+  // Shortcuts action are in English.
+  static List<String> steps(AppLocalizations l) => [l.smsStep1, l.smsStep2('debited'), l.smsStep3('Log bank SMS'), l.smsStep4, l.smsStep5('credited', 'spent')];
 
   Future<void> _open(BuildContext context, String url) async {
-    if (!await MapServices.instance.openExternal(Uri.parse(url)) && context.mounted) showSnack(context, 'Could not open $url');
+    if (!await MapServices.instance.openExternal(Uri.parse(url)) && context.mounted) showSnack(context, context.l10n.couldNotOpen(url));
   }
 
   @override
@@ -176,14 +164,11 @@ class ShortcutsSetupCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Set up on iPhone', style: ts(15, weight: FontWeight.w700)),
+          Text(context.l10n.smsSetupIphone, style: ts(15, weight: FontWeight.w700)),
           const SizedBox(height: 4),
-          Text(
-            'iOS doesn\'t let apps read SMS. A Shortcuts automation passes each bank message to Expense Manager instead (iOS 17 or later runs it without asking).',
-            style: ts(12, color: c.textMuted),
-          ),
+          Text(context.l10n.smsSetupIphoneHelp, style: ts(12, color: c.textMuted)),
           const SizedBox(height: 10),
-          for (var i = 0; i < steps.length; i++)
+          for (final (i, step) in steps(context.l10n).indexed)
             Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: Row(
@@ -196,7 +181,7 @@ class ShortcutsSetupCard extends StatelessWidget {
                       style: ts(13, weight: FontWeight.w700, color: c.brand),
                     ),
                   ),
-                  Expanded(child: Text(steps[i], style: ts(13))),
+                  Expanded(child: Text(step, style: ts(13))),
                 ],
               ),
             ),
@@ -207,10 +192,10 @@ class ShortcutsSetupCard extends StatelessWidget {
               TextButton.icon(
                 key: const Key('sms-open-shortcuts'),
                 icon: const Icon(AppIcons.openExternal, size: 18),
-                label: const Text('Open Shortcuts'),
+                label: Text(context.l10n.smsOpenShortcuts),
                 onPressed: () => _open(context, 'shortcuts://'),
               ),
-              TextButton.icon(key: const Key('sms-guide'), icon: const Icon(AppIcons.document, size: 18), label: const Text('Guide with pictures'), onPressed: () => _open(context, iosSmsGuideUrl)),
+              TextButton.icon(key: const Key('sms-guide'), icon: const Icon(AppIcons.document, size: 18), label: Text(context.l10n.smsGuide), onPressed: () => _open(context, iosSmsGuideUrl)),
             ],
           ),
         ],
@@ -258,17 +243,17 @@ class _CaptureCard extends StatelessWidget {
               spacing: 4,
               runSpacing: 4,
               children: [
-                TextButton(key: Key('sms-ignore-${capture.id}'), onPressed: onIgnore, child: const Text('Ignore')),
+                TextButton(key: Key('sms-ignore-${capture.id}'), onPressed: onIgnore, child: Text(context.l10n.smsIgnore)),
                 TextButton(
                   key: Key('sms-edit-${capture.id}'),
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute<bool>(builder: (_) => smsForm(app, capture))),
-                  child: const Text('Add details'),
+                  child: Text(context.l10n.smsAddDetails),
                 ),
                 FilledButton(
                   key: Key('sms-add-${capture.id}'),
                   style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
                   onPressed: onAdd,
-                  child: const Text('Add'),
+                  child: Text(context.l10n.add),
                 ),
               ],
             ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/dates.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
+import '../../l10n/l10n.dart';
 import '../../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
@@ -14,19 +15,18 @@ enum DebtTab { iOwe, owedToMe, settled }
 
 /// "Due today", "Due in 3 days", "Overdue by 2 days".
 String statementDueLabel(int days) => switch (days) {
-  0 => 'Due today',
-  1 => 'Due tomorrow',
-  > 1 => 'Due in $days days',
-  -1 => 'Overdue by 1 day',
-  _ => 'Overdue by ${-days} days',
+  0 => currentL10n.dueToday,
+  1 => currentL10n.dueTomorrow,
+  > 1 => currentL10n.dueInDays(days),
+  _ => currentL10n.overdueByDays(-days),
 };
 
 /// A friendly nudge for money someone owes the user.
 String remindMessage(DebtStatus s) {
   final d = s.debt;
   final person = d.counterparty.isNotEmpty ? d.counterparty : d.name;
-  final reason = d.counterparty.isNotEmpty ? ' for ${d.name}' : '';
-  return 'Hi $person, just a friendly reminder about the ${formatInr(s.remaining)}$reason. Whenever it suits you is fine. Thanks!';
+  final l = currentL10n;
+  return d.counterparty.isNotEmpty ? l.debtRemindMessageFor(person, formatInr(s.remaining), d.name) : l.debtRemindMessage(person, formatInr(s.remaining));
 }
 
 class DebtsScreen extends StatefulWidget {
@@ -43,6 +43,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
     final c = context.colors;
+    final l = context.l10n;
     final summary = app.planning.debtSummary();
     final list = switch (_tab) {
       DebtTab.iOwe => app.planning.debts(direction: DebtDirection.iOwe),
@@ -76,23 +77,23 @@ class _DebtsScreenState extends State<DebtsScreen> {
         Row(
           children: [
             Expanded(
-              child: Text('Debts', style: ts(26, weight: FontWeight.w800, spacing: -0.5)),
+              child: Text(l.navDebts, style: ts(26, weight: FontWeight.w800, spacing: -0.5)),
             ),
             FilledButton.icon(
               key: const Key('add-debt'),
               style: FilledButton.styleFrom(minimumSize: const Size(0, 40), backgroundColor: c.text, foregroundColor: c.bg),
               onPressed: () => open(const DebtFormScreen()),
               icon: const Icon(AppIcons.add),
-              label: const Text('Add'),
+              label: Text(l.add),
             ),
           ],
         ),
         const SizedBox(height: 16),
         Row(
           children: [
-            sumCard('You owe', summary.owe, '${formatInr(summary.monthlyEmi)}/mo in EMIs', c.debt, c.debtSoft),
+            sumCard(l.debtYouOwe, summary.owe, l.debtMonthlyEmi(formatInr(summary.monthlyEmi)), c.debt, c.debtSoft),
             const SizedBox(width: 10),
-            sumCard('Owed to you', summary.owed, 'to collect', c.brand, c.brandSoft),
+            sumCard(l.debtOwedToYou, summary.owed, l.debtToCollect, c.brand, c.brandSoft),
           ],
         ),
         const SizedBox(height: 14),
@@ -100,21 +101,21 @@ class _DebtsScreenState extends State<DebtsScreen> {
           values: DebtTab.values,
           selected: _tab,
           label: (t) => switch (t) {
-            DebtTab.iOwe => 'I owe',
-            DebtTab.owedToMe => 'Owed to me',
-            DebtTab.settled => 'Settled',
+            DebtTab.iOwe => l.debtIOwe,
+            DebtTab.owedToMe => l.debtOwedToMe,
+            DebtTab.settled => l.debtSettled,
           },
           onChanged: (t) => setState(() => _tab = t),
         ),
         const SizedBox(height: 14),
-        if (list.isEmpty) const EmptyState(icon: AppIcons.people, title: 'Nothing here', message: 'Loans, credit cards and money lent or borrowed show up here.'),
+        if (list.isEmpty) EmptyState(icon: AppIcons.people, title: l.nothingHere, message: l.debtEmpty),
         for (final s in list) ...[
           _DebtCard(
             s,
             now: app.now(),
             onPay: () => open(TxnFormScreen(initialType: TxnType.debt, debtId: s.debt.id)),
             onPayNow: () => _payNow(context, s),
-            onRemind: () => app.files.shareText(remindMessage(s), subject: 'Friendly reminder'),
+            onRemind: () => app.files.shareText(remindMessage(s), subject: l.debtRemindSubject),
             onEdit: () => open(DebtFormScreen(existing: s.debt)),
             onSettle: () {
               app.planning.setDebtSettled(s.debt.id!, !s.debt.settled);
@@ -127,7 +128,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
         AppCard(
           color: c.brandSoft,
           padding: const EdgeInsets.all(14),
-          child: Text('EMIs and card payments recorded here count as Debt, not Spend — so your monthly spend stays honest.', style: ts(12, color: c.brand)),
+          child: Text(l.debtFooter, style: ts(12, color: c.brand)),
         ),
       ],
     );
@@ -139,24 +140,25 @@ class _DebtsScreenState extends State<DebtsScreen> {
     final app = AppScope.read(context);
     final source = app.catalog.defaultSource();
     final amount = s.statementLeft;
+    final l = context.l10n;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Pay ${s.debt.name}?'),
-        content: Text('Records a ${formatInr(amount)} card payment${source == null ? '' : ' from ${source.display}'}. It counts as Debt, not Spend.'),
+        title: Text(l.debtPayTitle(s.debt.name)),
+        content: Text(source == null ? l.debtPayBody(formatInr(amount)) : l.debtPayBodyFrom(formatInr(amount), source.display)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(key: const Key('confirm-pay-now'), onPressed: () => Navigator.pop(ctx, true), child: Text('Pay ${formatInr(amount)}')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
+          FilledButton(key: const Key('confirm-pay-now'), onPressed: () => Navigator.pop(ctx, true), child: Text(l.debtPayAmount(formatInr(amount)))),
         ],
       ),
     );
     if (ok != true || !context.mounted) return;
     app.txns.insert(
-      Txn(type: TxnType.debt, amount: amount, categoryId: app.catalog.defaultCategory().id, sourceId: source?.id, occurredAt: app.now(), merchant: '${s.debt.name} bill', debtId: s.debt.id),
+      Txn(type: TxnType.debt, amount: amount, categoryId: app.catalog.defaultCategory().id, sourceId: source?.id, occurredAt: app.now(), merchant: l.debtBillMerchant(s.debt.name), debtId: s.debt.id),
       now: app.now(),
     );
     app.changed();
-    showSnack(context, 'Card payment of ${formatInr(amount)} recorded');
+    showSnack(context, l.debtPaymentRecorded(formatInr(amount)));
   }
 }
 
@@ -174,6 +176,7 @@ class _DebtCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final l = context.l10n;
     final d = s.debt;
     final dueIn = d.settled ? null : s.statementDueIn(now);
     final urgent = dueIn != null && dueIn <= 3;
@@ -186,8 +189,8 @@ class _DebtCard extends StatelessWidget {
     final sub = [
       if (d.counterparty.isNotEmpty) d.counterparty,
       if (d.rate != null) '${d.rate!.toStringAsFixed(1)}%',
-      if (d.emi != null) 'EMI ${formatInr(d.emi!)}',
-      if (d.dueDay != null) 'due on ${d.dueDay}',
+      if (d.emi != null) l.debtEmi(formatInr(d.emi!)),
+      if (d.dueDay != null) l.debtDueOn(d.dueDay!),
     ].join(' · ');
     return AppCard(
       key: Key('debt-card-${d.id}'),
@@ -217,7 +220,7 @@ class _DebtCard extends StatelessWidget {
                       child: Text(formatInr(s.remaining), style: ts(15, weight: FontWeight.w800)),
                     ),
                     Text(
-                      'left of ${formatInr(d.principal)}',
+                      l.debtLeftOf(formatInr(d.principal)),
                       textAlign: TextAlign.end,
                       style: ts(11, color: c.textMuted),
                     ),
@@ -226,7 +229,7 @@ class _DebtCard extends StatelessWidget {
               ),
               IconButton(
                 key: Key('edit-debt-${d.id}'),
-                tooltip: 'Edit',
+                tooltip: l.edit,
                 icon: Icon(AppIcons.edit, size: 18, color: c.textMuted),
                 onPressed: onEdit,
               ),
@@ -243,10 +246,13 @@ class _DebtCard extends StatelessWidget {
                   Icon(urgent ? AppIcons.warning : AppIcons.receipt, size: 18, color: urgent ? c.spend : c.textMuted),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text('Statement ${formatInr(d.statementAmount!)}${d.statementDueAt == null ? '' : ' · due ${shortDate(d.statementDueAt!)}'}', style: ts(12, weight: FontWeight.w600)),
+                    child: Text(
+                      d.statementDueAt == null ? l.debtStatement(formatInr(d.statementAmount!)) : l.debtStatementDue(formatInr(d.statementAmount!), shortDate(d.statementDueAt!)),
+                      style: ts(12, weight: FontWeight.w600),
+                    ),
                   ),
                   Text(
-                    dueIn != null ? statementDueLabel(dueIn) : (s.statementLeft == 0 ? 'Paid' : 'Unpaid ${formatInr(s.statementLeft)}'),
+                    dueIn != null ? statementDueLabel(dueIn) : (s.statementLeft == 0 ? l.debtPaid : l.debtUnpaid(formatInr(s.statementLeft))),
                     style: ts(12, weight: FontWeight.w700, color: urgent ? c.spend : (s.statementLeft == 0 ? c.positive : c.textMuted)),
                   ),
                 ],
@@ -257,7 +263,7 @@ class _DebtCard extends StatelessWidget {
           SegmentBar(segments: [(s.fraction, color)], height: 8),
           const SizedBox(height: 10),
           Text(
-            d.totalEmis != null ? '${s.payments} of ${d.totalEmis} EMIs paid' : '${s.payments} payment${s.payments == 1 ? '' : 's'} recorded',
+            d.totalEmis != null ? l.debtEmisPaid(s.payments, d.totalEmis!) : l.debtPaymentsRecorded(s.payments),
             style: ts(12, weight: FontWeight.w600, color: c.textMuted),
           ),
           const SizedBox(height: 6),
@@ -266,14 +272,14 @@ class _DebtCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 4,
             children: [
-              TextButton(key: Key('settle-${d.id}'), onPressed: onSettle, child: Text(d.settled ? 'Reopen' : 'Settle')),
+              TextButton(key: Key('settle-${d.id}'), onPressed: onSettle, child: Text(d.settled ? l.debtReopen : l.debtSettle)),
               if (!d.settled && d.direction == DebtDirection.owedToMe && s.remaining > 0)
                 OutlinedButton.icon(
                   key: Key('remind-${d.id}'),
                   style: OutlinedButton.styleFrom(minimumSize: const Size(0, 34)),
                   onPressed: onRemind,
                   icon: const Icon(AppIcons.send, size: 16),
-                  label: const Text('Remind'),
+                  label: Text(l.debtRemind),
                 ),
               if (!d.settled && d.direction == DebtDirection.owedToMe && s.remaining > 0) FollowUpButton(s),
               if (!d.settled)
@@ -281,14 +287,14 @@ class _DebtCard extends StatelessWidget {
                   key: Key('pay-${d.id}'),
                   style: FilledButton.styleFrom(minimumSize: const Size(0, 34), backgroundColor: c.surfaceMuted, foregroundColor: c.text),
                   onPressed: onPay,
-                  child: Text(d.direction == DebtDirection.iOwe ? 'Record payment' : 'Record repayment', maxLines: 1, overflow: TextOverflow.ellipsis),
+                  child: Text(d.direction == DebtDirection.iOwe ? l.debtRecordPayment : l.debtRecordRepayment, maxLines: 1, overflow: TextOverflow.ellipsis),
                 ),
               if (!d.settled && s.statementLeft > 0)
                 FilledButton(
                   key: Key('pay-now-${d.id}'),
                   style: FilledButton.styleFrom(minimumSize: const Size(0, 34), backgroundColor: urgent ? c.spend : c.debt, foregroundColor: Colors.white),
                   onPressed: onPayNow,
-                  child: Text('Pay now · ${formatInr(s.statementLeft)}'),
+                  child: Text(l.debtPayNow(formatInr(s.statementLeft))),
                 ),
             ],
           ),
@@ -358,7 +364,7 @@ class _DebtFormScreenState extends State<DebtFormScreen> {
     final app = AppScope.read(context);
     final principal = parseInr(_principal.text);
     if (_name.text.trim().isEmpty || principal == null || principal <= 0) {
-      showSnack(context, 'Add a name and the amount');
+      showSnack(context, context.l10n.debtNeedNameAmount);
       return;
     }
     final due = int.tryParse(_due.text.trim());
@@ -385,6 +391,7 @@ class _DebtFormScreenState extends State<DebtFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     Widget field(String key, TextEditingController c, String label, {bool number = false}) => Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
@@ -396,7 +403,7 @@ class _DebtFormScreenState extends State<DebtFormScreen> {
     );
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existing == null ? 'Add debt' : 'Edit debt', style: ts(16, weight: FontWeight.w700)),
+        title: Text(widget.existing == null ? l.debtAddTitle : l.debtEditTitle, style: ts(16, weight: FontWeight.w700)),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -404,7 +411,7 @@ class _DebtFormScreenState extends State<DebtFormScreen> {
           Segmented<DebtDirection>(
             values: DebtDirection.values,
             selected: _direction,
-            label: (d) => d == DebtDirection.iOwe ? 'I owe' : 'Owed to me',
+            label: (d) => d == DebtDirection.iOwe ? l.debtIOwe : l.debtOwedToMe,
             onChanged: (d) => setState(() => _direction = d),
           ),
           const SizedBox(height: 12),
@@ -412,35 +419,35 @@ class _DebtFormScreenState extends State<DebtFormScreen> {
             values: DebtKind.values,
             selected: _kind,
             label: (k) => switch (k) {
-              DebtKind.loan => 'Loan',
-              DebtKind.card => 'Credit card',
-              DebtKind.personal => 'Personal',
+              DebtKind.loan => l.debtKindLoan,
+              DebtKind.card => l.debtKindCard,
+              DebtKind.personal => l.debtKindPersonal,
             },
             onChanged: (k) => setState(() => _kind = k),
           ),
           const SizedBox(height: 16),
-          field('debt-name', _name, 'Name, e.g. Car loan'),
-          field('debt-party', _party, 'Lender / person (optional)'),
-          field('debt-principal', _principal, 'Total amount ($currencySymbol)', number: true),
-          field('debt-rate', _rate, 'Interest rate % (optional)', number: true),
-          field('debt-emi', _emi, 'EMI / monthly payment (optional)', number: true),
-          field('debt-emis', _emis, 'Number of EMIs (optional)', number: true),
-          field('debt-due', _due, 'Due day of month (optional)', number: true),
+          field('debt-name', _name, l.debtFieldName),
+          field('debt-party', _party, l.debtFieldParty),
+          field('debt-principal', _principal, l.debtFieldPrincipal(currencySymbol), number: true),
+          field('debt-rate', _rate, l.debtFieldRate, number: true),
+          field('debt-emi', _emi, l.debtFieldEmi, number: true),
+          field('debt-emis', _emis, l.debtFieldEmis, number: true),
+          field('debt-due', _due, l.debtFieldDueDay, number: true),
           if (_kind == DebtKind.card) ...[
-            field('debt-statement', _statement, 'Latest statement total (₹, optional)', number: true),
+            field('debt-statement', _statement, l.debtFieldStatement(currencySymbol), number: true),
             ListTile(
               key: const Key('debt-statement-due'),
               contentPadding: EdgeInsets.zero,
               leading: const Icon(AppIcons.event),
-              title: Text(_statementDue == null ? 'Statement due date' : 'Due ${longDate(_statementDue!)}'),
+              title: Text(_statementDue == null ? l.debtStatementDueDate : l.debtDueDate(longDate(_statementDue!))),
               trailing: _statementDue == null
                   ? null
-                  : IconButton(key: const Key('clear-statement-due'), tooltip: 'Clear', icon: const Icon(AppIcons.close), onPressed: () => setState(() => _statementDue = null)),
+                  : IconButton(key: const Key('clear-statement-due'), tooltip: l.clear, icon: const Icon(AppIcons.close), onPressed: () => setState(() => _statementDue = null)),
               onTap: _pickStatementDue,
             ),
           ],
           const SizedBox(height: 8),
-          FilledButton(key: const Key('save-debt'), onPressed: _save, child: const Text('Save debt')),
+          FilledButton(key: const Key('save-debt'), onPressed: _save, child: Text(l.debtSave)),
         ],
       ),
     );

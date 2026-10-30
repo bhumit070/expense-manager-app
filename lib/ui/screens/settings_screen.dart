@@ -4,6 +4,7 @@ import '../../core/dates.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
 import '../../data/transactions_repo.dart';
+import '../../l10n/l10n.dart';
 import '../../services/maps.dart';
 import '../../services/pdf_report.dart';
 import '../../state/app_state.dart';
@@ -42,7 +43,7 @@ class SettingsScreen extends StatelessWidget {
     final picked = await showDialog<int>(
       context: context,
       builder: (_) => ChoiceDialog<int>(
-        title: 'Default payment mode',
+        title: context.l10n.settingsDefaultSource,
         values: [for (final s in sources) s.id],
         selected: app.catalog.defaultSource()?.id,
         label: (id) => sources.firstWhere((s) => s.id == id).display,
@@ -55,15 +56,15 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Future<void> _openLink(BuildContext context, String url) async {
-    if (!await MapServices.instance.openExternal(Uri.parse(url)) && context.mounted) showSnack(context, 'No browser found to open $url');
+    if (!await MapServices.instance.openExternal(Uri.parse(url)) && context.mounted) showSnack(context, context.l10n.settingsNoBrowser(url));
   }
 
   Future<void> _pickWeekStart(BuildContext context, AppState app) async {
     final picked = await showDialog<int>(
       context: context,
       builder: (_) => ChoiceDialog<int>(
-        title: 'Week starts on',
-        subtitle: 'Weekly budgets and the week view in Insights follow this.',
+        title: context.l10n.settingsWeekStart,
+        subtitle: context.l10n.settingsWeekStartHelp,
         values: weekStartChoices,
         selected: app.weekStart,
         label: (d) => weekdaysLong[d - 1],
@@ -77,13 +78,13 @@ class SettingsScreen extends StatelessWidget {
     final picked = await showDialog<String>(
       context: context,
       builder: (_) => ChoiceDialog<String>(
-        title: 'Currency',
-        subtitle: 'Changes how amounts are shown. Nothing is converted.',
+        title: context.l10n.settingsCurrency,
+        subtitle: context.l10n.settingsCurrencyHelp,
         values: [for (final c in currencies) c.code],
         selected: app.currency.code,
         label: (code) {
           final c = currencyByCode(code);
-          return '${c.symbol.trim()}  ${c.name} (${c.code})';
+          return '${c.symbol.trim()}  ${c.localName} (${c.code})';
         },
         keyPrefix: 'pick-currency',
       ),
@@ -91,17 +92,28 @@ class SettingsScreen extends StatelessWidget {
     if (picked != null) app.currency = currencyByCode(picked);
   }
 
+  Future<void> _pickLanguage(BuildContext context, AppState app) async {
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (_) => ChoiceDialog<String>(
+        title: context.l10n.settingsLanguage,
+        values: ['', for (final l in appLanguages) l.code],
+        selected: app.language ?? '',
+        label: (code) => code.isEmpty ? context.l10n.settingsLanguageDevice : appLanguages.firstWhere((l) => l.code == code).name,
+        keyPrefix: 'pick-language',
+      ),
+    );
+    if (picked != null) app.language = picked.isEmpty ? null : picked;
+  }
+
   void _showPrivacy(BuildContext context) => showDialog<void>(
     context: context,
     builder: (_) => AlertDialog(
-      title: const Text('Privacy'),
-      content: const Text(
-        'Expense Manager has no account, server or analytics. Everything you enter is stored in a database on this phone and only leaves it when you export or share a file yourself.\n\n'
-        'Location is read only when you allow it, and only to label your own transactions. Map tiles are loaded from OpenStreetMap when you open a map. Bank SMS are read, on this phone only, if you turn on Expenses from SMS.',
-      ),
+      title: Text(context.l10n.settingsPrivacy),
+      content: Text(context.l10n.settingsPrivacyBody),
       actions: [
-        TextButton(key: const Key('privacy-policy'), onPressed: () => MapServices.instance.openExternal(Uri.parse(privacyPolicyUrl)), child: const Text('Read full policy')),
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+        TextButton(key: const Key('privacy-policy'), onPressed: () => MapServices.instance.openExternal(Uri.parse(privacyPolicyUrl)), child: Text(context.l10n.settingsReadPolicy)),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.ok)),
       ],
     ),
   );
@@ -119,7 +131,7 @@ class SettingsScreen extends StatelessWidget {
 
   Future<void> _toggleLocation(BuildContext context, AppState app, bool on) async {
     if (on && !await app.location.requestPermission()) {
-      if (context.mounted) showSnack(context, 'Location permission denied — you can still type a place.');
+      if (context.mounted) showSnack(context, context.l10n.locationDenied);
       return;
     }
     app.locationEnabled = on;
@@ -129,6 +141,7 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
     final c = context.colors;
+    final l = context.l10n;
     void open(Widget w) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => w));
     Widget group(String title, List<Widget> rows) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,7 +161,7 @@ class SettingsScreen extends StatelessWidget {
     );
     return Scaffold(
       appBar: AppBar(
-        title: Text('Settings', style: ts(16, weight: FontWeight.w700)),
+        title: Text(l.settingsTitle, style: ts(16, weight: FontWeight.w700)),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
@@ -162,158 +175,147 @@ class SettingsScreen extends StatelessWidget {
                 Icon(AppIcons.shield, color: c.positive),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text('Your data never leaves this phone. Stored locally, no server. Export a backup to move devices.', style: ts(12, color: c.positive)),
+                  child: Text(l.settingsLocalOnly, style: ts(12, color: c.positive)),
                 ),
               ],
             ),
           ),
           const BackupBanner(padding: EdgeInsets.only(top: 12)),
-          group('Profile', [
+          group(l.settingsProfile, [
             ListTile(
               key: const Key('edit-name'),
               leading: const Icon(AppIcons.person),
-              title: const Text('Name'),
-              trailing: TrailingText(app.userName.isEmpty ? 'Not set' : app.userName),
+              title: Text(l.settingsName),
+              trailing: TrailingText(app.userName.isEmpty ? l.notSet : app.userName),
               onTap: () => _editName(context, app),
             ),
           ]),
-          group('Appearance', [
+          group(l.settingsAppearance, [
             Padding(
               padding: const EdgeInsets.all(12),
               child: Segmented<ThemeMode>(
                 values: const [ThemeMode.light, ThemeMode.dark, ThemeMode.system],
                 selected: app.themeMode,
                 label: (m) => switch (m) {
-                  ThemeMode.light => 'Light',
-                  ThemeMode.dark => 'Dark',
-                  ThemeMode.system => 'System',
+                  ThemeMode.light => l.themeLight,
+                  ThemeMode.dark => l.themeDark,
+                  ThemeMode.system => l.themeSystem,
                 },
                 onChanged: (m) => app.themeMode = m,
               ),
             ),
+            ListTile(
+              key: const Key('language'),
+              leading: const Icon(AppIcons.language),
+              title: Text(l.settingsLanguage),
+              trailing: TrailingText(app.language == null ? l.settingsLanguageDevice : appLanguages.firstWhere((x) => x.code == app.language).name),
+              onTap: () => _pickLanguage(context, app),
+            ),
           ]),
-          group('Defaults', [
+          group(l.settingsDefaults, [
             ListTile(
               key: const Key('default-source'),
               leading: const Icon(AppIcons.checkCircle),
-              title: const Text('Default payment mode'),
-              subtitle: const Text('Pre-selected on new transactions'),
-              trailing: TrailingText(app.catalog.defaultSource()?.name ?? 'None'),
+              title: Text(l.settingsDefaultSource),
+              subtitle: Text(l.settingsDefaultSourceHelp),
+              trailing: TrailingText(app.catalog.defaultSource()?.name ?? l.none),
               onTap: () => _pickDefaultSource(context, app),
             ),
             ListTile(
               key: const Key('open-sources'),
               leading: const Icon(AppIcons.wallet),
-              title: const Text('Payment sources'),
-              trailing: TrailingText('${app.catalog.sources().length} active'),
+              title: Text(l.settingsSources),
+              trailing: TrailingText(l.nActive(app.catalog.sources().length)),
               onTap: () => open(const SourcesScreen()),
             ),
             ListTile(
               key: const Key('open-categories'),
               leading: const Icon(AppIcons.grid),
-              title: const Text('Categories'),
-              subtitle: const Text('Uncategorised entries go to the default'),
-              trailing: TrailingText('Default: ${app.catalog.defaultCategory().name}'),
+              title: Text(l.settingsCategories),
+              subtitle: Text(l.settingsCategoriesHelp),
+              trailing: TrailingText(l.settingsDefaultCategory(app.catalog.defaultCategory().name)),
               onTap: () => open(const CategoriesScreen()),
             ),
             ListTile(
               key: const Key('currency'),
               leading: const Icon(AppIcons.currency),
-              title: const Text('Currency'),
+              title: Text(l.settingsCurrency),
               trailing: TrailingText('${app.currency.code} · $currencySymbol'),
               onTap: () => _pickCurrency(context, app),
             ),
             ListTile(
               key: const Key('open-recurring'),
               leading: const Icon(AppIcons.repeat),
-              title: const Text('Recurring transactions'),
-              trailing: TrailingText('${app.recurring.rules().where((r) => !r.paused && !r.ended).length} active'),
+              title: Text(l.settingsRecurring),
+              trailing: TrailingText(l.nActive(app.recurring.rules().where((r) => !r.paused && !r.ended).length)),
               onTap: () => open(const RecurringScreen()),
             ),
             ListTile(
               key: const Key('week-start'),
               leading: const Icon(AppIcons.calendar),
-              title: const Text('Week starts on'),
-              subtitle: Text('Weekly budgets and insights run $weekSpanLabel'),
+              title: Text(l.settingsWeekStart),
+              subtitle: Text(l.settingsWeekSpan(weekSpanLabel)),
               trailing: TrailingText(weekdaysLong[app.weekStart - 1]),
               onTap: () => _pickWeekStart(context, app),
             ),
           ]),
-          group('Data', [
+          group(l.settingsData, [
             ListTile(
               key: const Key('export-csv'),
               leading: const Icon(AppIcons.spreadsheet),
-              title: const Text('Export CSV'),
-              subtitle: const Text('Transactions, investments, debts, budgets'),
+              title: Text(l.settingsExportCsv),
+              subtitle: Text(l.settingsExportCsvHelp),
               onTap: () => exportCsvFlow(context, app),
             ),
-            ListTile(key: const Key('export-pdf-month'), leading: const Icon(AppIcons.pdf), title: const Text('Export this month as PDF'), onTap: () => _exportPdf(context, app)),
-            ListTile(
-              key: const Key('import-csv'),
-              leading: const Icon(AppIcons.upload),
-              title: const Text('Import CSV or PDF statement'),
-              subtitle: const Text('HDFC, SBI, ICICI and most bank PDFs, or a CSV export'),
-              onTap: () => importFlow(context, app),
-            ),
-            ListTile(
-              key: const Key('backup-now'),
-              leading: const Icon(AppIcons.backup),
-              title: const Text('Back up now'),
-              subtitle: const Text('One .ledger file, optional password'),
-              onTap: () => backUpFlow(context, app),
-            ),
-            ListTile(key: const Key('restore-backup'), leading: const Icon(AppIcons.restore), title: const Text('Restore from backup'), onTap: () => restoreFlow(context, app)),
+            ListTile(key: const Key('export-pdf-month'), leading: const Icon(AppIcons.pdf), title: Text(l.settingsExportPdf), onTap: () => _exportPdf(context, app)),
+            ListTile(key: const Key('import-csv'), leading: const Icon(AppIcons.upload), title: Text(l.settingsImport), subtitle: Text(l.settingsImportHelp), onTap: () => importFlow(context, app)),
+            ListTile(key: const Key('backup-now'), leading: const Icon(AppIcons.backup), title: Text(l.settingsBackUp), subtitle: Text(l.settingsBackUpHelp), onTap: () => backUpFlow(context, app)),
+            ListTile(key: const Key('restore-backup'), leading: const Icon(AppIcons.restore), title: Text(l.settingsRestore), onTap: () => restoreFlow(context, app)),
             const BackupIntervalTile(),
           ]),
-          group('Privacy & permissions', [
+          group(l.settingsPrivacyGroup, [
             SwitchListTile(
               key: const Key('location-switch'),
               secondary: const Icon(AppIcons.place),
-              title: const Text('Location on transactions'),
+              title: Text(l.settingsLocation),
               value: app.locationEnabled,
               onChanged: (v) => _toggleLocation(context, app, v),
             ),
             ListTile(
               key: const Key('open-security'),
               leading: const Icon(AppIcons.lock),
-              title: const Text('App lock & privacy'),
-              trailing: TrailingText(app.security.lockEnabled ? 'On' : 'Off'),
+              title: Text(l.settingsAppLock),
+              trailing: TrailingText(app.security.lockEnabled ? l.on : l.off),
               onTap: () => open(const SecurityScreen()),
             ),
             if (app.smsPlatform.supported)
               ListTile(
                 key: const Key('open-sms'),
                 leading: const Icon(AppIcons.sms),
-                title: const Text('Expenses from SMS'),
-                trailing: TrailingText(app.sms.enabled ? 'On' : 'Off'),
+                title: Text(l.smsTitle),
+                trailing: TrailingText(app.sms.enabled ? l.on : l.off),
                 onTap: () => open(const SmsScreen()),
               ),
             ListTile(
               key: const Key('open-reminders'),
               leading: const Icon(AppIcons.notifications),
-              title: const Text('Reminders & alerts'),
-              trailing: TrailingText(app.reminders.enabled ? 'On' : 'Off'),
+              title: Text(l.remindersTitle),
+              trailing: TrailingText(app.reminders.enabled ? l.on : l.off),
               onTap: () => open(const ReminderSettingsScreen()),
             ),
           ]),
-          group('About', [
+          group(l.settingsAbout, [
             ListTile(
               key: const Key('app-version'),
               leading: const Icon(AppIcons.info),
-              title: const Text('Version'),
-              trailing: FutureBuilder<String>(future: app.info.version(), builder: (_, snap) => TrailingText(snap.data ?? (snap.hasError ? 'Unknown' : '…'))),
+              title: Text(l.settingsVersion),
+              trailing: FutureBuilder<String>(future: app.info.version(), builder: (_, snap) => TrailingText(snap.data ?? (snap.hasError ? l.unknown : '…'))),
             ),
-            ListTile(
-              key: const Key('privacy'),
-              leading: const Icon(AppIcons.privacy),
-              title: const Text('Privacy'),
-              subtitle: const Text('No data collected · works offline'),
-              onTap: () => _showPrivacy(context),
-            ),
+            ListTile(key: const Key('privacy'), leading: const Icon(AppIcons.privacy), title: Text(l.settingsPrivacy), subtitle: Text(l.settingsPrivacyHelp), onTap: () => _showPrivacy(context)),
             ListTile(
               key: const Key('source-code'),
               leading: const Icon(AppIcons.code),
-              title: const Text('Source code on GitHub'),
+              title: Text(l.settingsSourceCode),
               subtitle: const Text('github.com/bhumit070/expense-manager-app'),
               trailing: const Icon(AppIcons.openExternal, size: 18),
               onTap: () => _openLink(context, sourceCodeUrl),
@@ -321,23 +323,23 @@ class SettingsScreen extends StatelessWidget {
             ListTile(
               key: const Key('licenses'),
               leading: const Icon(AppIcons.document),
-              title: const Text('Open-source licenses'),
-              onTap: () => showLicensePage(context: context, applicationName: 'Expense Manager'),
+              title: Text(l.settingsLicenses),
+              onTap: () => showLicensePage(context: context, applicationName: l.appTitle),
             ),
           ]),
-          group('Support', [
+          group(l.settingsSupport, [
             ListTile(
               key: const Key('open-diagnostics'),
               leading: const Icon(AppIcons.bug),
-              title: const Text('Diagnostics'),
-              subtitle: const Text('Local error log · view, share or clear'),
+              title: Text(l.diagnosticsTitle),
+              subtitle: Text(l.settingsDiagnosticsHelp),
               onTap: () => open(const DiagnosticsScreen()),
             ),
             ListTile(
               key: const Key('report-issue'),
               leading: const Icon(AppIcons.bug),
-              title: const Text('Report a problem'),
-              subtitle: const Text('Opens a GitHub issue · needs a GitHub account'),
+              title: Text(l.settingsReportIssue),
+              subtitle: Text(l.settingsReportIssueHelp),
               trailing: const Icon(AppIcons.openExternal, size: 18),
               onTap: () => _openLink(context, reportIssueUrl),
             ),
@@ -368,14 +370,14 @@ class _NameDialogState extends State<NameDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Your name'),
+    title: Text(context.l10n.settingsYourName),
     content: TextField(key: const Key('name-field'), controller: _ctrl, autofocus: true),
     actions: [
       FilledButton(
         key: const Key('name-save'),
         style: FilledButton.styleFrom(minimumSize: const Size(80, 40)),
         onPressed: () => Navigator.pop(context, _ctrl.text),
-        child: const Text('Save'),
+        child: Text(context.l10n.save),
       ),
     ],
   );
@@ -414,6 +416,6 @@ class ChoiceDialog<T> extends StatelessWidget {
         ),
       ),
     ),
-    actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel'))],
+    actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.cancel))],
   );
 }

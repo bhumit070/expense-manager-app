@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 
+import '../l10n/l10n.dart';
 import '../core/dates.dart';
 import '../core/money.dart';
 import '../data/transactions_repo.dart';
@@ -13,10 +14,10 @@ import 'csv.dart';
 enum ExportKind { transactions, investments, debts, budgets }
 
 String exportKindLabel(ExportKind k) => switch (k) {
-  ExportKind.transactions => 'Transactions',
-  ExportKind.investments => 'Investments',
-  ExportKind.debts => 'Debts',
-  ExportKind.budgets => 'Budgets',
+  ExportKind.transactions => currentL10n.transactionsTitle,
+  ExportKind.investments => currentL10n.investmentsTitle,
+  ExportKind.debts => currentL10n.navDebts,
+  ExportKind.budgets => currentL10n.budgetsTitle,
 };
 
 String _rupees(int? paise) => paise == null ? '' : (paise / paisePerRupee).toStringAsFixed(2);
