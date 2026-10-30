@@ -4,6 +4,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../state/sms_inbox.dart' show smsAddedActions, smsPromptActions;
 import 'sms_capture.dart' show smsNotificationBackground;
 
 /// A button on a notification. [opensApp] buttons bring the app forward;
@@ -81,6 +82,21 @@ const reminderChannelId = 'reminders';
 /// Android channel for "add this expense?" prompts read from SMS.
 const smsChannelId = 'sms_expenses';
 
+/// iOS only shows buttons from categories registered up front, one per set
+/// of buttons; this names the category for a set.
+String darwinCategoryId(List<NotificationActionSpec> actions) => actions.map((a) => a.id).join('+');
+
+/// The iOS categories for every set of buttons the app posts.
+List<DarwinNotificationCategory> darwinCategories([List<List<NotificationActionSpec>> sets = const [smsPromptActions, smsAddedActions]]) => [
+  for (final set in sets)
+    DarwinNotificationCategory(
+      darwinCategoryId(set),
+      actions: [
+        for (final a in set) DarwinNotificationAction.plain(a.id, a.label, options: {if (a.opensApp) DarwinNotificationActionOption.foreground}),
+      ],
+    ),
+];
+
 /// flutter_local_notifications with timezone-aware scheduling. Reminders use
 /// inexact alarms: they can arrive a few minutes late but need no
 /// exact-alarm permission and are battery friendly.
@@ -118,9 +134,9 @@ class PlatformNotificationService extends NotificationService {
       // Unknown zone: keep the default (UTC); reminders may shift by the offset.
     }
     await _plugin.initialize(
-      settings: const InitializationSettings(
-        android: AndroidInitializationSettings('ic_notification'),
-        iOS: DarwinInitializationSettings(requestAlertPermission: false, requestBadgePermission: false, requestSoundPermission: false),
+      settings: InitializationSettings(
+        android: const AndroidInitializationSettings('ic_notification'),
+        iOS: DarwinInitializationSettings(requestAlertPermission: false, requestBadgePermission: false, requestSoundPermission: false, notificationCategories: darwinCategories()),
       ),
       onDidReceiveNotificationResponse: _onResponse,
       onDidReceiveBackgroundNotificationResponse: smsNotificationBackground,
@@ -178,6 +194,7 @@ class PlatformNotificationService extends NotificationService {
           visibility: NotificationVisibility.private,
           actions: [for (final a in actions) AndroidNotificationAction(a.id, a.label, showsUserInterface: a.opensApp, cancelNotification: true)],
         ),
+        iOS: DarwinNotificationDetails(categoryIdentifier: actions.isEmpty ? null : darwinCategoryId(actions)),
       ),
     );
   }

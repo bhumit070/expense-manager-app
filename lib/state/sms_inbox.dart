@@ -42,6 +42,10 @@ const smsActionEdit = 'sms_edit';
 const smsActionIgnore = 'sms_ignore';
 const smsActionUndo = 'sms_undo';
 
+/// Buttons on the "add this?" prompt and on the "added" confirmation.
+const smsPromptActions = [NotificationActionSpec(smsActionAdd, 'Add'), NotificationActionSpec(smsActionEdit, 'Add details', opensApp: true), NotificationActionSpec(smsActionIgnore, 'Ignore')];
+const smsAddedActions = [NotificationActionSpec(smsActionUndo, 'Undo')];
+
 /// Payload prefix on SMS notifications: `sms:<capture id>`.
 const _payloadPrefix = 'sms:';
 
@@ -73,19 +77,16 @@ class SmsInbox {
     if (!enabled) return null;
     final sms = parseBankSms(body);
     if (sms == null) return null;
-    final seen = db.select('SELECT 1 FROM sms_captures WHERE sender = ? AND body = ? AND abs(received_at - ?) < 600000 LIMIT 1', [sender, body, at.millisecondsSinceEpoch]);
-    if (seen.isNotEmpty) return null;
     final draft = _draft(sms, at);
     if (txns.isDuplicate(draft)) return null;
-    db.execute('INSERT INTO sms_captures(received_at, sender, body, amount, credit, merchant, last4) VALUES (?, ?, ?, ?, ?, ?, ?)', [
-      at.millisecondsSinceEpoch,
-      sender,
-      body,
-      sms.amount,
-      sms.credit ? 1 : 0,
-      sms.merchant,
-      sms.last4,
-    ]);
+    // One statement, so two automations firing for the same SMS (iOS) or a
+    // repeated delivery can't both insert it.
+    db.execute(
+      'INSERT INTO sms_captures(received_at, sender, body, amount, credit, merchant, last4) SELECT ?, ?, ?, ?, ?, ?, ? '
+      'WHERE NOT EXISTS (SELECT 1 FROM sms_captures WHERE body = ? AND abs(received_at - ?) < 600000)',
+      [at.millisecondsSinceEpoch, sender, body, sms.amount, sms.credit ? 1 : 0, sms.merchant, sms.last4, body, at.millisecondsSinceEpoch],
+    );
+    if (db.updatedRows == 0) return null;
     final id = db.lastInsertRowId;
     await _prompt(capture(id)!);
     return id;
@@ -140,7 +141,7 @@ class SmsInbox {
     c.sms.credit ? 'Money received: ${headline(c)}' : 'New expense: ${headline(c)}',
     'Add to ${filing(draft(c))}?',
     payload: '$_payloadPrefix${c.id}',
-    actions: const [NotificationActionSpec(smsActionAdd, 'Add'), NotificationActionSpec(smsActionEdit, 'Add details', opensApp: true), NotificationActionSpec(smsActionIgnore, 'Ignore')],
+    actions: smsPromptActions,
   );
 
   /// Adds a pending capture as a transaction and confirms with an Undo
@@ -156,7 +157,7 @@ class SmsInbox {
       c.sms.credit ? 'Income added: ${headline(c)}' : 'Expense added: ${headline(c)}',
       filing(txn),
       payload: '$_payloadPrefix$id',
-      actions: const [NotificationActionSpec(smsActionUndo, 'Undo')],
+      actions: smsAddedActions,
     );
     return txnId;
   }

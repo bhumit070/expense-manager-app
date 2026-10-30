@@ -388,8 +388,10 @@ class _SmsStepState extends State<SmsStep> {
     return StepLayout(
       icon: AppIcons.sms,
       title: 'Add expenses from bank SMS?',
-      body: 'When a bank, card or UPI SMS arrives, we read it on this phone and ask whether to add it — one tap from the notification. OTPs and offers are skipped, and nothing is uploaded.',
-      action: _denied ? 'Continue without SMS' : 'Allow SMS',
+      body: AppScope.of(context).smsPlatform.viaShortcuts
+          ? 'A Shortcuts automation can hand each bank, card or UPI SMS to us; we read it on this phone and ask whether to add it — one tap from the notification. Settings › Expenses from SMS shows how to set it up.'
+          : 'When a bank, card or UPI SMS arrives, we read it on this phone and ask whether to add it — one tap from the notification. OTPs and offers are skipped, and nothing is uploaded.',
+      action: _denied ? 'Continue without SMS' : (AppScope.of(context).smsPlatform.viaShortcuts ? 'Turn on' : 'Allow SMS'),
       onAction: _denied ? widget.onNext : _allow,
       secondary: _denied ? null : TextButton(key: const Key('onboarding-sms-skip'), onPressed: widget.onNext, child: const Text('Not now')),
       children: [
