@@ -14,6 +14,7 @@ import 'services/file_gateway.dart';
 import 'services/location.dart';
 import 'services/notifications.dart';
 import 'services/security_platform.dart';
+import 'services/sms_capture.dart';
 import 'services/receipts.dart';
 import 'state/app_state.dart';
 
@@ -33,6 +34,11 @@ Future<AppState> bootstrap({Flavor? flavor, BackgroundScheduler? scheduler}) asy
     security: SecurityPlatform(biometrics: PlatformBiometrics(), keys: keys),
   );
   await state.startup();
+  try {
+    await (await PendingSms.device()).drainInto(state.sms);
+  } catch (e, st) {
+    log.record('Could not read SMS saved while the app was locked: $e', st);
+  }
   try {
     await (scheduler ?? BackgroundScheduler()).ensureScheduled();
   } catch (e, st) {

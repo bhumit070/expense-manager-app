@@ -1,5 +1,5 @@
 title: Expense Manager
 description: A private, offline expense tracker. Your data never leaves your phone.
 theme: jekyll-theme-primer
-include: [privacy-policy.md, index.md]
+include: [privacy-policy.md, index.md, ios-sms.md]
 exclude: [release.md, security.md, store-listing.md]

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:expense_manager/data/database.dart';
 import 'package:expense_manager/services/sms_capture.dart';
 import 'package:expense_manager/state/sms_inbox.dart';
@@ -35,6 +37,7 @@ class _NoClose implements Database {
       #select => _db.select,
       #execute => _db.execute,
       #lastInsertRowId => () => _db.lastInsertRowId,
+      #updatedRows => () => _db.updatedRows,
       _ => throw UnimplementedError('${i.memberName}'),
     },
     i.isGetter ? const [] : i.positionalArguments,
@@ -113,10 +116,55 @@ void main() {
     expect(await p.requestPermission(), isFalse);
     expect(asked, ['hasPermission', 'requestPermission', 'hasPermission', 'requestPermission']);
 
+    expect(p.viaShortcuts, isFalse);
+
+    // iPhone: a Shortcuts automation hands messages over; nothing to grant.
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    expect([p.supported, p.viaShortcuts], [true, true]);
+    expect(await p.hasPermission(), isTrue);
+    expect(await p.requestPermission(), isTrue);
+    expect(asked.length, 4);
+
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
     expect(p.supported, isFalse);
     expect(await p.hasPermission(), isFalse);
     expect(await p.requestPermission(), isFalse);
     expect(asked.length, 4);
+  });
+
+  group('PendingSms', () {
+    late Directory dir;
+    setUp(() => dir = Directory.systemTemp.createTempSync('pending_sms'));
+    tearDown(() => dir.deleteSync(recursive: true));
+
+    test('messages that could not be handled wait for the next start', () async {
+      final store = PendingSms(File('${dir.path}/sub/pending.json'));
+      final m = (sender: 'AD-HDFCBK', body: _sms, at: kNow);
+      await receiveAll([m], open: () async => throw StateError('locked'), pending: () async => store);
+      await receiveAll([m], open: () async => throw StateError('locked'), pending: () async => store);
+      expect(await store.read(), [m, m]);
+
+      final state = makeState(notifications: FakeNotifications());
+      state.sms.enabled = true;
+      expect(await store.drainInto(state.sms), 2);
+      expect(state.sms.pendingCount, 1, reason: 'the same SMS twice is one capture');
+      expect(await store.file.exists(), isFalse);
+      expect(await store.drainInto(state.sms), 0);
+    });
+
+    test('nothing is queued when it worked or there was nothing to do', () async {
+      final store = PendingSms(File('${dir.path}/pending.json'));
+      await receiveAll(const [], open: () async => throw StateError('locked'), pending: () async => store);
+      await receiveAll([(sender: 'x', body: _sms, at: kNow)], open: _KeptOpen().open, service: FakeNotifications(), pending: () async => store);
+      expect(await store.file.exists(), isFalse);
+    });
+
+    test('a broken file reads as empty; a failing store is only logged', () async {
+      final store = PendingSms(File('${dir.path}/pending.json'))..file.writeAsStringSync('{not json');
+      expect(await store.read(), isEmpty);
+      await receiveAll([(sender: 'x', body: _sms, at: kNow)], open: () async => throw StateError('locked'), pending: () async => throw StateError('no disk'));
+      // Default store: path_provider has no platform in tests, so this is only logged too.
+      await receiveAll([(sender: 'x', body: _sms, at: kNow)], open: () async => throw StateError('locked'));
+    });
   });
 }

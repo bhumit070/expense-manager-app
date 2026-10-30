@@ -1,4 +1,5 @@
 import 'package:expense_manager/services/notifications.dart';
+import 'package:expense_manager/state/sms_inbox.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -153,5 +154,21 @@ void main() {
       'notificationResponse': {'notificationId': 5, 'notificationResponseType': 0},
     };
     expect((await n.launchTap())!.payload, '');
+  });
+
+  test('iOS: SMS buttons are registered as categories and prompts use them', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    FlutterLocalNotificationsPlatform.instance = IOSFlutterLocalNotificationsPlugin();
+    final calls = _mockPlugin();
+    final n = PlatformNotificationService(localTimezone: () async => 'UTC');
+    await n.prompt(5, 'New expense', 'Add it?', payload: 'sms:1', actions: smsPromptActions);
+    await n.prompt(6, 'Added', 'Food', payload: 'sms:1', actions: smsAddedActions);
+    await n.prompt(7, 'Plain', 'No buttons', payload: 'x');
+    final categories = (calls.first.arguments as Map)['notificationCategories'] as List;
+    expect([for (final c in categories) (c as Map)['identifier']], ['sms_add+sms_edit+sms_ignore', 'sms_undo']);
+    final buttons = (categories.first as Map)['actions'] as List;
+    expect([for (final a in buttons) '${(a as Map)['identifier']} ${a['options']}'], ['sms_add []', 'sms_edit [4]', 'sms_ignore []'], reason: 'only Add details brings the app forward');
+    final shown = [for (final c in calls.where((c) => c.method == 'show')) ((c.arguments as Map)['platformSpecifics'] as Map)['categoryIdentifier']];
+    expect(shown, ['sms_add+sms_edit+sms_ignore', 'sms_undo', null]);
   });
 }

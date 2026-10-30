@@ -146,7 +146,7 @@ class FakeNotifications extends NotificationService {
 
 /// SMS permission without a platform channel.
 class FakeSmsPlatform extends SmsPlatform {
-  FakeSmsPlatform({this.granted = false, this.grant = true, this.isSupported = true});
+  FakeSmsPlatform({this.granted = false, this.grant = true, this.isSupported = true, this.shortcuts = false});
 
   bool granted;
 
@@ -155,8 +155,14 @@ class FakeSmsPlatform extends SmsPlatform {
   bool isSupported;
   int requests = 0;
 
+  /// Pretend to be an iPhone (Shortcuts automation instead of SMS permission).
+  bool shortcuts;
+
   @override
   bool get supported => isSupported;
+
+  @override
+  bool get viaShortcuts => shortcuts;
 
   @override
   Future<bool> hasPermission() async => granted;

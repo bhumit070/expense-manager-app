@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app.dart';
+import '../../services/maps.dart';
 import '../../core/dates.dart';
 import '../../state/app_state.dart';
 import '../../state/sms_inbox.dart';
@@ -36,9 +37,12 @@ class _SmsScreenState extends State<SmsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Read bank SMS?'),
-        content: const Text(
-          'When a bank, card or UPI SMS arrives, Expense Manager reads it on this phone and asks whether to add the transaction.\n\n'
-          'Only messages with an amount that was debited or credited are kept, and nothing is sent anywhere. OTPs, offers and reminders are skipped.',
+        content: Text(
+          app.smsPlatform.viaShortcuts
+              ? 'iPhone apps can\'t read SMS, so a Shortcuts automation hands each bank message to Expense Manager. It is read on this phone and you are asked whether to add the transaction.\n\n'
+                    'Nothing is sent anywhere. OTPs, offers and reminders are skipped. Next, set up the automation using the steps on this screen.'
+              : 'When a bank, card or UPI SMS arrives, Expense Manager reads it on this phone and asks whether to add the transaction.\n\n'
+                    'Only messages with an amount that was debited or credited are kept, and nothing is sent anywhere. OTPs, offers and reminders are skipped.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Not now')),
@@ -105,6 +109,7 @@ class _SmsScreenState extends State<SmsScreen> {
               onChanged: (v) => _toggle(app, v),
             ),
           ),
+          if (app.smsPlatform.viaShortcuts) ...[const SizedBox(height: 12), const ShortcutsSetupCard()],
           if (on)
             FutureBuilder<bool>(
               future: _permission,
@@ -137,6 +142,77 @@ class _SmsScreenState extends State<SmsScreen> {
               ),
             ),
           for (final p in pending) ...[_CaptureCard(capture: p, onAdd: () => _add(app, p), onIgnore: () => _ignore(app, p)), const SizedBox(height: 12)],
+        ],
+      ),
+    );
+  }
+}
+
+/// Where the iPhone setup guide lives (GitHub Pages, from docs/ios-sms.md).
+const iosSmsGuideUrl = 'https://bhumit070.github.io/expense-manager-app/ios-sms/';
+
+/// The steps to set up the Shortcuts automation that hands bank SMS to the
+/// app on iPhone.
+class ShortcutsSetupCard extends StatelessWidget {
+  const ShortcutsSetupCard({super.key});
+
+  static const steps = [
+    'Open Shortcuts → Automation → + (New Automation) → Message.',
+    'Message Contains: debited. Choose Run Immediately, then Next.',
+    'New Blank Automation → Add Action → search "Log bank SMS" (Expense Manager).',
+    'Tap Message in the action and pick Shortcut Input. Done.',
+    'Repeat with "credited" and "spent" to catch more banks.',
+  ];
+
+  Future<void> _open(BuildContext context, String url) async {
+    if (!await MapServices.instance.openExternal(Uri.parse(url)) && context.mounted) showSnack(context, 'Could not open $url');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return AppCard(
+      key: const Key('sms-shortcuts-setup'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Set up on iPhone', style: ts(15, weight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          Text(
+            'iOS doesn\'t let apps read SMS. A Shortcuts automation passes each bank message to Expense Manager instead (iOS 17 or later runs it without asking).',
+            style: ts(12, color: c.textMuted),
+          ),
+          const SizedBox(height: 10),
+          for (var i = 0; i < steps.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 22,
+                    child: Text(
+                      '${i + 1}.',
+                      style: ts(13, weight: FontWeight.w700, color: c.brand),
+                    ),
+                  ),
+                  Expanded(child: Text(steps[i], style: ts(13))),
+                ],
+              ),
+            ),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 8,
+            children: [
+              TextButton.icon(
+                key: const Key('sms-open-shortcuts'),
+                icon: const Icon(AppIcons.openExternal, size: 18),
+                label: const Text('Open Shortcuts'),
+                onPressed: () => _open(context, 'shortcuts://'),
+              ),
+              TextButton.icon(key: const Key('sms-guide'), icon: const Icon(AppIcons.document, size: 18), label: const Text('Guide with pictures'), onPressed: () => _open(context, iosSmsGuideUrl)),
+            ],
+          ),
         ],
       ),
     );

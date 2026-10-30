@@ -3,12 +3,14 @@ import 'package:expense_manager/services/notifications.dart';
 import 'package:expense_manager/state/app_state.dart';
 import 'package:expense_manager/state/sms_inbox.dart';
 import 'package:expense_manager/ui/screens/home_screen.dart';
+import 'package:expense_manager/ui/screens/onboarding_screen.dart';
 import 'package:expense_manager/ui/screens/settings_screen.dart';
 import 'package:expense_manager/ui/screens/sms_screen.dart';
 import 'package:expense_manager/ui/screens/txn_form_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../fakes/maps.dart';
 import '../helpers.dart';
 
 const _swiggy = 'Sent Rs.250.00 From HDFC Bank A/C *1242 To SWIGGY On 28/10/26 Ref 630212345678';
@@ -126,6 +128,44 @@ void main() {
       expect(s.txns.byId(s.sms.capture(third)!.txnId!)!.txn.merchant, 'Chai Point');
       expect(notes.cancelled, contains(smsNotificationBase + third));
       expect(find.text('Nothing to review'), findsOneWidget);
+    });
+  });
+
+  group('iPhone', () {
+    testWidgets('explains Shortcuts, turns on without an SMS permission and links to the guide', (tester) async {
+      final maps = useFakeMaps(addTearDown);
+      platform.shortcuts = true;
+      await pumpRoute(tester, s, const SmsScreen());
+      expect(find.byKey(const Key('sms-shortcuts-setup')), findsOneWidget);
+      expect(find.text('Set up on iPhone'), findsOneWidget);
+      expect(find.textContaining('Log bank SMS'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('sms-switch')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('a Shortcuts automation hands each bank message'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('sms-allow')));
+      await tester.pumpAndSettle();
+      expect(s.sms.enabled, isTrue);
+
+      await tester.tap(find.byKey(const Key('sms-open-shortcuts')));
+      await tester.ensureVisible(find.byKey(const Key('sms-guide')));
+      await tester.tap(find.byKey(const Key('sms-guide')));
+      await tester.pumpAndSettle();
+      expect(maps.links, [Uri.parse('shortcuts://'), Uri.parse(iosSmsGuideUrl)]);
+      maps.linksOpen = false;
+      await tester.tap(find.byKey(const Key('sms-guide')));
+      await tester.pumpAndSettle();
+      expect(find.text('Could not open $iosSmsGuideUrl'), findsOneWidget);
+    });
+
+    testWidgets('onboarding wording points to the Shortcuts setup', (tester) async {
+      platform.shortcuts = true;
+      final fresh = makeState(onboarded: false, sms: platform, notifications: notes);
+      await pumpScreen(tester, fresh, OnboardingScreen(steps: [(_, next) => SmsStep(onNext: next)]));
+      expect(find.textContaining('A Shortcuts automation can hand each bank'), findsOneWidget);
+      await tester.tap(find.text('Turn on'));
+      await tester.pumpAndSettle();
+      expect([fresh.sms.enabled, fresh.onboarded], [true, true]);
     });
   });
 
