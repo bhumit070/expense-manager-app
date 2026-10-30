@@ -12,6 +12,7 @@ import 'categories_screen.dart';
 import 'reminders_screen.dart';
 import 'data_flows.dart';
 import 'settings_screen.dart';
+import 'sms_screen.dart';
 import 'sources_screen.dart';
 import 'transactions_screen.dart';
 import 'txn_detail_screen.dart';
@@ -55,6 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final invested = app.planning.holdings().fold<int>(0, (a, h) => a + h.invested);
     final debts = app.planning.debtSummary();
     final name = app.userName;
+    final smsPending = app.sms.pendingCount;
     void push(Widget w) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => w));
 
     final base = totals.income > 0 ? totals.income : (totals.moneyOut == 0 ? 1 : totals.moneyOut);
@@ -104,6 +106,23 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+        if (smsPending > 0) ...[
+          const SizedBox(height: 12),
+          AppCard(
+            key: const Key('home-sms-review'),
+            onTap: () => push(const SmsScreen()),
+            child: Row(
+              children: [
+                Icon(AppIcons.sms, color: c.brand, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(smsPending == 1 ? '1 transaction from SMS to review' : '$smsPending transactions from SMS to review', style: ts(13, weight: FontWeight.w600)),
+                ),
+                Icon(AppIcons.chevronRight, color: c.textFaint, size: 18),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 8),
         Row(
           children: [

@@ -1,9 +1,9 @@
 import 'package:sqlite3/sqlite3.dart';
 
 /// Current schema version. Bump and add a step to [_migrations] for changes.
-const schemaVersion = 5;
+const schemaVersion = 6;
 
-final List<void Function(Database)> _migrations = [_v1, _v2, _v3, _v4, _v5];
+final List<void Function(Database)> _migrations = [_v1, _v2, _v3, _v4, _v5, _v6];
 
 /// Opens (or creates) the app database and runs pending migrations.
 /// [key] unlocks a database encrypted from Settings → Security.
@@ -217,5 +217,24 @@ CREATE TABLE templates (
   note TEXT NOT NULL DEFAULT '',
   tags TEXT NOT NULL DEFAULT ''
 );
+''');
+}
+
+/// Transactions detected in bank SMS, waiting for the user to add or ignore them.
+void _v6(Database db) {
+  db.execute('''
+CREATE TABLE sms_captures (
+  id INTEGER PRIMARY KEY,
+  received_at INTEGER NOT NULL,
+  sender TEXT NOT NULL,
+  body TEXT NOT NULL,
+  amount INTEGER NOT NULL CHECK (amount > 0),
+  credit INTEGER NOT NULL,
+  merchant TEXT NOT NULL DEFAULT '',
+  last4 TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  txn_id INTEGER
+);
+CREATE INDEX idx_sms_status ON sms_captures(status, received_at);
 ''');
 }

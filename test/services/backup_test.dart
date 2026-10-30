@@ -235,9 +235,10 @@ void main() {
       seed(src);
       final zip = buildLedgerZip(src, docs: docs, temp: temp);
       final l = await openLedger(zip);
-      // Simulate the previous schema: undo the latest (v5) migration and reset the version.
+      // Simulate an older schema: undo the v5 and v6 migrations and reset the version.
       final f = File('${temp.path}/old.db')..writeAsBytesSync(l.database);
       final old = openAppDatabase(f.path)
+        ..execute('DROP TABLE sms_captures')
         ..execute('DROP INDEX idx_txn_recurring')
         ..execute('ALTER TABLE transactions DROP COLUMN receipt')
         ..execute('ALTER TABLE transactions DROP COLUMN recurring_id')

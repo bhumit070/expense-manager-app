@@ -10,6 +10,7 @@ import 'package:expense_manager/services/file_gateway.dart';
 import 'package:expense_manager/services/location.dart';
 import 'package:expense_manager/services/notifications.dart';
 import 'package:expense_manager/services/receipts.dart';
+import 'package:expense_manager/services/sms_capture.dart';
 import 'package:expense_manager/state/app_state.dart';
 import 'package:expense_manager/ui/theme/tokens.dart';
 import 'package:flutter/material.dart';
@@ -126,9 +127,57 @@ class FakeNotifications extends NotificationService {
     cancelled.add(id);
     scheduled.remove(id);
   }
+
+  /// Notifications with buttons: id → (title, body, payload, comma-joined action ids).
+  final prompts = <int, (String, String, String, String)>{};
+  void Function(NotificationTap tap)? handler;
+  NotificationTap? launch;
+
+  @override
+  Future<void> prompt(int id, String title, String body, {required String payload, List<NotificationActionSpec> actions = const []}) async =>
+      prompts[id] = (title, body, payload, actions.map((a) => a.id).join(','));
+
+  @override
+  void listen(void Function(NotificationTap tap) handler) => this.handler = handler;
+
+  @override
+  Future<NotificationTap?> launchTap() async => launch;
 }
 
-AppState makeState({DateTime? now, FakeFiles? files, FakeLocation? location, FakeReceipts? receipts, FakeNotifications? notifications, ErrorLog? errorLog, bool onboarded = true}) {
+/// SMS permission without a platform channel.
+class FakeSmsPlatform extends SmsPlatform {
+  FakeSmsPlatform({this.granted = false, this.grant = true, this.isSupported = true});
+
+  bool granted;
+
+  /// Answer to [requestPermission].
+  bool grant;
+  bool isSupported;
+  int requests = 0;
+
+  @override
+  bool get supported => isSupported;
+
+  @override
+  Future<bool> hasPermission() async => granted;
+
+  @override
+  Future<bool> requestPermission() async {
+    requests++;
+    return granted = granted || grant;
+  }
+}
+
+AppState makeState({
+  DateTime? now,
+  FakeFiles? files,
+  FakeLocation? location,
+  FakeReceipts? receipts,
+  FakeNotifications? notifications,
+  FakeSmsPlatform? sms,
+  ErrorLog? errorLog,
+  bool onboarded = true,
+}) {
   final s = AppState(
     db: openAppDatabase(null),
     files: files ?? FakeFiles(),
@@ -137,6 +186,7 @@ AppState makeState({DateTime? now, FakeFiles? files, FakeLocation? location, Fak
     notifications: notifications,
     errorLog: errorLog,
     clock: () => now ?? kNow,
+    smsPlatform: sms ?? FakeSmsPlatform(),
   );
   if (onboarded) s.settings.set('onboarded', '1');
   return s;

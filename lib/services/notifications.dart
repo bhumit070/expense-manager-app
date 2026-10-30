@@ -4,6 +4,26 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'sms_capture.dart' show smsNotificationBackground;
+
+/// A button on a notification. [opensApp] buttons bring the app forward;
+/// the others are handled in the background.
+class NotificationActionSpec {
+  const NotificationActionSpec(this.id, this.label, {this.opensApp = false});
+
+  final String id;
+  final String label;
+  final bool opensApp;
+}
+
+/// The user tapped a notification ([action] null) or one of its buttons.
+class NotificationTap {
+  const NotificationTap(this.payload, [this.action]);
+
+  final String payload;
+  final String? action;
+}
+
 /// Local notifications (no push, no server). Fakeable in tests.
 abstract class NotificationService {
   const NotificationService();
@@ -24,6 +44,16 @@ abstract class NotificationService {
   Future<void> schedule(int id, DateTime at, String title, String body);
 
   Future<void> cancel(int id);
+
+  /// Shows a notification with buttons on the SMS channel. Taps arrive in
+  /// [listen] while the app runs, else in the background handler.
+  Future<void> prompt(int id, String title, String body, {required String payload, List<NotificationActionSpec> actions = const []}) => show(id, title, body);
+
+  /// Registers [handler] for taps while the app is running.
+  void listen(void Function(NotificationTap tap) handler) {}
+
+  /// The tap that launched the app, if any.
+  Future<NotificationTap?> launchTap() async => null;
 }
 
 class _NoNotifications extends NotificationService {
@@ -47,6 +77,9 @@ class _NoNotifications extends NotificationService {
 
 /// Android channel every reminder and alert is posted to.
 const reminderChannelId = 'reminders';
+
+/// Android channel for "add this expense?" prompts read from SMS.
+const smsChannelId = 'sms_expenses';
 
 /// flutter_local_notifications with timezone-aware scheduling. Reminders use
 /// inexact alarms: they can arrive a few minutes late but need no
@@ -89,6 +122,8 @@ class PlatformNotificationService extends NotificationService {
         android: AndroidInitializationSettings('ic_notification'),
         iOS: DarwinInitializationSettings(requestAlertPermission: false, requestBadgePermission: false, requestSoundPermission: false),
       ),
+      onDidReceiveNotificationResponse: _onResponse,
+      onDidReceiveBackgroundNotificationResponse: smsNotificationBackground,
     );
   }
 
@@ -107,6 +142,44 @@ class PlatformNotificationService extends NotificationService {
   Future<void> show(int id, String title, String body) async {
     await init();
     await _plugin.show(id: id, title: title, body: body, notificationDetails: _details);
+  }
+
+  void Function(NotificationTap tap)? _onTap;
+
+  @override
+  void listen(void Function(NotificationTap tap) handler) => _onTap = handler;
+
+  void _onResponse(NotificationResponse r) => _onTap?.call(NotificationTap(r.payload ?? '', r.actionId));
+
+  @override
+  Future<NotificationTap?> launchTap() async {
+    await init();
+    final details = await _plugin.getNotificationAppLaunchDetails();
+    final r = details?.notificationResponse;
+    return details?.didNotificationLaunchApp == true && r != null ? NotificationTap(r.payload ?? '', r.actionId) : null;
+  }
+
+  @override
+  Future<void> prompt(int id, String title, String body, {required String payload, List<NotificationActionSpec> actions = const []}) async {
+    await init();
+    await _plugin.show(
+      id: id,
+      title: title,
+      body: body,
+      payload: payload,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          smsChannelId,
+          'Expenses from SMS',
+          channelDescription: 'Asks before adding a bank or UPI transaction read from an SMS',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: 'ic_notification',
+          visibility: NotificationVisibility.private,
+          actions: [for (final a in actions) AndroidNotificationAction(a.id, a.label, showsUserInterface: a.opensApp, cancelNotification: true)],
+        ),
+      ),
+    );
   }
 
   @override
