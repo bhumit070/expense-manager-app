@@ -82,11 +82,42 @@ void main() {
       await tester.pumpAndSettle();
       expect(s.catalog.children(food).map((c) => c.id), [tea, coffee.id]);
 
-      // Archiving the parent hides its children.
+      // Archiving the parent hides its children; Undo brings them all back.
       await tester.tap(find.byKey(Key('archive-$food')));
       await tester.pumpAndSettle();
-      expect(find.text('Coffee'), findsNothing);
+      expect(find.byKey(Key('cat-tile-$food')), findsNothing);
       expect(s.catalog.category(tea).archived, isTrue);
+      expect(find.text('Food & dining archived'), findsOneWidget);
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+      expect([s.catalog.category(food).archived, s.catalog.category(tea).archived, s.catalog.category(coffee.id).archived], [false, false, false]);
+      expect(find.byKey(const Key('archived-categories')), findsNothing);
+
+      // Archive again, then restore from the Archived list: a sub-category first (brings its parent), then the rest.
+      await tester.tap(find.byKey(Key('archive-$food')));
+      await tester.pumpAndSettle();
+      ScaffoldMessenger.of(tester.element(find.byType(CategoriesScreen))).hideCurrentSnackBar();
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('archived-categories')));
+      expect(find.text('Archived (3)'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('archived-categories')));
+      await tester.pumpAndSettle();
+      expect(find.text('Spend · under Food & dining'), findsNWidgets(2));
+      expect(find.text('Spend'), findsWidgets);
+      await tester.ensureVisible(find.byKey(Key('restore-cat-$tea')));
+      await tester.tap(find.byKey(Key('restore-cat-$tea')));
+      await tester.pumpAndSettle();
+      expect(find.text('Tea restored'), findsOneWidget);
+      expect([s.catalog.category(food).archived, s.catalog.category(tea).archived, s.catalog.category(coffee.id).archived], [false, false, true]);
+      expect(find.text('Archived (1)'), findsOneWidget);
+      await tester.ensureVisible(find.byKey(Key('restore-cat-${coffee.id}')));
+      await tester.tap(find.byKey(Key('restore-cat-${coffee.id}')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('archived-categories')), findsNothing);
+    });
+
+    test('kind labels', () {
+      expect(CategoryKind.values.map(categoryKindLabel), ['Spend', 'Investment', 'Income']);
     });
 
     testWidgets('a move that becomes invalid shows a message', (tester) async {

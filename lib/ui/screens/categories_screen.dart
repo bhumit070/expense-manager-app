@@ -6,6 +6,12 @@ import '../theme/tokens.dart';
 import '../widgets/common.dart';
 import '../theme/icons.dart';
 
+String categoryKindLabel(CategoryKind k) => switch (k) {
+  CategoryKind.spend => 'Spend',
+  CategoryKind.invest => 'Investment',
+  CategoryKind.income => 'Income',
+};
+
 const _palette = [0xFFF43F5E, 0xFF8B5CF6, 0xFFEC4899, 0xFFF59E0B, 0xFF10B981, 0xFF0EA5E9, 0xFF6366F1, 0xFF64748B];
 
 class CategoriesScreen extends StatelessWidget {
@@ -48,6 +54,7 @@ class CategoriesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
     final c = context.colors;
+    final archived = app.catalog.archivedCategories();
 
     Widget tile(Category cat, int index, {required bool canMove}) {
       return ListTile(
@@ -74,8 +81,17 @@ class CategoriesScreen extends StatelessWidget {
                 tooltip: 'Archive ${cat.name}',
                 icon: const Icon(AppIcons.archive),
                 onPressed: () {
-                  app.catalog.archiveCategory(cat.id);
+                  final ids = app.catalog.archiveCategoryIds(cat.id);
                   app.changed();
+                  showSnack(
+                    context,
+                    '${cat.name} archived',
+                    action: 'Undo',
+                    onAction: () {
+                      app.catalog.restoreCategories(ids);
+                      app.changed();
+                    },
+                  );
                 },
               ),
             ReorderableDragStartListener(index: index, child: const Icon(AppIcons.dragHandle)),
@@ -148,6 +164,45 @@ class CategoriesScreen extends StatelessWidget {
           section(CategoryKind.spend, 'Spend', 'Money that’s gone — food, rent, bills. Tap ⋮ to add sub-categories.'),
           section(CategoryKind.invest, 'Investment', 'Money out that still grows your net worth.'),
           section(CategoryKind.income, 'Income', 'Money coming in.'),
+          if (archived.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            AppCard(
+              padding: EdgeInsets.zero,
+              child: Theme(
+                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  key: const Key('archived-categories'),
+                  title: Text('Archived (${archived.length})', style: ts(14, weight: FontWeight.w600)),
+                  subtitle: Text('Kept for history; not offered on new transactions', style: ts(11, color: c.textMuted)),
+                  children: [
+                    for (final cat in archived)
+                      ListTile(
+                        key: Key('archived-cat-${cat.id}'),
+                        leading: Opacity(opacity: 0.6, child: CategoryBadge(cat, size: 36)),
+                        title: Text(
+                          cat.name,
+                          style: ts(14, weight: FontWeight.w600, color: c.textMuted),
+                        ),
+                        subtitle: Text(
+                          cat.parentId == null ? categoryKindLabel(cat.kind) : '${categoryKindLabel(cat.kind)} · under ${app.catalog.category(cat.parentId!).name}',
+                          style: ts(11, color: c.textMuted),
+                        ),
+                        trailing: TextButton.icon(
+                          key: Key('restore-cat-${cat.id}'),
+                          icon: const Icon(AppIcons.unarchive, size: 18),
+                          label: const Text('Restore'),
+                          onPressed: () {
+                            app.catalog.restoreCategories([cat.id]);
+                            app.changed();
+                            showSnack(context, '${cat.name} restored');
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
