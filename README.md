@@ -4,6 +4,10 @@ Offline-first Flutter app for tracking spending, investments, income and debts. 
 
 Design lives in Penpot (page **App screens**). Light screens are `01–18`, dark versions are `· Dark`, and the tokens are on `00 · Design system`. The build plan is in [`tasks.md`](tasks.md).
 
+## Install
+
+Android APKs are attached to [GitHub Releases](https://github.com/bhumit070/expense-manager-app/releases). The app is being submitted to F-Droid ([`docs/f_droid_release.md`](docs/f_droid_release.md)). F-Droid signs its builds with its own key, so Android won't update a GitHub install from F-Droid or the other way round. To switch, export a backup (Settings › Back up now), uninstall, install the other build and restore.
+
 ## Product rules
 
 - Every transaction is **Spend**, **Invest**, **Income** or **Debt**. Investments are money out that isn't spending, and they are reported separately everywhere.

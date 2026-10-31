@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart' as geo;
-import 'package:geolocator/geolocator.dart';
+import 'package:geolocator_platform_interface/geolocator_platform_interface.dart';
 
 class Place {
   const Place({required this.name, required this.lat, required this.lng});
@@ -31,7 +33,7 @@ class PlatformLocationService implements LocationService {
     GeolocatorPlatform? geolocator,
     Future<List<geo.Placemark>> Function(double lat, double lng)? reverseGeocode,
     Future<List<geo.Location>> Function(String query)? forwardGeocode,
-  }) : _geo = geolocator ?? GeolocatorPlatform.instance,
+  }) : _geo = geolocator ?? (defaultTargetPlatform == TargetPlatform.android ? AndroidLocation() : GeolocatorPlatform.instance),
        _reverse = reverseGeocode ?? ((lat, lng) => geo.Geocoding().placemarkFromCoordinates(lat, lng)),
        _forward = forwardGeocode ?? ((q) => geo.Geocoding().locationFromAddress(q));
 
@@ -88,5 +90,43 @@ class PlatformLocationService implements LocationService {
     } catch (_) {
       return const [];
     }
+  }
+}
+
+/// Location on Android from the platform LocationManager (MainActivity.kt),
+/// so the app has no Google Play services dependency. iOS uses
+/// geolocator_apple.
+class AndroidLocation extends GeolocatorPlatform {
+  AndroidLocation([this.channel = const MethodChannel('expense_manager/location')]);
+
+  final MethodChannel channel;
+
+  static LocationPermission _permission(bool? granted) => granted == true ? LocationPermission.whileInUse : LocationPermission.denied;
+
+  @override
+  Future<LocationPermission> checkPermission() async => _permission(await channel.invokeMethod<bool>('hasPermission'));
+
+  @override
+  Future<LocationPermission> requestPermission() async => _permission(await channel.invokeMethod<bool>('requestPermission'));
+
+  @override
+  Future<Position> getCurrentPosition({LocationSettings? locationSettings}) async {
+    var call = channel.invokeMapMethod<String, double>('currentPosition');
+    final limit = locationSettings?.timeLimit;
+    if (limit != null) call = call.timeout(limit);
+    final fix = await call;
+    if (fix == null) throw const LocationServiceDisabledException();
+    return Position(
+      latitude: fix['lat']!,
+      longitude: fix['lng']!,
+      timestamp: DateTime.now(),
+      accuracy: 0,
+      altitude: 0,
+      altitudeAccuracy: 0,
+      heading: 0,
+      headingAccuracy: 0,
+      speed: 0,
+      speedAccuracy: 0,
+    );
   }
 }
