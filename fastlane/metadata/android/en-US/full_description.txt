@@ -1,0 +1,36 @@
+<p>Expense Manager keeps your money in one clear picture, and on your phone only.</p>
+
+<p>There is no account, no server and no sync. Every transaction, budget, investment and debt is stored in a database on your device. Export to CSV or PDF, or make an encrypted backup, whenever you like.</p>
+
+<p><b>Track everything</b></p>
+<ul>
+<li>Spend, Invest, Income and Debt. Investments are reported separately from spending, so your "spent" number stays honest</li>
+<li>Categories and sub-categories, payment sources with running balances, and a default payment mode</li>
+<li>Notes and #tags on every transaction, all searchable</li>
+<li>Recurring transactions, templates and receipts (photo or PDF)</li>
+<li>Optional location tagging (only if you allow it)</li>
+<li>Optional: add bank and UPI expenses from SMS with one tap (read on the phone, never uploaded)</li>
+</ul>
+
+<p><b>Understand it</b></p>
+<ul>
+<li>Week, month and year insights: spend vs invest, savings rate, category breakdowns</li>
+<li>Weekly and monthly budgets with alerts, rollover and investment goals</li>
+<li>Reminders for EMIs, card bills, SIPs and FD maturity</li>
+</ul>
+
+<p><b>Investments and debts, just the numbers</b></p>
+<ul>
+<li>Record what you put into FDs, mutual funds, stocks, gold and PPF. No live prices and no tracking</li>
+<li>Loans with EMIs, credit cards, and money lent or borrowed</li>
+</ul>
+
+<p><b>Your data, your files</b></p>
+<ul>
+<li>CSV and bank-statement PDF import with duplicate detection; CSV and PDF export</li>
+<li>Password-protected backups, PIN or fingerprint lock, and an encrypted database</li>
+<li>Light, dark and system themes</li>
+<li>English, French, Japanese, Hindi, Gujarati and Odia</li>
+</ul>
+
+<p>Map tiles come from OpenStreetMap when you open a map. Nothing else leaves the phone.</p>

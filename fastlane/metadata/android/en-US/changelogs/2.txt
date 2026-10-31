@@ -1,0 +1,4 @@
+First F-Droid release.
+
+- The app is available in French, Japanese, Hindi, Gujarati and Odia (Settings > Language)
+- Location no longer needs Google Play services

@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:expense_manager/services/location.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geocoding_platform_interface/geocoding_platform_interface.dart' as pi;
 import 'package:geolocator_platform_interface/geolocator_platform_interface.dart';
@@ -53,6 +57,8 @@ class FakeFactory extends pi.GeocodingPlatformFactory {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('returns a named place when permission is granted', () async {
     final svc = PlatformLocationService(
       geolocator: FakeGeo(),
@@ -95,10 +101,61 @@ void main() {
     expect(await svc.requestPermission(), isFalse);
   });
 
-  test('default dependencies use the platform instances', () async {
+  test('default dependencies: geolocator_apple on iOS, the app channel on Android', () async {
     GeolocatorPlatform.instance = FakeGeo();
     pi.GeocodingPlatformFactory.instance = FakeFactory(FakeGeocoding(const [pi.Placemark(locality: 'Pune')]));
-    expect((await PlatformLocationService().current())!.name, 'Pune');
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    try {
+      expect((await PlatformLocationService().current())!.name, 'Pune');
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+    // Android: no channel handler in tests, so the error is swallowed.
+    expect(await PlatformLocationService().current(), isNull);
+  });
+
+  group('AndroidLocation (LocationManager over a method channel)', () {
+    const channel = MethodChannel('expense_manager/location');
+    final calls = <String>[];
+    Object? Function(String method) reply = (_) => null;
+    setUp(() {
+      calls.clear();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
+        calls.add(call.method);
+        return reply(call.method);
+      });
+    });
+    tearDown(() => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, null));
+
+    test('permission maps to whileInUse / denied', () async {
+      final loc = AndroidLocation();
+      reply = (_) => true;
+      expect(await loc.checkPermission(), LocationPermission.whileInUse);
+      expect(await loc.requestPermission(), LocationPermission.whileInUse);
+      reply = (_) => false;
+      expect(await loc.checkPermission(), LocationPermission.denied);
+      reply = (_) => null;
+      expect(await loc.requestPermission(), LocationPermission.denied);
+      expect(calls, ['hasPermission', 'requestPermission', 'hasPermission', 'requestPermission']);
+    });
+
+    test('a fix becomes a Position; no fix or a slow one is an error', () async {
+      final loc = AndroidLocation();
+      reply = (_) => {'lat': 12.97, 'lng': 77.64};
+      final p = await loc.getCurrentPosition();
+      expect([p.latitude, p.longitude], [12.97, 77.64]);
+      reply = (_) => null;
+      await expectLater(loc.getCurrentPosition(), throwsA(isA<LocationServiceDisabledException>()));
+      reply = (_) => Future<Object?>.delayed(const Duration(seconds: 1), () => {'lat': 1.0, 'lng': 2.0});
+      await expectLater(loc.getCurrentPosition(locationSettings: const LocationSettings(timeLimit: Duration(milliseconds: 10))), throwsA(isA<TimeoutException>()));
+    });
+
+    test('PlatformLocationService on Android reads the channel', () async {
+      reply = (m) => m == 'currentPosition' ? {'lat': 18.52, 'lng': 73.85} : true;
+      final svc = PlatformLocationService(reverseGeocode: (a, b) async => const [pi.Placemark(locality: 'Pune')]);
+      expect(await svc.requestPermission(), isTrue);
+      expect((await svc.current())!.name, 'Pune');
+    });
   });
 
   test('search returns named matches, nothing for blank or failures', () async {
