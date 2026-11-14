@@ -67,6 +67,15 @@ android {
         }
     }
 
+    // Store native libraries (Flutter engine, Dart code, SQLite) compressed in
+    // the APK: roughly halves the download. Android extracts them on install,
+    // so the installed app takes a little more space.
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName(if (hasReleaseKey) "release" else "debug")
