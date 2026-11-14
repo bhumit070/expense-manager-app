@@ -50,6 +50,9 @@ class FakeFiles implements FileGateway {
 class FakeLocation implements LocationService {
   Place? place;
   bool grant = true;
+
+  /// Answer to [hasPermission]: whether permission was granted before.
+  bool permitted = false;
   int requests = 0;
   int lookups = 0;
 
@@ -61,6 +64,9 @@ class FakeLocation implements LocationService {
     lookups++;
     return pending != null ? pending!.future : place;
   }
+
+  @override
+  Future<bool> hasPermission() async => permitted;
 
   @override
   Future<bool> requestPermission() async {
