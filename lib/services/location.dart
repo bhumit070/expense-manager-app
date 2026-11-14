@@ -135,11 +135,7 @@ class AndroidLocation extends GeolocatorPlatform {
   @visibleForTesting
   static Map<String, Object> arguments(LocationSettings? settings) {
     final limit = settings?.timeLimit;
-    return {
-      'waitMs': (limit == null ? defaultWait : limit * 3 ~/ 4).inMilliseconds,
-      'maxAgeMs': maxAge.inMilliseconds,
-      'precise': !_coarse.contains(settings?.accuracy ?? LocationAccuracy.best),
-    };
+    return {'waitMs': (limit == null ? defaultWait : limit * 3 ~/ 4).inMilliseconds, 'maxAgeMs': maxAge.inMilliseconds, 'precise': !_coarse.contains(settings?.accuracy ?? LocationAccuracy.best)};
   }
 
   @override
