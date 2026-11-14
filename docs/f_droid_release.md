@@ -28,7 +28,7 @@ cd android
 F-Droid's own scanner on a release APK must report no problems. It reported 985 problems before this change and 0 after:
 
 ```bash
-fdroid scanner build/app/outputs/flutter-apk/app-prod-release.apk
+fdroid scanner build/app/outputs/flutter-apk/app-*-prod-release.apk
 ```
 
 ## Step 2 — Put the version in the source and tag releases
@@ -64,10 +64,10 @@ fastlane/metadata/android/en-US/
   full_description.txt           simple HTML
   images/icon.png                512×512, from assets/icon/icon_full.png
   images/phoneScreenshots/1–7.png  the golden screenshots in test/goldens
-  changelogs/2.txt               what's new in versionCode 2 (≤ 500 chars)
+  changelogs/{1,2,4}002.txt      what's new in 0.2.0, one per CPU build (≤ 500 chars)
 ```
 
-For every release, add `changelogs/<versionCode>.txt`. When screens change, refresh the screenshots (`tool/goldens.sh --update`, then copy them across). Optional: translated listings in `fr-FR/`, `ja-JP/`, `hi-IN/`, `gu-IN/`, `or-IN/`. Missing files fall back to `en-US`.
+For every release, add `changelogs/<versionCode>.txt` for each per-CPU versionCode (for `+2`: `1002.txt`, `2002.txt`, `4002.txt`, see step 4). When screens change, refresh the screenshots (`tool/goldens.sh --update`, then copy them across). Optional: translated listings in `fr-FR/`, `ja-JP/`, `hi-IN/`, `gu-IN/`, `or-IN/`. Missing files fall back to `en-US`.
 
 ## Step 4 — Write the build recipe and test it locally
 
@@ -102,9 +102,9 @@ Repo: https://github.com/bhumit070/expense-manager-app.git
 
 Builds:
   - versionName: 0.2.0
-    versionCode: 2
+    versionCode: 1002
     commit: v0.2.0
-    output: build/app/outputs/flutter-apk/app-prod-release.apk
+    output: build/app/outputs/flutter-apk/app-armeabi-v7a-prod-release.apk
     srclibs:
       - flutter@3.44.0
     prebuild:
@@ -116,13 +116,49 @@ Builds:
       - .pub-cache
     build:
       - export PUB_CACHE=$(pwd)/.pub-cache
-      - $$flutter$$/bin/flutter build apk --release --flavor prod
+      - $$flutter$$/bin/flutter build apk --release --flavor prod --split-per-abi --target-platform android-arm
+  - versionName: 0.2.0
+    versionCode: 2002
+    commit: v0.2.0
+    output: build/app/outputs/flutter-apk/app-arm64-v8a-prod-release.apk
+    srclibs:
+      - flutter@3.44.0
+    prebuild:
+      - sed -i -e '/signingConfig = signingConfigs.getByName/d' android/app/build.gradle.kts
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter build apk --release --flavor prod --split-per-abi --target-platform android-arm64
+  - versionName: 0.2.0
+    versionCode: 4002
+    commit: v0.2.0
+    output: build/app/outputs/flutter-apk/app-x86_64-prod-release.apk
+    srclibs:
+      - flutter@3.44.0
+    prebuild:
+      - sed -i -e '/signingConfig = signingConfigs.getByName/d' android/app/build.gradle.kts
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter config --no-analytics
+      - $$flutter$$/bin/flutter pub get
+    scandelete:
+      - .pub-cache
+    build:
+      - export PUB_CACHE=$(pwd)/.pub-cache
+      - $$flutter$$/bin/flutter build apk --release --flavor prod --split-per-abi --target-platform android-x64
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v\d+\.\d+\.\d+$
 UpdateCheckData: pubspec.yaml|version:\s.+\+(\d+)|.|version:\s(.+)\+
 CurrentVersion: 0.2.0
-CurrentVersionCode: 2
+VercodeOperation:
+  - 1000 + %c
+  - 2000 + %c
+  - 4000 + %c
+CurrentVersionCode: 4002
 ```
 
 Notes:
@@ -131,8 +167,9 @@ Notes:
 - `Categories` must come from fdroiddata's `config/categories.yml`; `Finance Manager` is the one for expense trackers.
 - `flutter@3.44.0` must match `FLUTTER_VERSION` in `.github/workflows/release.yml` (and the version the tag was tested with).
 - `--flavor prod` builds the real app ID `com.bhumit070.expense_manager`; the `dev` flavor (`.dev`) is never published.
-- `versionName`/`versionCode`/`commit` must match the tag from step 2.
-- Checked locally: with the signing line removed, `flutter build apk --release --flavor prod` writes an unsigned APK to `build/app/outputs/flutter-apk/app-prod-release.apk`, which is the `output:` above.
+- `versionName`/`commit` must match the tag from step 2, and each `versionCode` is that tag's `+N` plus 1000, 2000 or 4000.
+- One build per CPU type keeps each APK to about a third of a universal one (~60 MB). `--split-per-abi` makes Flutter set the versionCode to `1000 × ABI + N` (armeabi-v7a 1, arm64-v8a 2, x86_64 4), so `0.2.0+2` becomes 1002, 2002 and 4002. `VercodeOperation` lets auto-update add all three builds for each new tag. F-Droid gives every phone the build for its CPU.
+- With the signing line removed, `flutter build apk --release --flavor prod --split-per-abi --target-platform android-arm64` writes an unsigned APK to `build/app/outputs/flutter-apk/app-arm64-v8a-prod-release.apk`, which is that build's `output:`.
 - The `UpdateCheck*` lines let F-Droid find new `vX.Y.Z` tags and read the version from `pubspec.yaml`, so later releases need no merge request (step 6).
 - Anti-features: none expected. There are no ads, tracking or non-free dependencies (after step 1), and OpenStreetMap tiles are a free network service. Reviewers may still ask; answer in the merge request.
 

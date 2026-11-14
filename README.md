@@ -6,7 +6,7 @@ Design lives in Penpot (page **App screens**). Light screens are `01–18`, dark
 
 ## Install
 
-Android APKs are attached to [GitHub Releases](https://github.com/bhumit070/expense-manager-app/releases). The app is being submitted to F-Droid ([`docs/f_droid_release.md`](docs/f_droid_release.md)). F-Droid signs its builds with its own key, so Android won't update a GitHub install from F-Droid or the other way round. To switch, export a backup (Settings › Back up now), uninstall, install the other build and restore.
+Android APKs are attached to [GitHub Releases](https://github.com/bhumit070/expense-manager-app/releases), one per CPU type: almost every phone wants `…-arm64-v8a.apk`; very old 32-bit phones want `…-armeabi-v7a.apk`, and emulators `…-x86_64.apk`. The app is being submitted to F-Droid ([`docs/f_droid_release.md`](docs/f_droid_release.md)). F-Droid signs its builds with its own key, so Android won't update a GitHub install from F-Droid or the other way round. To switch, export a backup (Settings › Back up now), uninstall, install the other build and restore.
 
 ## Product rules
 

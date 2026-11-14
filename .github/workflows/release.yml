@@ -109,8 +109,15 @@ jobs:
             echo "::warning::ANDROID_KEYSTORE_BASE64 not set — APK will be signed with the debug key"
           fi
       - run: flutter pub get
-      - run: flutter build apk --release --flavor prod --build-name=${{ needs.version.outputs.name }} --build-number=${{ needs.version.outputs.build }}
-      - run: mv build/app/outputs/flutter-apk/app-prod-release.apk expense-manager-${{ needs.version.outputs.tag }}.apk
+      # One APK per CPU type: a universal APK carries three copies of the
+      # Flutter engine and Dart code (~60 MB); each split is about a third.
+      - run: flutter build apk --release --flavor prod --split-per-abi --build-name=${{ needs.version.outputs.name }} --build-number=${{ needs.version.outputs.build }}
+      - name: Name the APKs
+        run: |
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            mv "build/app/outputs/flutter-apk/app-$abi-prod-release.apk" "expense-manager-${{ needs.version.outputs.tag }}-$abi.apk"
+          done
+          ls -lh expense-manager-*.apk
       - uses: actions/upload-artifact@v4
         with:
           name: apk
