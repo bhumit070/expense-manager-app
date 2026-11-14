@@ -91,6 +91,15 @@ void main() {
       expect(loc.requests, 1);
       await tester.pump(const Duration(seconds: 5));
       await tester.pumpAndSettle();
+      // permission already granted but no fix: no prompt, no second lookup
+      loc.permitted = true;
+      final lookups = loc.lookups;
+      await tester.tap(find.byKey(const Key('use-current')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Current location unavailable'), findsOneWidget);
+      expect([loc.requests, loc.lookups - lookups], [1, 1]);
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
       // fix available straight away
       loc.place = const Place(name: 'Office', lat: 12.93, lng: 77.62);
       await tester.tap(find.byKey(const Key('use-current')));
@@ -156,6 +165,9 @@ class _GrantThenLocate extends FakeLocation {
     if (hold) return held.future;
     return granted ? const Place(name: 'After grant', lat: 1, lng: 2) : null;
   }
+
+  @override
+  Future<bool> hasPermission() async => granted;
 
   @override
   Future<bool> requestPermission() async => granted = true;

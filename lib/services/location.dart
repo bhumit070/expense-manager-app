@@ -16,6 +16,9 @@ class Place {
 abstract class LocationService {
   Future<Place?> current();
 
+  /// Whether permission is already granted. Never shows a prompt.
+  Future<bool> hasPermission();
+
   /// Asks the OS for permission (from Settings). Returns true if granted.
   Future<bool> requestPermission();
 
@@ -53,6 +56,15 @@ class PlatformLocationService implements LocationService {
       return Place(name: await describe(pos.latitude, pos.longitude), lat: pos.latitude, lng: pos.longitude);
     } catch (_) {
       return null;
+    }
+  }
+
+  @override
+  Future<bool> hasPermission() async {
+    try {
+      return _granted(await _geo.checkPermission());
+    } catch (_) {
+      return false;
     }
   }
 
@@ -109,18 +121,40 @@ class AndroidLocation extends GeolocatorPlatform {
   @override
   Future<LocationPermission> requestPermission() async => _permission(await channel.invokeMethod<bool>('requestPermission'));
 
+  /// How long the native side waits for a fresh fix when there is no time limit.
+  static const defaultWait = Duration(seconds: 6);
+
+  /// The oldest last-known position used when no fresh fix arrives in time.
+  static const maxAge = Duration(minutes: 10);
+
+  static const _coarse = {LocationAccuracy.lowest, LocationAccuracy.low, LocationAccuracy.reduced};
+
+  /// Channel arguments for [settings]. The native wait is three quarters of
+  /// the time limit, so the native side always answers (with a recent
+  /// last-known fix if it has to) before Dart gives up.
+  @visibleForTesting
+  static Map<String, Object> arguments(LocationSettings? settings) {
+    final limit = settings?.timeLimit;
+    return {
+      'waitMs': (limit == null ? defaultWait : limit * 3 ~/ 4).inMilliseconds,
+      'maxAgeMs': maxAge.inMilliseconds,
+      'precise': !_coarse.contains(settings?.accuracy ?? LocationAccuracy.best),
+    };
+  }
+
   @override
   Future<Position> getCurrentPosition({LocationSettings? locationSettings}) async {
-    var call = channel.invokeMapMethod<String, double>('currentPosition');
+    var call = channel.invokeMapMethod<String, Object?>('currentPosition', arguments(locationSettings));
     final limit = locationSettings?.timeLimit;
     if (limit != null) call = call.timeout(limit);
     final fix = await call;
     if (fix == null) throw const LocationServiceDisabledException();
+    final time = fix['time'];
     return Position(
-      latitude: fix['lat']!,
-      longitude: fix['lng']!,
-      timestamp: DateTime.now(),
-      accuracy: 0,
+      latitude: (fix['lat'] as num).toDouble(),
+      longitude: (fix['lng'] as num).toDouble(),
+      timestamp: time is int ? DateTime.fromMillisecondsSinceEpoch(time) : DateTime.now(),
+      accuracy: (fix['accuracy'] as num?)?.toDouble() ?? 0,
       altitude: 0,
       altitudeAccuracy: 0,
       heading: 0,

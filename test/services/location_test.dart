@@ -30,6 +30,11 @@ class FakeGeo extends GeolocatorPlatform with MockPlatformInterfaceMixin {
   }
 }
 
+class _ThrowingGeo extends FakeGeo {
+  @override
+  Future<LocationPermission> checkPermission() async => throw Exception('no channel');
+}
+
 class FakeGeocoding extends pi.Geocoding {
   FakeGeocoding(this.marks, {this.fail = false, this.found = const []}) : super.implementation(const pi.GeocodingCreationParams());
 
@@ -91,9 +96,13 @@ void main() {
     expect(await svc.current(), isNull);
   });
 
-  test('requestPermission maps results and errors', () async {
+  test('hasPermission and requestPermission map results and errors', () async {
     final geo = FakeGeo();
     final svc = PlatformLocationService(geolocator: geo);
+    expect(await svc.hasPermission(), isTrue);
+    geo.permission = LocationPermission.denied;
+    expect(await svc.hasPermission(), isFalse);
+    expect(await PlatformLocationService(geolocator: _ThrowingGeo()).hasPermission(), isFalse);
     expect(await svc.requestPermission(), isTrue);
     geo.requested = LocationPermission.deniedForever;
     expect(await svc.requestPermission(), isFalse);
@@ -102,26 +111,41 @@ void main() {
   });
 
   test('default dependencies: geolocator_apple on iOS, the app channel on Android', () async {
-    GeolocatorPlatform.instance = FakeGeo();
+    const channel = MethodChannel('expense_manager/location');
+    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final original = GeolocatorPlatform.instance;
+    final calls = <String>[];
+    GeolocatorPlatform.instance = FakeGeo(); // 12.97, 77.64
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      calls.add(call.method);
+      return call.method == 'currentPosition' ? {'lat': 18.52, 'lng': 73.85} : true;
+    });
     pi.GeocodingPlatformFactory.instance = FakeFactory(FakeGeocoding(const [pi.Placemark(locality: 'Pune')]));
-    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     try {
-      expect((await PlatformLocationService().current())!.name, 'Pune');
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      expect((await PlatformLocationService().current())!.lat, 12.97159);
+      expect(calls, isEmpty);
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      expect((await PlatformLocationService().current())!.lat, 18.52);
+      expect(calls, ['hasPermission', 'currentPosition']);
     } finally {
       debugDefaultTargetPlatformOverride = null;
+      GeolocatorPlatform.instance = original;
+      messenger.setMockMethodCallHandler(channel, null);
     }
-    // Android: no channel handler in tests, so the error is swallowed.
-    expect(await PlatformLocationService().current(), isNull);
   });
 
   group('AndroidLocation (LocationManager over a method channel)', () {
     const channel = MethodChannel('expense_manager/location');
     final calls = <String>[];
+    final args = <Object?>[];
     Object? Function(String method) reply = (_) => null;
     setUp(() {
       calls.clear();
+      args.clear();
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
         calls.add(call.method);
+        args.add(call.arguments);
         return reply(call.method);
       });
     });
@@ -148,6 +172,29 @@ void main() {
       await expectLater(loc.getCurrentPosition(), throwsA(isA<LocationServiceDisabledException>()));
       reply = (_) => Future<Object?>.delayed(const Duration(seconds: 1), () => {'lat': 1.0, 'lng': 2.0});
       await expectLater(loc.getCurrentPosition(locationSettings: const LocationSettings(timeLimit: Duration(milliseconds: 10))), throwsA(isA<TimeoutException>()));
+    });
+
+    test('accuracy and fix time come from the native fix', () async {
+      reply = (_) => {'lat': 12, 'lng': 77.5, 'accuracy': 25.0, 'time': 1700000000000};
+      final p = await AndroidLocation().getCurrentPosition();
+      expect([p.latitude, p.longitude, p.accuracy], [12.0, 77.5, 25.0]);
+      expect(p.timestamp, DateTime.fromMillisecondsSinceEpoch(1700000000000));
+    });
+
+    test('the time limit and accuracy are passed to the native side', () async {
+      reply = (_) => {'lat': 1.0, 'lng': 2.0};
+      await AndroidLocation().getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium, timeLimit: Duration(seconds: 8)),
+      );
+      await AndroidLocation().getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.low));
+      expect(args, [
+        {'waitMs': 6000, 'maxAgeMs': 600000, 'precise': true},
+        {'waitMs': 6000, 'maxAgeMs': 600000, 'precise': false},
+      ]);
+      // The native wait always ends before the Dart time limit.
+      for (final s in [1, 5, 8, 30]) {
+        expect(AndroidLocation.arguments(LocationSettings(timeLimit: Duration(seconds: s)))['waitMs'], lessThan(s * 1000));
+      }
     });
 
     test('PlatformLocationService on Android reads the channel', () async {

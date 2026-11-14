@@ -68,7 +68,9 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   Future<void> _useCurrent(AppState app) async {
     setState(() => _busy = true);
     var place = await app.location.current();
-    if (place == null && await app.location.requestPermission()) place = await app.location.current();
+    // Only retry after a prompt: with permission already granted, a missing
+    // fix just means none is available, and a retry would double the wait.
+    if (place == null && !await app.location.hasPermission() && await app.location.requestPermission()) place = await app.location.current();
     if (!mounted) return;
     setState(() => _busy = false);
     if (place == null) {
